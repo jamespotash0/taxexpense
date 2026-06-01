@@ -22,6 +22,55 @@ Set up all accounts, services, schemas, and infrastructure needed before feature
 
 ---
 
+## Build Status — Claude Code session 2026-06-01
+
+Code/SQL scaffolding is **done and verified** (`npm run build` + `npm run lint` pass).
+What remains is the **founder's manual external work** (no code can do these). See
+`claude_files/docs/JOURNAL.md` for the architecture decisions made this session
+(DEC-001…DEC-005).
+
+| Ticket | Status | Notes |
+|--------|--------|-------|
+| TSNAP-001 Create service accounts | 🟡 IN PROGRESS — founder | Supabase ✅. Anthropic/Twilio/Resend/Vercel/Sentry/domain pending. |
+| TSNAP-002 Init Next.js | ✅ DONE | Next.js **16** + React 19 + Tailwind **v4** at repo root (DEC-002, DEC-005). |
+| TSNAP-003 Deploy to Vercel | ⛔ BLOCKED — founder | Needs accounts + domain. Repo is deploy-ready (zero config). |
+| TSNAP-004 Init Supabase client | ✅ CODE DONE | `src/lib/supabase.ts` (anon + service-role, lazy). Live test needs keys. |
+| TSNAP-005 DB schema | ✅ SQL DONE | `supabase/migrations/0001_schema.sql` (+ RLS default-deny, DEC-001). Run in SQL editor. |
+| TSNAP-006 Seed IRC summaries | ✅ SQL DONE | `supabase/migrations/0003_seed_irc_summaries.sql` (7 sections). |
+| TSNAP-007 Seed substantiation rules | ✅ SQL DONE | `supabase/migrations/0002_seed_substantiation_rules.sql` (18 rows). |
+| TSNAP-008 Env vars | 🟡 PARTIAL | `.env.local` has Supabase URL + anon + service_role + SESSION_SECRET. Anthropic/Twilio/Resend pending. |
+| TSNAP-009 Install deps | ✅ DONE | supabase-js, anthropic-sdk, twilio, resend, zod, nanoid. |
+| TSNAP-010 Test Anthropic | ✅ CODE DONE | `GET /api/test-claude` (dev-only). Live call needs `ANTHROPIC_API_KEY`. |
+| TSNAP-011 Folder structure | ✅ DONE | All API routes, page stubs, `src/proxy.ts`, `lib/` clients + stubs. |
+| TSNAP-012 Verify E2E | 🟡 PARTIAL | Local build/lint green. Deployed-site + live-DB checks pending accounts. |
+
+**Founder action checklist (live):**
+
+Done:
+- [x] Supabase account + project created (`zlhinfnnoberjeqsdumw`)
+- [x] Supabase URL + anon key + service_role key in `.env.local`
+- [x] `SESSION_SECRET` generated into `.env.local`
+- [x] All code + SQL migrations scaffolded; combined into `supabase/migrations/RUN_ALL.sql`
+
+Do next (in order):
+- [ ] **Run `supabase/migrations/RUN_ALL.sql`** in the Supabase SQL editor ← *in progress*.
+      Claude verifies 18 rules (6 strict) + 7 summaries after.
+- [ ] **Anthropic**: account → add $20 credit → create API key → put `sk-ant-...` in
+      `.env.local` (`ANTHROPIC_API_KEY`). Unblocks `/api/test-claude` + all AI work.
+- [ ] **Twilio**: account → $10 credit → buy a US number → put SID / auth token / number
+      in `.env.local`. Also add your own phone to Twilio "Verified Caller IDs" (trial
+      accounts can only text verified numbers). Needed for EPIC-2 SMS testing.
+- [ ] **Resend**: account → API key → `RESEND_API_KEY`. Email-accountant (EPIC-8, can slip).
+- [ ] **Domain**: buy (~$15, Porkbun/Namecheap). Needed for EPIC-5 / public launch.
+- [ ] **GitHub + Vercel**: push repo to GitHub, connect to Vercel, mirror `.env.local`
+      vars into Vercel (Production + Preview), point domain. Claude can drive `vercel` CLI.
+- [ ] **Sentry**: optional for V1 — defer.
+
+> Note: `database.types.ts` (TSNAP-005 technical note) is intentionally NOT generated
+> yet — `supabase gen types` needs the live schema. Generate it after RUN_ALL.sql succeeds.
+
+---
+
 ## Tickets in Order
 
 ### TSNAP-001 — Create Service Accounts

@@ -45,6 +45,44 @@ Format: date, decision, who pushed back, resolution, rationale.
   break the core product. At-rest encryption + log masking covers the realistic
   exposure (leaked logs / casual DB browsing).
 
+### DEC-006 — Dashboard login uses CUSTOM phone OTP (auth_codes + sessions), not Supabase Auth
+- **Context:** Founder asked whether `auth_codes` + `sessions` are redundant given
+  Supabase ships a managed Auth service (phone OTP + sessions + `auth.uid()` for RLS).
+- **Tension:** "Don't roll your own auth" + free `auth.uid()` RLS (would fix the
+  DEC-001 compromise) argues FOR Supabase Auth. Against it: the product is **SMS-first**
+  — `public.users` rows are created from inbound SMS before any dashboard login, and
+  **phone is the universal key**. Supabase Auth would mint a separate `auth.users`
+  identity per login that must be reconciled by phone — a parallel identity model that
+  fights "the phone number IS the user."
+- **Decision:** Keep custom `auth_codes` + `sessions`. One phone-keyed `users` table
+  serves both the SMS pipeline and dashboard login. Note: auth is **dashboard-only**;
+  the SMS core never authenticates (it resolves users by inbound phone number).
+- **Rationale:** Coherence with the SMS-first / phone-as-key model outweighs managed-auth
+  convenience for V1. OTP + session is a simple, well-trodden pattern (not password auth).
+- **Mandatory mitigation (Jordan / EPIC-7):** crypto-strong session tokens, constant-time
+  OTP code comparison, HTTP-only + secure + sameSite cookies, OTP rate-limit (3/phone/15min)
+  + attempt lockout. Hand-rolled auth is only acceptable WITH this hardening.
+- **Deferred to V2:** Reconsider Supabase Auth to gain `auth.uid()`-backed RLS (would
+  retire the DEC-001 app-layer-filtering compromise).
+
+### DEC-005 — Framework versions: Next.js 16 / React 19 / Tailwind v4 (not Next 14)
+- **Context:** SPEC/CLAUDE.md assumed "Next.js 14+". `create-next-app@latest` (run
+  per TSNAP-002) produced **Next.js 16.2.6 + React 19.2 + Tailwind v4**.
+- **Decision:** Proceed on current stable rather than pinning back to 14.
+- **Consequences the team must know (these differ from older Next/Tailwind):**
+  - **Async request APIs:** route handler and page `params` are now Promises
+    (`const { id } = await params`). All `[id]` routes/pages already follow this.
+  - **`middleware.ts` is deprecated → renamed to `proxy.ts`** (exports `proxy()`).
+    Auth gating (EPIC-4) lands in `src/proxy.ts`, not `middleware.ts`.
+  - **Tailwind v4:** no `tailwind.config.js`; config is CSS-first via
+    `@import "tailwindcss"` in `globals.css`. The `prose` class needs the
+    typography plugin (not installed yet — legal pages in EPIC-5 can add it).
+  - Build uses **Turbopack** by default.
+- **Rationale:** Latest stable satisfies "14+", gets us React 19 + the current
+  Vercel deploy path, and avoids a downgrade fight. CLAUDE.md tech-stack section
+  and AGENTS.md updated to reflect this.
+- **Owner:** Emma (frontend) should skim the Next 16 migration notes before EPIC-4.
+
 ### DEC-004 — `personal` category retained with deduction_percentage = 0
 - **Context:** The `personal` (§262) row in `substantiation_rules` is "general" level but
   not deductible. Minor modeling oddity flagged during seed review.
