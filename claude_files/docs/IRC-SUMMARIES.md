@@ -7,6 +7,8 @@ These are the 7 IRC sections that cover ~90% of common self-employed business ex
 2. Consider getting a CPA spot-check
 3. Apply standard disclaimer language
 
+> **Sourcing & currency (2026):** The statutory detail, subsection-level rules, "WHY"-to-capture notes, and primary/secondary sources behind these summaries live in [`IRC-RESEARCH.md`](./IRC-RESEARCH.md). That file reconciles these summaries to the **One Big Beautiful Bill Act (P.L. 119-21, July 2025)** — which changed §179, §168(k), and §199A — and lists the figures that are inflation-adjusted and need annual review. **If you edit a number below, update IRC-RESEARCH.md too.** Last reconciled: 2026-06-01.
+
 ---
 
 ## §162 — Ordinary and Necessary Business Expenses
@@ -91,9 +93,9 @@ These are the 7 IRC sections that cover ~90% of common self-employed business ex
 
 **deduction_percentage:** 100
 
-**common_practice:** Commonly used for: computers, cameras, professional equipment, business vehicles (with limits), software, office furniture, machinery. As of 2024 the limit was $1.16 million annually — most freelancers won't approach this cap.
+**common_practice:** Commonly used for: computers, cameras, professional equipment, business vehicles (with limits), software, office furniture, machinery. Under the One Big Beautiful Bill Act (2025), the annual limit is $2.5 million with a $4 million phase-out threshold (indexed for inflation from 2026) — most freelancers won't approach this cap. Separately, §168(k) "bonus depreciation" is back to 100% (permanent) for qualifying property acquired and placed in service after Jan 19, 2025, which is another way to write off equipment in year one.
 
-**worth_noting:** The equipment must be used more than 50% for business. If you use it less than 100% for business, you can only deduct the business-use percentage. The item must be put into service during the tax year — buying it and storing it unused doesn't qualify.
+**worth_noting:** The equipment must be used more than 50% for business. If you use it less than 100% for business, you can only deduct the business-use percentage. The item must be put into service during the tax year — buying it and storing it unused doesn't qualify. The $2.5M/$4M figures are inflation-adjusted annually starting 2026 — re-verify each tax year (see IRC-RESEARCH.md).
 
 **source_url:** https://www.law.cornell.edu/uscode/text/26/179
 
@@ -218,11 +220,11 @@ INSERT INTO irc_summaries (
   'Section 179 Equipment Deduction',
   'Allows businesses to deduct the full purchase price of qualifying equipment and software in the year it was bought, rather than depreciating it over several years.',
   100,
-  'Commonly used for: computers, cameras, professional equipment, business vehicles (with limits), software, office furniture, machinery. As of 2024 the limit was $1.16 million annually — most freelancers won''t approach this cap.',
-  'The equipment must be used more than 50% for business. If you use it less than 100% for business, you can only deduct the business-use percentage. The item must be put into service during the tax year — buying it and storing it unused doesn''t qualify.',
+  'Commonly used for: computers, cameras, professional equipment, business vehicles (with limits), software, office furniture, machinery. Under the One Big Beautiful Bill Act (2025), the annual limit is $2.5 million with a $4 million phase-out threshold (indexed for inflation from 2026) — most freelancers won''t approach this cap. Separately, §168(k) bonus depreciation is back to 100% (permanent) for qualifying property placed in service after Jan 19, 2025.',
+  'The equipment must be used more than 50% for business. If you use it less than 100% for business, you can only deduct the business-use percentage. The item must be put into service during the tax year — buying it and storing it unused doesn''t qualify. The $2.5M/$4M figures are inflation-adjusted annually starting 2026.',
   'https://www.law.cornell.edu/uscode/text/26/179',
   CURRENT_DATE,
-  1
+  2
 ),
 
 -- §1402 Self-Employment Tax

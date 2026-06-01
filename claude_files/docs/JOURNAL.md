@@ -45,6 +45,24 @@ Format: date, decision, who pushed back, resolution, rationale.
   break the core product. At-rest encryption + log masking covers the realistic
   exposure (leaked logs / casual DB browsing).
 
+### SEC-001 — Jordan's RLS flags (re: "do we need more RLS handling?")
+Schema verified live 2026-06-01: all 9 tables exist; seeds not yet run (founder's choice).
+Verdict: **table-level RLS is correct for V1 (default-deny everywhere). No additional
+RLS policies needed** — server-only access via service_role per DEC-001/DEC-006. Adding
+policies now would be security theater. Required follow-ups (NOT more table RLS):
+1. **Prove default-deny with data.** Empty tables return `[]` regardless, so isolation is
+   currently unproven. Acceptance test after seeding: anon key → `[]`; service_role → 18
+   rules / 7 summaries. (Claude to run.)
+2. **Guard the service_role bypass.** Isolation rests on (a) the key never reaching the
+   browser and (b) every org-owned query using `lib/db.orgTable()`. Add a guardrail
+   against raw `getSupabaseAdmin().from('receipts'|'conversations'|'users')` calls that
+   skip the `organization_id` filter (code-review checklist or eslint rule).
+3. **🔴 Storage is uncovered.** RLS here is on Postgres TABLES only. Receipt photos live in
+   Supabase Storage with separate policies. EPIC-2/4 MUST: private bucket (never public) +
+   short-expiry signed URLs. This is the real leak vector if missed.
+Optional decision: keep global reference tables (`irc_summaries`, `substantiation_rules`)
+under default-deny for V1; only add an anon read policy if rendering them client-side later.
+
 ### DEC-006 — Dashboard login uses CUSTOM phone OTP (auth_codes + sessions), not Supabase Auth
 - **Context:** Founder asked whether `auth_codes` + `sessions` are redundant given
   Supabase ships a managed Auth service (phone OTP + sessions + `auth.uid()` for RLS).
@@ -88,3 +106,34 @@ Format: date, decision, who pushed back, resolution, rationale.
   not deductible. Minor modeling oddity flagged during seed review.
 - **Decision:** Keep as specced. It exists so the AI can explicitly classify a
   non-deductible expense rather than mis-bucketing it. 0% deduction makes intent clear.
+
+### DEC-007 — IRC content source-verified to 2026/OBBBA; new IRC-RESEARCH.md is the sourcing backbone
+- **Context:** IRC-SUMMARIES.md shipped as "AI-assisted drafts" needing source review
+  (a CLAUDE.md Critical Open Item). Requested a proper pull of current tax code at
+  subsection level for the Schedule-C target user, with sourcing.
+- **Method:** Two multi-agent web-research passes (broad fan-out with 3-vote adversarial
+  verification, then a focused gap-verification pass), primary-source-first (Cornell LII
+  statute/reg text; official IRS Rev. Procs/Notices/newsroom + SSA for current figures;
+  CPA-firm sources only to corroborate).
+- **Decision:** Added [`IRC-RESEARCH.md`](./IRC-RESEARCH.md) — subsection-level rules, the
+  "WHY"-to-capture per provision, primary/secondary sources, an annual-review checklist
+  for inflation-adjusted figures, and CPA-review flags. IRC-SUMMARIES.md now points to it.
+- **Corrections made (out-of-date → current):**
+  - **§179 cap $1.16M → $2.5M max / $4M phase-out** (OBBBA, P.L. 119-21, July 2025).
+    Fixed in both the §179 prose and the SQL seed (row bumped to `version` 2).
+  - Added **§168(k) 100% bonus depreciation is permanent** (property placed in service
+    after Jan 19, 2025) context to §179.
+- **New subsection coverage documented** (beyond the seeded 7): §162(a)(1)/(a)(2)/(l),
+  §274(a)/(b)(1)/(d)/(k)/(n) incl. the **$75 documentary-evidence threshold** that
+  underpins our "SMS = the record under $75" rule, §280F (listed-property + 2026 auto
+  caps), §195, §6001, §164(f) + the 0.9% Additional Medicare surtax, §199A (made
+  permanent by OBBBA; 2026 thresholds).
+- **Open CPA-review flags (do NOT assert in user copy):** §164(f) × 0.9% surtax
+  deductibility (low-confidence — conservative view: not deductible); §274(o) employer-
+  convenience-meal disallowance edge cases; §280A "exclusive use" borderline calls;
+  §199A SSTB classification; federal-only (no state conformity). Tracked in IRC-RESEARCH.md.
+- **Refuted & excluded:** the claim that OBBBA Qualified Production Property shares the
+  bonus-depreciation "after Jan 19, 2025" date (verdict 0–3; QPP timing differs and is
+  out of scope for Schedule-C users anyway).
+- **Owner:** still needs the CPA spot-check from CLAUDE.md Critical Open Items before
+  any of this drives user-facing *advice* (we remain a logger, not an advisor).

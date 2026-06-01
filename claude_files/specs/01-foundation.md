@@ -40,7 +40,7 @@ What remains is the **founder's manual external work** (no code can do these). S
 | TSNAP-007 Seed substantiation rules | ✅ SQL DONE | `supabase/migrations/0002_seed_substantiation_rules.sql` (18 rows). |
 | TSNAP-008 Env vars | 🟡 PARTIAL | `.env.local` has Supabase URL + anon + service_role + SESSION_SECRET. Anthropic/Twilio/Resend pending. |
 | TSNAP-009 Install deps | ✅ DONE | supabase-js, anthropic-sdk, twilio, resend, zod, nanoid. |
-| TSNAP-010 Test Anthropic | ✅ CODE DONE | `GET /api/test-claude` (dev-only). Live call needs `ANTHROPIC_API_KEY`. |
+| TSNAP-010 Test Anthropic | ✅ DONE | Verified live 2026-06-01: Haiku 4.5 + Sonnet 4.6 both respond. Key in `.env.local`. |
 | TSNAP-011 Folder structure | ✅ DONE | All API routes, page stubs, `src/proxy.ts`, `lib/` clients + stubs. |
 | TSNAP-012 Verify E2E | 🟡 PARTIAL | Local build/lint green. Deployed-site + live-DB checks pending accounts. |
 
@@ -52,11 +52,14 @@ Done:
 - [x] `SESSION_SECRET` generated into `.env.local`
 - [x] All code + SQL migrations scaffolded; combined into `supabase/migrations/RUN_ALL.sql`
 
+Done (cont.):
+- [x] Schema (0001) run — all 9 tables verified live. Seeds (0002/0003) still pending.
+- [x] **Anthropic** key in `.env.local`; verified live — Haiku 4.5 + Sonnet 4.6 both respond.
+
 Do next (in order):
-- [ ] **Run `supabase/migrations/RUN_ALL.sql`** in the Supabase SQL editor ← *in progress*.
-      Claude verifies 18 rules (6 strict) + 7 summaries after.
-- [ ] **Anthropic**: account → add $20 credit → create API key → put `sk-ant-...` in
-      `.env.local` (`ANTHROPIC_API_KEY`). Unblocks `/api/test-claude` + all AI work.
+- [ ] **Seed the data**: run `0002_seed_substantiation_rules.sql` + `0003_seed_irc_summaries.sql`
+      (or the seed half of `RUN_ALL.sql`) in the SQL editor. Claude then verifies 18 rules
+      (6 strict) + 7 summaries AND that anon key is denied (proves RLS default-deny, SEC-001).
 - [ ] **Twilio**: account → $10 credit → buy a US number → put SID / auth token / number
       in `.env.local`. Also add your own phone to Twilio "Verified Caller IDs" (trial
       accounts can only text verified numbers). Needed for EPIC-2 SMS testing.
