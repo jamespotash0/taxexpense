@@ -18,7 +18,6 @@ const en = {
     secondary: '21 days free, no card — or just text {number} · WhatsApp too',
     disclaimer: 'Recordkeeping, not tax advice. Reply STOP to opt out.',
   },
-  proof: { madeFor: 'Made for the self-employed:', roles: ['Freelancers', 'Consultants', 'Contractors', 'Creators', 'Photographers', 'Coaches'] },
   bento: {
     heading: 'Built around the rules the IRS actually cares about.',
     t1tag: 'Smart substantiation',
@@ -236,7 +235,6 @@ const es: Dict = {
     secondary: '21 días gratis, sin tarjeta — o solo escribe a {number} · también WhatsApp',
     disclaimer: 'Llevar registros, no asesoría fiscal. Responde STOP para darte de baja.',
   },
-  proof: { madeFor: 'Hecho para independientes:', roles: ['Freelancers', 'Consultores', 'Contratistas', 'Creadores', 'Fotógrafos', 'Coaches'] },
   bento: {
     heading: 'Diseñado según las reglas que de verdad le importan al IRS.',
     t1tag: 'Sustanciación inteligente',

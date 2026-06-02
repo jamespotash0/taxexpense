@@ -21,9 +21,9 @@ export default async function Home() {
 
   return (
     <div className="text-gray-900">
-      {/* Nav */}
-      <header className="sticky top-0 z-20 border-b border-gray-100 bg-white/70 backdrop-blur-md">
-        <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
+      {/* Nav — floating pill that sticks near the top */}
+      <header className="sticky top-0 z-30 px-4 pt-4">
+        <nav className="mx-auto flex max-w-3xl items-center justify-between gap-4 rounded-full border border-gray-200/70 bg-white/80 py-2 pl-5 pr-2 shadow-lg shadow-gray-900/5 backdrop-blur-md">
           <span className="text-lg font-semibold tracking-tight">Tally</span>
           <div className="flex items-center gap-2 text-sm">
             <LocaleSwitcher current={locale} />
@@ -81,16 +81,6 @@ export default async function Home() {
         <Reveal className="mx-auto mt-16 max-w-sm px-6 pb-20 md:mt-20 md:pb-28" delay={0.05}>
           <AnimatedPhone />
         </Reveal>
-      </section>
-
-      {/* Proof strip */}
-      <section className="border-y border-gray-100 bg-gray-50/60">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-3 gap-y-2 px-6 py-5 text-sm text-gray-500">
-          <span className="font-medium text-gray-700">{t.proof.madeFor}</span>
-          {t.proof.roles.map((a) => (
-            <span key={a} className="rounded-full bg-white px-3 py-1 ring-1 ring-gray-200">{a}</span>
-          ))}
-        </div>
       </section>
 
       {/* Bento feature grid */}
