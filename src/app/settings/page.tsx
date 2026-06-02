@@ -5,6 +5,7 @@ import { getCurrentUser } from '@/lib/session';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { SettingsForm } from '@/components/SettingsForm';
 import { EmailAccountantButton } from '@/components/EmailAccountantButton';
+import { DeleteAccountButton } from '@/components/DeleteAccountButton';
 
 export default async function SettingsPage() {
   const user = await getCurrentUser();
@@ -38,6 +39,12 @@ export default async function SettingsPage() {
         <h2 className="text-sm font-medium">Accountant</h2>
         <p className="mb-3 mt-1 text-sm text-gray-500">Send this month&apos;s expenses (CSV) to your accountant.</p>
         <EmailAccountantButton hasAccountantEmail={!!user.accountant_email} />
+      </div>
+
+      <div className="mt-8 border-t border-gray-100 pt-6">
+        <h2 className="text-sm font-medium text-error-700">Danger zone</h2>
+        <p className="mb-3 mt-1 text-sm text-gray-500">Delete your account and all data permanently.</p>
+        <DeleteAccountButton />
       </div>
     </main>
   );

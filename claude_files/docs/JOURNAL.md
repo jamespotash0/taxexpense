@@ -9,6 +9,24 @@ Format: date, decision, who pushed back, resolution, rationale.
 
 ## 2026-06-01 — Day 1 / EPIC-1 Foundation kickoff
 
+## 2026-06-01 — Receipt image storage hardening
+
+### DEC-018 — OCR-before-store (no orphaned images) + account-deletion Storage purge
+- **Found (Jordan):** the SMS flow stored every inbound photo to Supabase Storage BEFORE
+  OCR. Non-receipt / unreadable / unmatched photos got stored but never linked to a
+  `receipts` row → orphaned images (privacy: we keep images we never use; plus storage cost).
+  Separately, DB cascade deletes rows but not Storage objects → account deletion left images.
+- **Fix 1 (no orphans):** OCR from the Twilio bytes in-memory first (base64 vision via
+  `extractReceiptFromImageData`), and only `storePhotoBuffer` once we know the image links —
+  i.e. a confirmed new receipt or a high-confidence attachment. not-a-receipt / unreadable /
+  medium-low matches are never written to Storage. `fetchTwilioMedia` replaces the old
+  store-then-OCR `downloadAndStorePhoto`. Dashboard upload still stores (it always links).
+- **Fix 2 (deletion purge):** `deleteAllUserPhotos(userId)` + `DELETE /api/account` purges
+  Storage objects, then deletes the user (cascades receipts/conversations/roles/sessions),
+  the org, and leftover auth codes — closing the SEC-001 Storage-deletion gap (CCPA/GDPR).
+- **Note:** images are in Supabase Storage (S3-backed), private bucket, served via 1h signed
+  URLs; path (not URL) stored on the receipt; removed on receipt delete too.
+
 ## 2026-06-01 — Design system (TSNAP-034) + mobile-app scope
 
 ### DEC-017 — Formalized web design tokens; no native mobile app in V1

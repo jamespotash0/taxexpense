@@ -27,6 +27,9 @@ interface CallOpts {
   system: string;
   userText: string;
   imageUrl?: string;
+  /** Inline image bytes (base64) — used to OCR before storing, to avoid orphaned uploads. */
+  imageBase64?: string;
+  imageMediaType?: string;
   maxTokens?: number;
   /** Cache the system prompt (Anthropic prompt caching, ~75% cost cut on repeats). */
   cacheSystem?: boolean;
@@ -34,7 +37,14 @@ interface CallOpts {
 
 function buildArgs(opts: CallOpts) {
   const userContent: Array<Record<string, unknown>> = [];
-  if (opts.imageUrl) userContent.push({ type: 'image', source: { type: 'url', url: opts.imageUrl } });
+  if (opts.imageBase64) {
+    userContent.push({
+      type: 'image',
+      source: { type: 'base64', media_type: opts.imageMediaType ?? 'image/jpeg', data: opts.imageBase64 },
+    });
+  } else if (opts.imageUrl) {
+    userContent.push({ type: 'image', source: { type: 'url', url: opts.imageUrl } });
+  }
   userContent.push({ type: 'text', text: opts.userText });
 
   const system = opts.cacheSystem

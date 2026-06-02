@@ -6,7 +6,7 @@ import { normalizeToE164 } from './phone';
 import { getOrCreateUserByPhone, touchLastActive, updateUser, type AppUser } from './users';
 import { logConversation, getPendingContext, type ContextState } from './conversations';
 import { handleOnboarding } from './onboarding';
-import { downloadAndStorePhoto, extractReceiptFromPhoto, parseTextExpense, type OcrResult } from './ocr';
+import { fetchTwilioMedia, extractReceiptFromImageData, storePhotoBuffer, parseTextExpense, type OcrResult } from './ocr';
 import { processNewExpense, processClarification, processAttachment, type ProcessResult } from './expense';
 import type { ExpenseInput } from './categorize';
 import { sendSms } from './twilio';
@@ -49,16 +49,20 @@ async function handlePhotoAsNewExpense(
   user: AppUser,
   ocr: OcrResult,
   bodyText: string,
-  photoPath: string,
+  buffer: Buffer,
+  contentType: string,
 ): Promise<ProcessResult> {
   if (!ocr.ok) {
+    // Not a usable receipt → DON'T store the image (no orphan). Just guide the user.
     return {
       smsText: ocr.error === 'not_a_receipt' ? MSG.notReceipt : MSG.unreadable,
       receiptId: null,
       contextState: null,
     };
   }
-  return processNewExpense(user, ocrToInput(ocr.data, bodyText), photoPath);
+  // Confirmed a receipt → persist the image now and link it.
+  const { path } = await storePhotoBuffer(buffer, contentType, user.id);
+  return processNewExpense(user, ocrToInput(ocr.data, bodyText), path);
 }
 
 async function handleTextAsNewExpense(user: AppUser, body: string): Promise<ProcessResult> {
@@ -91,15 +95,17 @@ async function handleExpenseFlow(user: AppUser, msg: InboundMessage): Promise<Pr
   const pending = await getPendingContext(user.id);
 
   if (hasPhoto) {
-    const { path, signedUrl } = await downloadAndStorePhoto(msg.mediaUrls[0], user.id);
-    const ocr = await extractReceiptFromPhoto(signedUrl);
+    // OCR from the bytes FIRST; we only write to Storage once we know the image links
+    // to a receipt (prevents orphaned uploads from non-receipt / unmatched photos).
+    const { buffer, contentType } = await fetchTwilioMedia(msg.mediaUrls[0]);
+    const ocr = await extractReceiptFromImageData(buffer, contentType);
 
-    // If a receipt is awaiting a photo, try to attach this one first.
+    // If a receipt is awaiting a photo, try to attach this one first (stores on match).
     if (pending) {
-      const attached = await processAttachment(user, ocr, path);
+      const attached = await processAttachment(user, ocr, buffer, contentType);
       if (attached) return attached;
     }
-    return handlePhotoAsNewExpense(user, ocr, msg.body, path);
+    return handlePhotoAsNewExpense(user, ocr, msg.body, buffer, contentType);
   }
 
   // Text message answering a pending context question → clarification flow.

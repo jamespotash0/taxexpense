@@ -22,7 +22,7 @@ import type { ContextState } from './conversations';
 import { claudeJSON } from './llm';
 import { SONNET_MODEL } from './claude';
 import { CLARIFICATION_PROMPT, RECEIPT_ATTACHMENT_PROMPT } from './prompts';
-import type { OcrResult } from './ocr';
+import { storePhotoBuffer, type OcrResult } from './ocr';
 
 export interface ProcessResult {
   smsText: string;
@@ -248,7 +248,8 @@ interface AttachmentResponse {
 export async function processAttachment(
   user: AppUser,
   ocr: OcrResult,
-  photoPath: string,
+  buffer: Buffer,
+  contentType: string,
 ): Promise<ProcessResult | null> {
   if (!ocr.ok) return null; // not a readable receipt → let caller handle the OCR error
   const candidates = await findReceiptsAwaitingPhoto(user.organization_id);
@@ -273,6 +274,8 @@ export async function processAttachment(
   });
 
   if (parsed.match_confidence === 'high') {
+    // Only NOW do we persist the image — confirmed it links to a receipt (no orphan).
+    const { path } = await storePhotoBuffer(buffer, contentType, user.id);
     const rule = (await getSubstantiationRule(target.category!)) ?? generalFallback(target.category!);
     const decision = evaluateSubstantiation(rule, {
       amount_cents: parsed.use_ocr_data && parsed.updates.amount_cents ? parsed.updates.amount_cents : target.amount_cents,
@@ -280,7 +283,7 @@ export async function processAttachment(
       captured_fields: capturedFrom(target),
     });
     await updateReceipt(user.organization_id, target.id, {
-      photo_url: photoPath,
+      photo_url: path,
       needs_receipt: false,
       receipt_reason: null,
       ...(parsed.use_ocr_data ? parsed.updates : {}),
