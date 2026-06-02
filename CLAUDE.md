@@ -182,9 +182,11 @@ Load these as needed for domain-specific perspective (under `claude_files/team/`
 
 ## Brand Name
 
-**Working name:** TaxSnap
+**Working name:** TaxSnap · **Beta domain:** gettaxsnap.com (see JOURNAL DEC-008)
 
-**Status:** Not yet locked. This needs to be locked before landing page, demo videos, and content production.
+**Status:** Treated as a rebrandable beta name. `taxsnap.com` is parked/premium and the
+term is descriptive (weak trademark). A distinctive-name + trademark exercise is deferred
+until paid/public scale. Fine to use "TaxSnap" + gettaxsnap.com through the beta.
 
 ## Critical Open Items
 

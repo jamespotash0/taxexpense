@@ -45,6 +45,20 @@ Format: date, decision, who pushed back, resolution, rationale.
   break the core product. At-rest encryption + log masking covers the realistic
   exposure (leaked logs / casual DB browsing).
 
+### DEC-008 — Beta domain: gettaxsnap.com; "TaxSnap" kept as rebrandable working name
+- **Context:** Setting up Twilio A2P registration forced a business-website (and thus
+  domain) decision. Availability check: `taxsnap.com` is parked-for-sale since 2009
+  (premium/slow); `.app/.io/.co/.ai/.us` all taken. Only "get/try" prefixes free.
+- **Also noted:** "TaxSnap" (tax + snap) is descriptive → weak/hard-to-own trademark.
+  Ethan/Marcus would prefer a distinctive name long-term; Alex: don't bikeshed a beta.
+- **Decision:** Register **gettaxsnap.com** (~$15) for the beta and move. Keep "TaxSnap"
+  as the working name; treat the brand as **rebrandable** post-beta if it gains traction.
+  `NEXT_PUBLIC_APP_URL=https://gettaxsnap.com`.
+- **Rationale:** A 10-user beta doesn't justify a premium .com purchase or a multi-day
+  naming exercise. Unblocks Twilio website + deploy today.
+- **Deferred:** Proper distinctive-name + trademark exercise before any paid/public scale
+  (still CLAUDE.md Critical Open Item #1).
+
 ### SEC-001 — Jordan's RLS flags (re: "do we need more RLS handling?")
 Schema verified live 2026-06-01: all 9 tables exist; seeds not yet run (founder's choice).
 Verdict: **table-level RLS is correct for V1 (default-deny everywhere). No additional
@@ -137,3 +151,52 @@ under default-deny for V1; only add an anon read policy if rendering them client
   out of scope for Schedule-C users anyway).
 - **Owner:** still needs the CPA spot-check from CLAUDE.md Critical Open Items before
   any of this drives user-facing *advice* (we remain a logger, not an advisor).
+
+### DEC-009 — Team review of IRC summaries: correctness fixes applied + update process
+- **Context:** Convened a 5-persona review (Jordan, Priya, Alex, Raj, Marcus) of the IRC
+  summaries against the sourced IRC-RESEARCH.md and the seed migrations.
+- **Verified-and-corrected (applied now — scope-independent, rule-aligned):**
+  - **§1402 worth_noting** removed the S-Corp salary/distribution tip — it was tax-planning
+    *advice* (violates CLAUDE.md Rule 1 "Suggest, don't advise") and aimed at an entity our
+    V1 user isn't. Replaced with neutral "ask a CPA" framing. (prose + 0003 seed)
+  - **§274 worth_noting** "Meals over $75 require receipt" was an oversimplification. Now:
+    the $75 documentary-evidence rule covers all strict categories, lodging needs a receipt
+    at any amount, and under $75 the user's text is the record (Reg §1.274-5(c)(2)). (both)
+  - **§179** wording de-drifted between prose and seed ("acquired and placed in service").
+  - **Determinism (Raj):** 0003 used `CURRENT_DATE` for `last_reviewed` — re-running
+    `db push` silently re-stamped every row "reviewed today," fabricating provenance.
+    Changed to literal `DATE '2026-06-01'`.
+  - **Source-of-truth collapse (Raj):** the copy-paste SQL block in IRC-SUMMARIES.md had
+    already drifted from 0003 (a correctness hazard) and the doc carried a contradictory
+    in-place `UPDATE` snippet. Removed both; IRC-SUMMARIES.md now points to 0003 as the
+    single source of truth. RUN_ALL.sql is a regenerated artifact.
+- **FALSE POSITIVE caught (did NOT change):** Jordan & Alex flagged §6654 "whichever is
+  less" as a factual error. Verified against §6654(d)(1)(B): the "required annual payment"
+  IS the *lesser* of 90%-current vs 100%/110%-prior, so the line is correct and taxpayer-
+  favorable. Lesson logged: verify persona/agent findings before applying.
+- **Convergent UPDATE PROCESS (resolved):**
+  - **Single source of truth:** the migration files (0002/0003). Edit there, not in docs.
+  - **Changes ship as targeted append-only migrations** (`0004_update_irc_<year>.sql`):
+    set changed fields, bump `version`, set a real `last_reviewed`. Never hand-edit prod.
+  - **Cadence:** annual (~Jan 31, vs new IRS Rev. Procs) + event-driven on major
+    legislation (OBBBA was the proof). Annual review = the IRC-RESEARCH.md checklist.
+  - **Traceability = git** (migration diff = what; PR/commit + JOURNAL = why) + the
+    `version`/`last_reviewed` columns. No history table for 7 rows.
+  - **Confidence-partitioned CPA review:** primary-sourced fixed figures ship on eng review
+    with the disclaimer; low-confidence/judgment items (§164(f) surtax, §199A SSTB, S-Corp
+    strategy) stay OUT of user copy until CPA-cleared.
+- **CONFLICTS escalated to founder — RESOLVED:**
+  1. **User-facing scope → "fix defects, keep breadth" (Priya's option).** Added two
+     `irc_summaries` rows — **§274b (gifts)** and **§280F (vehicle/listed property)** — and
+     **repointed** `business_gifts` (irc_section `274`→`274b`) and `vehicle_business`
+     (`162`→`280F`) so they stop mis-loading the meals / generic-§162 copy. §1402 & §6654
+     kept (corrected). Seed is now **9 summaries**; coverage-integrity verified (every
+     section a rule cites has a summary). §195/§6001/§164(f)/§199A stay research-only.
+  2. **CPA posture → "partition by confidence."** Primary-sourced fixed figures ship with
+     the disclaimer; low-confidence/judgment items stay out of seeded user copy — already
+     satisfied (S-Corp strategy removed; §164(f)/§199A are research-only). No
+     `reviewed_by_cpa` column added (Jordan's hard gate not adopted). Disclaimer must be
+     wired at render time in EPIC-3/4 (tracked; IRC-SUMMARIES.md "Standard Disclaimer").
+  3. **Hardcoded indexed figures** — left as prose for V1 (only §179's number is seeded);
+     `tax_year_figures` table deferred to V2 (Raj).
+- Full persona reviews are in this session's transcript.
