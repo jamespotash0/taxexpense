@@ -74,12 +74,12 @@ export function LoginForm() {
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             required
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-base outline-none focus:border-gray-900"
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-base outline-none focus:border-primary"
           />
           <button
             type="submit"
             disabled={busy}
-            className="w-full rounded-md bg-gray-900 px-4 py-2 text-white disabled:opacity-50"
+            className="w-full rounded-md bg-primary hover:bg-primary-hover px-4 py-2 text-white disabled:opacity-50"
           >
             {busy ? 'Sending…' : 'Send code'}
           </button>
@@ -95,12 +95,12 @@ export function LoginForm() {
             value={code}
             onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
             required
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-center text-lg tracking-[0.4em] outline-none focus:border-gray-900"
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-center text-lg tracking-[0.4em] outline-none focus:border-primary"
           />
           <button
             type="submit"
             disabled={busy || code.length !== 6}
-            className="w-full rounded-md bg-gray-900 px-4 py-2 text-white disabled:opacity-50"
+            className="w-full rounded-md bg-primary hover:bg-primary-hover px-4 py-2 text-white disabled:opacity-50"
           >
             {busy ? 'Verifying…' : 'Verify & log in'}
           </button>
@@ -114,7 +114,7 @@ export function LoginForm() {
         </form>
       )}
 
-      {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-3 text-sm text-error-600">{error}</p>}
     </div>
   );
 }

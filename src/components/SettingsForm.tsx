@@ -47,7 +47,7 @@ export function SettingsForm({ initial }: { initial: Initial }) {
     }
   }
 
-  const field = 'w-full rounded-md border border-gray-300 px-3 py-2 text-base outline-none focus:border-gray-900';
+  const field = 'w-full rounded-md border border-gray-300 px-3 py-2 text-base outline-none focus:border-primary';
   const labelCls = 'text-xs font-medium text-gray-500';
 
   return (
@@ -60,7 +60,7 @@ export function SettingsForm({ initial }: { initial: Initial }) {
         <input type="email" className={field} value={form.accountant_email} onChange={(e) => set('accountant_email', e.target.value)} placeholder="accountant@example.com" />
       </div>
       <div className="flex items-center gap-3">
-        <button type="submit" disabled={busy} className="rounded-md bg-gray-900 px-4 py-2 text-white disabled:opacity-50">Save</button>
+        <button type="submit" disabled={busy} className="rounded-md bg-primary hover:bg-primary-hover px-4 py-2 text-white disabled:opacity-50">Save</button>
         {status && <span className="text-sm text-gray-500">{status}</span>}
       </div>
     </form>

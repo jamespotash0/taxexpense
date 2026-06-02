@@ -13,13 +13,13 @@ export function SubstantiationBadge({ substantiationComplete, needsReceipt, miss
 
   if (substantiationComplete) {
     label = '✓ Documentation complete';
-    cls = 'bg-green-50 text-green-700 ring-green-600/20';
+    cls = 'bg-success-50 text-success-700 ring-success-600/20';
   } else if (needsReceipt) {
     label = '⚠ Needs receipt';
-    cls = 'bg-amber-50 text-amber-700 ring-amber-600/20';
+    cls = 'bg-warning-50 text-warning-700 ring-warning-600/20';
   } else if (missingFields && missingFields.length > 0) {
     label = '⚠ Needs context';
-    cls = 'bg-amber-50 text-amber-700 ring-amber-600/20';
+    cls = 'bg-warning-50 text-warning-700 ring-warning-600/20';
   } else {
     label = 'Pending';
     cls = 'bg-gray-100 text-gray-600 ring-gray-500/20';

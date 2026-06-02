@@ -9,6 +9,23 @@ Format: date, decision, who pushed back, resolution, rationale.
 
 ## 2026-06-01 — Day 1 / EPIC-1 Foundation kickoff
 
+## 2026-06-01 — Design system (TSNAP-034) + mobile-app scope
+
+### DEC-017 — Formalized web design tokens; no native mobile app in V1
+- **Context:** Founder asked whether to solidify a mobile app's design/framework/colors.
+- **Mobile app:** OUT of V1 (Phase 2, per CLAUDE.md). The V1 wedge is "no app — just text."
+  Designing a native app + its own framework/colors now is scope creep (Alex) and contradicts
+  positioning (Marcus). The only V1 "mobile" concern is the responsive WEB dashboard
+  (TSNAP-045 device audit still pending). Decision: do NOT design a mobile app; revisit in
+  Phase 2 after the SMS bet is validated with real users.
+- **Web design system (the real gap):** I'd built the dashboard/landing with ad-hoc Tailwind
+  utilities (no tokens). Formalized TSNAP-034 in `src/app/globals.css` via Tailwind v4
+  `@theme`: one accent (`--color-primary` ink + hover), Tailwind's neutral gray scale, and
+  semantic `success`/`warning`/`error` (50/600/700). Dropped the scaffold's auto dark-mode
+  (it conflicted with the light components; not worth the polish budget). Switched to a system
+  font stack (removed the Geist Google-font fetch). Refactored badges/buttons/focus/links to
+  the tokens. David's "restraint over expression." Builds + 21 tests still green.
+
 ## 2026-06-01 — EPIC-3/4/5/7/8 build pass
 
 ### DEC-015 — Email-accountant ships as CSV + HTML summary in V1; PDF deferred

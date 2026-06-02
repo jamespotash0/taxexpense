@@ -55,7 +55,7 @@ export default async function DashboardPage({
             <dt className="text-gray-500">Needs attention</dt>
             <dd className="font-medium">
               {summary.needs_attention_count > 0 ? (
-                <Link href="/dashboard?filter=needs_attention" className="text-amber-700 underline">
+                <Link href="/dashboard?filter=needs_attention" className="text-warning-700 underline">
                   {summary.needs_attention_count}
                 </Link>
               ) : (0)}
@@ -71,7 +71,7 @@ export default async function DashboardPage({
             <Link
               key={f.key}
               href={`/dashboard?filter=${f.key}`}
-              className={`rounded-md px-3 py-1 ${filter === f.key ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+              className={`rounded-md px-3 py-1 ${filter === f.key ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'}`}
             >
               {f.label}
             </Link>

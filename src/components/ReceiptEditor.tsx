@@ -109,7 +109,7 @@ export function ReceiptEditor({ receipt, photoUrl }: { receipt: Receipt; photoUr
     }
   }
 
-  const field = 'w-full rounded-md border border-gray-300 px-3 py-2 text-base outline-none focus:border-gray-900';
+  const field = 'w-full rounded-md border border-gray-300 px-3 py-2 text-base outline-none focus:border-primary';
   const labelCls = 'text-xs font-medium text-gray-500';
 
   return (
@@ -119,7 +119,7 @@ export function ReceiptEditor({ receipt, photoUrl }: { receipt: Receipt; photoUr
         <img src={photoUrl} alt="Receipt" className="max-h-72 rounded-md border border-gray-200 object-contain" />
       )}
       {!photoUrl && receipt.needs_receipt && (
-        <label className="flex cursor-pointer items-center justify-center rounded-md border border-dashed border-amber-400 bg-amber-50 px-4 py-6 text-sm text-amber-800">
+        <label className="flex cursor-pointer items-center justify-center rounded-md border border-dashed border-warning-600 bg-warning-50 px-4 py-6 text-sm text-warning-700">
           <input type="file" accept="image/*,.pdf" className="hidden" onChange={upload} disabled={busy} />
           Upload receipt photo (this expense needs one)
         </label>
@@ -151,9 +151,9 @@ export function ReceiptEditor({ receipt, photoUrl }: { receipt: Receipt; photoUr
       </div>
 
       <div className="flex items-center justify-between">
-        <button onClick={save} disabled={busy} className="rounded-md bg-gray-900 px-4 py-2 text-white disabled:opacity-50">Save</button>
+        <button onClick={save} disabled={busy} className="rounded-md bg-primary hover:bg-primary-hover px-4 py-2 text-white disabled:opacity-50">Save</button>
         {status && <span className="text-sm text-gray-500">{status}</span>}
-        <button onClick={remove} disabled={busy} className="text-sm text-red-600 hover:underline">Delete</button>
+        <button onClick={remove} disabled={busy} className="text-sm text-error-600 hover:underline">Delete</button>
       </div>
     </div>
   );

@@ -1,26 +1,40 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+ * Tally design tokens (TSNAP-034 / David). Restraint over expression:
+ * one accent (ink), Tailwind's default neutral gray scale, and three semantic
+ * status colors. Single light theme for V1 (no auto dark mode — it conflicted with
+ * the light components and isn't worth the polish budget yet).
+ * Tailwind v4 is CSS-first: tokens defined here generate utilities
+ * (e.g. bg-primary, text-success-700, ring-warning-600).
+ */
+@theme {
+  --color-background: #ffffff;
+  --color-foreground: #171717;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  /* Accent — used for primary actions, links, focus rings. */
+  --color-primary: #111827;        /* ink */
+  --color-primary-hover: #374151;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Semantic status (badges, alerts). */
+  --color-success-50: #f0fdf4;
+  --color-success-600: #16a34a;
+  --color-success-700: #15803d;
+  --color-warning-50: #fffbeb;
+  --color-warning-600: #d97706;
+  --color-warning-700: #b45309;
+  --color-error-600: #dc2626;
+  --color-error-700: #b91c1c;
+
+  /* System font stack — no custom fonts. */
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  /* Consistent 6px radius (David). */
+  --radius: 6px;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
 }
