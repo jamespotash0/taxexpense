@@ -47,10 +47,11 @@ export async function getOrCreateUserByPhone(
 
   const admin = getSupabaseAdmin();
 
-  // 1. Create the organization.
+  // 1. Create the organization with a fresh 21-day trial (DEC-021 hybrid paywall).
+  const trialEndsAt = new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString();
   const { data: org, error: orgErr } = await admin
     .from('organizations')
-    .insert({ subscription_tier: 'free' })
+    .insert({ subscription_tier: 'free', subscription_status: 'trialing', trial_ends_at: trialEndsAt })
     .select('id')
     .single();
   if (orgErr) throw orgErr;

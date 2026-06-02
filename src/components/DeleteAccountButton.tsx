@@ -5,7 +5,18 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-export function DeleteAccountButton() {
+interface DeleteCopy {
+  deleteMyAccount: string;
+  warningBefore: string;
+  warningAfter: string;
+  permanentlyDelete: string;
+  deleting: string;
+  cancel: string;
+  couldNotDelete: string;
+  errGeneric: string;
+}
+
+export function DeleteAccountButton({ t }: { t: DeleteCopy }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [confirm, setConfirm] = useState('');
@@ -17,11 +28,11 @@ export function DeleteAccountButton() {
     setError(null);
     try {
       const res = await fetch('/api/account', { method: 'DELETE' });
-      if (!res.ok) throw new Error('Could not delete your account. Try again.');
+      if (!res.ok) throw new Error(t.couldNotDelete);
       router.replace('/');
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong.');
+      setError(err instanceof Error ? err.message : t.errGeneric);
       setBusy(false);
     }
   }
@@ -32,7 +43,7 @@ export function DeleteAccountButton() {
         onClick={() => setOpen(true)}
         className="rounded-md border border-error-600 px-4 py-2 text-sm text-error-600 hover:bg-error-50"
       >
-        Delete my account
+        {t.deleteMyAccount}
       </button>
     );
   }
@@ -40,8 +51,7 @@ export function DeleteAccountButton() {
   return (
     <div className="space-y-3 rounded-md border border-error-600 bg-error-50 p-4">
       <p className="text-sm text-error-700">
-        This permanently deletes your account, all receipts, and all receipt photos. This cannot
-        be undone. Type <span className="font-mono font-semibold">DELETE</span> to confirm.
+        {t.warningBefore}<span className="font-mono font-semibold">DELETE</span>{t.warningAfter}
       </p>
       <input
         value={confirm}
@@ -55,10 +65,10 @@ export function DeleteAccountButton() {
           disabled={busy || confirm !== 'DELETE'}
           className="rounded-md bg-error-600 px-4 py-2 text-sm text-white disabled:opacity-50"
         >
-          {busy ? 'Deleting…' : 'Permanently delete'}
+          {busy ? t.deleting : t.permanentlyDelete}
         </button>
         <button onClick={() => { setOpen(false); setConfirm(''); setError(null); }} className="text-sm text-gray-500 underline">
-          Cancel
+          {t.cancel}
         </button>
       </div>
       {error && <p className="text-sm text-error-700">{error}</p>}

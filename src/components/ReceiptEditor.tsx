@@ -23,7 +23,43 @@ interface Receipt {
   needs_receipt: boolean;
 }
 
-export function ReceiptEditor({ receipt, photoUrl }: { receipt: Receipt; photoUrl: string | null }) {
+interface ReceiptCopy {
+  uploadPrompt: string;
+  vendor: string;
+  amount: string;
+  date: string;
+  category: string;
+  paymentAccount: string;
+  business: string;
+  personal: string;
+  unknown: string;
+  businessMiles: string;
+  businessPurpose: string;
+  attendees: string;
+  businessRelationship: string;
+  notes: string;
+  save: string;
+  saved: string;
+  saveFailed: string;
+  delete: string;
+  confirmDelete: string;
+  uploading: string;
+  receiptAttached: string;
+  uploadFailed: string;
+  deleteFailed: string;
+}
+
+export function ReceiptEditor({
+  receipt,
+  photoUrl,
+  t,
+  categories,
+}: {
+  receipt: Receipt;
+  photoUrl: string | null;
+  t: ReceiptCopy;
+  categories: Record<string, string>;
+}) {
   const router = useRouter();
   const [form, setForm] = useState({
     vendor: receipt.vendor ?? '',
@@ -67,10 +103,10 @@ export function ReceiptEditor({ receipt, photoUrl }: { receipt: Receipt; photoUr
         }),
       });
       if (!res.ok) throw new Error('Save failed');
-      setStatus('Saved ✓');
+      setStatus(t.saved);
       router.refresh();
     } catch {
-      setStatus('Save failed — try again.');
+      setStatus(t.saveFailed);
     } finally {
       setBusy(false);
     }
@@ -80,23 +116,23 @@ export function ReceiptEditor({ receipt, photoUrl }: { receipt: Receipt; photoUr
     const file = e.target.files?.[0];
     if (!file) return;
     setBusy(true);
-    setStatus('Uploading…');
+    setStatus(t.uploading);
     try {
       const fd = new FormData();
       fd.append('file', file);
       const res = await fetch(`/api/receipts/${receipt.id}/attach-receipt`, { method: 'POST', body: fd });
       if (!res.ok) throw new Error('Upload failed');
-      setStatus('Receipt attached.');
+      setStatus(t.receiptAttached);
       router.refresh();
     } catch {
-      setStatus('Upload failed — check the file and try again.');
+      setStatus(t.uploadFailed);
     } finally {
       setBusy(false);
     }
   }
 
   async function remove() {
-    if (!confirm('Delete this receipt? This cannot be undone.')) return;
+    if (!confirm(t.confirmDelete)) return;
     setBusy(true);
     try {
       const res = await fetch(`/api/receipts/${receipt.id}`, { method: 'DELETE' });
@@ -104,7 +140,7 @@ export function ReceiptEditor({ receipt, photoUrl }: { receipt: Receipt; photoUr
       router.replace('/dashboard');
       router.refresh();
     } catch {
-      setStatus('Delete failed — try again.');
+      setStatus(t.deleteFailed);
       setBusy(false);
     }
   }
@@ -121,39 +157,39 @@ export function ReceiptEditor({ receipt, photoUrl }: { receipt: Receipt; photoUr
       {!photoUrl && receipt.needs_receipt && (
         <label className="flex cursor-pointer items-center justify-center rounded-md border border-dashed border-warning-600 bg-warning-50 px-4 py-6 text-sm text-warning-700">
           <input type="file" accept="image/*,.pdf" className="hidden" onChange={upload} disabled={busy} />
-          Upload receipt photo (this expense needs one)
+          {t.uploadPrompt}
         </label>
       )}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div><label className={labelCls}>Vendor</label><input className={field} value={form.vendor} onChange={(e) => set('vendor', e.target.value)} /></div>
-        <div><label className={labelCls}>Amount ($)</label><input className={field} inputMode="decimal" value={form.amount} onChange={(e) => set('amount', e.target.value)} /></div>
-        <div><label className={labelCls}>Date</label><input type="date" className={field} value={form.transaction_date} onChange={(e) => set('transaction_date', e.target.value)} /></div>
+        <div><label className={labelCls}>{t.vendor}</label><input className={field} value={form.vendor} onChange={(e) => set('vendor', e.target.value)} /></div>
+        <div><label className={labelCls}>{t.amount}</label><input className={field} inputMode="decimal" value={form.amount} onChange={(e) => set('amount', e.target.value)} /></div>
+        <div><label className={labelCls}>{t.date}</label><input type="date" className={field} value={form.transaction_date} onChange={(e) => set('transaction_date', e.target.value)} /></div>
         <div>
-          <label className={labelCls}>Category</label>
+          <label className={labelCls}>{t.category}</label>
           <select className={field} value={form.category} onChange={(e) => set('category', e.target.value)}>
-            {Object.entries(CATEGORY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            {Object.keys(CATEGORY_LABELS).map((k) => <option key={k} value={k}>{categories[k] ?? CATEGORY_LABELS[k]}</option>)}
           </select>
         </div>
         <div>
-          <label className={labelCls}>Payment account</label>
+          <label className={labelCls}>{t.paymentAccount}</label>
           <select className={field} value={form.payment_account} onChange={(e) => set('payment_account', e.target.value)}>
-            <option value="business">Business</option>
-            <option value="personal">Personal</option>
-            <option value="unknown">Unknown</option>
+            <option value="business">{t.business}</option>
+            <option value="personal">{t.personal}</option>
+            <option value="unknown">{t.unknown}</option>
           </select>
         </div>
-        <div><label className={labelCls}>Business miles</label><input className={field} inputMode="numeric" value={form.business_miles} onChange={(e) => set('business_miles', e.target.value)} /></div>
-        <div className="sm:col-span-2"><label className={labelCls}>Business purpose</label><input className={field} value={form.business_purpose} onChange={(e) => set('business_purpose', e.target.value)} /></div>
-        <div><label className={labelCls}>Attendees</label><input className={field} value={form.attendees} onChange={(e) => set('attendees', e.target.value)} /></div>
-        <div><label className={labelCls}>Business relationship</label><input className={field} value={form.business_relationship} onChange={(e) => set('business_relationship', e.target.value)} /></div>
-        <div className="sm:col-span-2"><label className={labelCls}>Notes</label><textarea className={field} rows={2} value={form.notes} onChange={(e) => set('notes', e.target.value)} /></div>
+        <div><label className={labelCls}>{t.businessMiles}</label><input className={field} inputMode="numeric" value={form.business_miles} onChange={(e) => set('business_miles', e.target.value)} /></div>
+        <div className="sm:col-span-2"><label className={labelCls}>{t.businessPurpose}</label><input className={field} value={form.business_purpose} onChange={(e) => set('business_purpose', e.target.value)} /></div>
+        <div><label className={labelCls}>{t.attendees}</label><input className={field} value={form.attendees} onChange={(e) => set('attendees', e.target.value)} /></div>
+        <div><label className={labelCls}>{t.businessRelationship}</label><input className={field} value={form.business_relationship} onChange={(e) => set('business_relationship', e.target.value)} /></div>
+        <div className="sm:col-span-2"><label className={labelCls}>{t.notes}</label><textarea className={field} rows={2} value={form.notes} onChange={(e) => set('notes', e.target.value)} /></div>
       </div>
 
       <div className="flex items-center justify-between">
-        <button onClick={save} disabled={busy} className="rounded-md bg-primary hover:bg-primary-hover px-4 py-2 text-white disabled:opacity-50">Save</button>
+        <button onClick={save} disabled={busy} className="rounded-md bg-primary hover:bg-primary-hover px-4 py-2 text-white disabled:opacity-50">{t.save}</button>
         {status && <span className="text-sm text-gray-500">{status}</span>}
-        <button onClick={remove} disabled={busy} className="text-sm text-error-600 hover:underline">Delete</button>
+        <button onClick={remove} disabled={busy} className="text-sm text-error-600 hover:underline">{t.delete}</button>
       </div>
     </div>
   );

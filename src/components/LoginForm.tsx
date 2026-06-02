@@ -5,7 +5,22 @@
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export function LoginForm() {
+interface LoginCopy {
+  title: string;
+  subtitle: string;
+  phonePlaceholder: string;
+  sendCode: string;
+  sending: string;
+  codePlaceholder: string;
+  verify: string;
+  verifying: string;
+  useDifferent: string;
+  errSend: string;
+  errInvalid: string;
+  errGeneric: string;
+}
+
+export function LoginForm({ t }: { t: LoginCopy }) {
   const router = useRouter();
   const params = useSearchParams();
   const returnTo = params.get('returnTo') || '/dashboard';
@@ -27,10 +42,10 @@ export function LoginForm() {
         body: JSON.stringify({ phone_number: phone }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Could not send a code.');
+      if (!res.ok) throw new Error(data.message || t.errSend);
       setPhase('code');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong.');
+      setError(err instanceof Error ? err.message : t.errGeneric);
     } finally {
       setBusy(false);
     }
@@ -47,11 +62,11 @@ export function LoginForm() {
         body: JSON.stringify({ phone_number: phone, code }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Invalid code.');
+      if (!res.ok) throw new Error(data.message || t.errInvalid);
       router.replace(returnTo);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong.');
+      setError(err instanceof Error ? err.message : t.errGeneric);
     } finally {
       setBusy(false);
     }
@@ -59,10 +74,8 @@ export function LoginForm() {
 
   return (
     <div className="w-full max-w-sm">
-      <h1 className="text-2xl font-semibold tracking-tight">Log in to Tally</h1>
-      <p className="mt-1 text-sm text-gray-500">
-        We&apos;ll text a 6-digit code to your phone. (You must have texted Tally at least once.)
-      </p>
+      <h1 className="text-2xl font-semibold tracking-tight">{t.title}</h1>
+      <p className="mt-1 text-sm text-gray-500">{t.subtitle}</p>
 
       {phase === 'phone' ? (
         <form onSubmit={requestCode} className="mt-6 space-y-3">
@@ -70,7 +83,7 @@ export function LoginForm() {
             type="tel"
             inputMode="tel"
             autoComplete="tel"
-            placeholder="(415) 555-1234"
+            placeholder={t.phonePlaceholder}
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             required
@@ -81,7 +94,7 @@ export function LoginForm() {
             disabled={busy}
             className="w-full rounded-md bg-primary hover:bg-primary-hover px-4 py-2 text-white disabled:opacity-50"
           >
-            {busy ? 'Sending…' : 'Send code'}
+            {busy ? t.sending : t.sendCode}
           </button>
         </form>
       ) : (
@@ -90,7 +103,7 @@ export function LoginForm() {
             type="text"
             inputMode="numeric"
             autoComplete="one-time-code"
-            placeholder="123456"
+            placeholder={t.codePlaceholder}
             maxLength={6}
             value={code}
             onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
@@ -102,14 +115,14 @@ export function LoginForm() {
             disabled={busy || code.length !== 6}
             className="w-full rounded-md bg-primary hover:bg-primary-hover px-4 py-2 text-white disabled:opacity-50"
           >
-            {busy ? 'Verifying…' : 'Verify & log in'}
+            {busy ? t.verifying : t.verify}
           </button>
           <button
             type="button"
             onClick={() => { setPhase('phone'); setCode(''); setError(null); }}
             className="w-full text-sm text-gray-500 underline"
           >
-            Use a different number
+            {t.useDifferent}
           </button>
         </form>
       )}

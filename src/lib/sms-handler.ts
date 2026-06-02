@@ -10,6 +10,8 @@ import { fetchTwilioMedia, extractReceiptFromImageData, storePhotoBuffer, parseT
 import { processNewExpense, processClarification, processAttachment, type ProcessResult } from './expense';
 import type { ExpenseInput } from './categorize';
 import { sendMessage, type Channel } from './twilio';
+import { getOrgEntitlement } from './subscription';
+import { PUBLIC_ENV } from './env';
 import { log, maskPhone } from './log';
 
 export interface InboundMessage {
@@ -157,6 +159,22 @@ export async function handleInboundSms(msg: InboundMessage): Promise<void> {
   if (['START', 'UNSTOP', 'YES'].includes(keyword)) {
     await updateUser(user.id, { sms_opted_out_at: null });
     await safeSend(phone, "You're re-subscribed to Tally. Send an expense any time.", msg.channel);
+    return;
+  }
+
+  // Hybrid paywall (DEC-021): after the 21-day trial (and no active subscription),
+  // gate continued use. New users are always within trial, so onboarding is unaffected.
+  const entitlement = await getOrgEntitlement(user.organization_id);
+  if (!entitlement.entitled) {
+    const base = PUBLIC_ENV.appUrl || 'https://gettallyexpense.com';
+    const paywall = `Your Tally trial has ended. Subscribe to keep logging expenses: ${base}/pricing`;
+    await safeSend(phone, paywall, msg.channel);
+    await logConversation({
+      userId: user.id,
+      organizationId: user.organization_id,
+      direction: 'outbound',
+      messageText: paywall,
+    });
     return;
   }
 

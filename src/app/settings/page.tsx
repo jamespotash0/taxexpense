@@ -6,26 +6,42 @@ import { getSupabaseAdmin } from '@/lib/supabase';
 import { SettingsForm } from '@/components/SettingsForm';
 import { EmailAccountantButton } from '@/components/EmailAccountantButton';
 import { DeleteAccountButton } from '@/components/DeleteAccountButton';
+import { ManageBillingButton } from '@/components/ManageBillingButton';
+import { LocaleSwitcher } from '@/components/LocaleSwitcher';
+import { getOrgEntitlement } from '@/lib/subscription';
+import { getI18n } from '@/i18n/server';
+import { fmt } from '@/i18n/config';
 
 export default async function SettingsPage() {
   const user = await getCurrentUser();
   if (!user) redirect('/login?returnTo=/settings');
 
-  const { data: org } = await getSupabaseAdmin()
-    .from('organizations')
-    .select('name')
-    .eq('id', user.organization_id)
-    .maybeSingle();
+  const { locale, t } = await getI18n();
+  const s = t.app.settings;
+
+  const [{ data: org }, entitlement] = await Promise.all([
+    getSupabaseAdmin().from('organizations').select('name').eq('id', user.organization_id).maybeSingle(),
+    getOrgEntitlement(user.organization_id),
+  ]);
+
+  const billingLine =
+    entitlement.reason === 'active'
+      ? s.billingActive
+      : entitlement.reason === 'trialing'
+        ? fmt(entitlement.trialDaysLeft === 1 ? s.billingTrialOne : s.billingTrialOther, { days: entitlement.trialDaysLeft })
+        : s.billingLapsed;
 
   return (
     <main className="mx-auto max-w-lg p-4 sm:p-8">
-      <Link href="/dashboard" className="text-sm text-gray-500 hover:text-gray-900">← Back</Link>
-      <h1 className="mt-4 text-xl font-semibold">Settings</h1>
-      <p className="mt-1 text-sm text-gray-500">
-        Logged in as {user.phone_number}. We collect email + business name here, not over text.
-      </p>
+      <div className="flex items-center justify-between">
+        <Link href="/dashboard" className="text-sm text-gray-500 hover:text-gray-900">{t.app.nav.back}</Link>
+        <LocaleSwitcher current={locale} />
+      </div>
+      <h1 className="mt-4 text-xl font-semibold">{s.title}</h1>
+      <p className="mt-1 text-sm text-gray-500">{fmt(s.loggedInAs, { phone: user.phone_number })}</p>
       <div className="mt-6">
         <SettingsForm
+          t={t.app.settingsForm}
           initial={{
             full_name: user.full_name ?? '',
             email: user.email ?? '',
@@ -36,15 +52,21 @@ export default async function SettingsPage() {
       </div>
 
       <div className="mt-8 border-t border-gray-100 pt-6">
-        <h2 className="text-sm font-medium">Accountant</h2>
-        <p className="mb-3 mt-1 text-sm text-gray-500">Send this month&apos;s expenses (CSV) to your accountant.</p>
-        <EmailAccountantButton hasAccountantEmail={!!user.accountant_email} />
+        <h2 className="text-sm font-medium">{s.accountant}</h2>
+        <p className="mb-3 mt-1 text-sm text-gray-500">{s.accountantBody}</p>
+        <EmailAccountantButton hasAccountantEmail={!!user.accountant_email} t={t.app.emailAccountant} />
       </div>
 
       <div className="mt-8 border-t border-gray-100 pt-6">
-        <h2 className="text-sm font-medium text-error-700">Danger zone</h2>
-        <p className="mb-3 mt-1 text-sm text-gray-500">Delete your account and all data permanently.</p>
-        <DeleteAccountButton />
+        <h2 className="text-sm font-medium">{s.billing}</h2>
+        <p className="mb-3 mt-1 text-sm text-gray-500">{billingLine}</p>
+        <ManageBillingButton t={t.app.billing} />
+      </div>
+
+      <div className="mt-8 border-t border-gray-100 pt-6">
+        <h2 className="text-sm font-medium text-error-700">{s.dangerZone}</h2>
+        <p className="mb-3 mt-1 text-sm text-gray-500">{s.dangerBody}</p>
+        <DeleteAccountButton t={t.app.deleteAccount} />
       </div>
     </main>
   );

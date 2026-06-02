@@ -2,8 +2,17 @@
 
 // Triggers POST /api/email-accountant (TSNAP-048).
 import { useState } from 'react';
+import { fmt } from '@/i18n/config';
 
-export function EmailAccountantButton({ hasAccountantEmail }: { hasAccountantEmail: boolean }) {
+interface EmailCopy {
+  button: string;
+  sending: string;
+  sentTo: string;
+  couldNotSend: string;
+  addEmailFirst: string;
+}
+
+export function EmailAccountantButton({ hasAccountantEmail, t }: { hasAccountantEmail: boolean; t: EmailCopy }) {
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -13,10 +22,10 @@ export function EmailAccountantButton({ hasAccountantEmail }: { hasAccountantEma
     try {
       const res = await fetch('/api/email-accountant', { method: 'POST' });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Could not send.');
-      setStatus(`Sent to ${data.sent_to}.`);
+      if (!res.ok) throw new Error(data.message || t.couldNotSend);
+      setStatus(fmt(t.sentTo, { email: data.sent_to }));
     } catch (err) {
-      setStatus(err instanceof Error ? err.message : 'Could not send.');
+      setStatus(err instanceof Error ? err.message : t.couldNotSend);
     } finally {
       setBusy(false);
     }
@@ -28,9 +37,9 @@ export function EmailAccountantButton({ hasAccountantEmail }: { hasAccountantEma
         onClick={send}
         disabled={busy || !hasAccountantEmail}
         className="rounded-md border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50 disabled:opacity-50"
-        title={hasAccountantEmail ? '' : 'Add an accountant email above first'}
+        title={hasAccountantEmail ? '' : t.addEmailFirst}
       >
-        {busy ? 'Sending…' : 'Email this month to my accountant'}
+        {busy ? t.sending : t.button}
       </button>
       {status && <p className="text-sm text-gray-500">{status}</p>}
     </div>

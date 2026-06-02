@@ -12,7 +12,17 @@ interface Initial {
   accountant_email: string;
 }
 
-export function SettingsForm({ initial }: { initial: Initial }) {
+interface SettingsCopy {
+  yourName: string;
+  email: string;
+  businessName: string;
+  accountantEmail: string;
+  save: string;
+  saved: string;
+  saveFailed: string;
+}
+
+export function SettingsForm({ initial, t }: { initial: Initial; t: SettingsCopy }) {
   const router = useRouter();
   const [form, setForm] = useState(initial);
   const [status, setStatus] = useState<string | null>(null);
@@ -38,10 +48,10 @@ export function SettingsForm({ initial }: { initial: Initial }) {
         }),
       });
       if (!res.ok) throw new Error('Save failed');
-      setStatus('Saved ✓');
+      setStatus(t.saved);
       router.refresh();
     } catch {
-      setStatus('Save failed — check the fields and try again.');
+      setStatus(t.saveFailed);
     } finally {
       setBusy(false);
     }
@@ -52,15 +62,15 @@ export function SettingsForm({ initial }: { initial: Initial }) {
 
   return (
     <form onSubmit={save} className="space-y-4">
-      <div><label className={labelCls}>Your name</label><input className={field} value={form.full_name} onChange={(e) => set('full_name', e.target.value)} /></div>
-      <div><label className={labelCls}>Email</label><input type="email" className={field} value={form.email} onChange={(e) => set('email', e.target.value)} placeholder="you@example.com" /></div>
-      <div><label className={labelCls}>Business name (optional)</label><input className={field} value={form.organization_name} onChange={(e) => set('organization_name', e.target.value)} /></div>
+      <div><label className={labelCls}>{t.yourName}</label><input className={field} value={form.full_name} onChange={(e) => set('full_name', e.target.value)} /></div>
+      <div><label className={labelCls}>{t.email}</label><input type="email" className={field} value={form.email} onChange={(e) => set('email', e.target.value)} placeholder="you@example.com" /></div>
+      <div><label className={labelCls}>{t.businessName}</label><input className={field} value={form.organization_name} onChange={(e) => set('organization_name', e.target.value)} /></div>
       <div>
-        <label className={labelCls}>Accountant email (for &quot;email my accountant&quot;)</label>
+        <label className={labelCls}>{t.accountantEmail}</label>
         <input type="email" className={field} value={form.accountant_email} onChange={(e) => set('accountant_email', e.target.value)} placeholder="accountant@example.com" />
       </div>
       <div className="flex items-center gap-3">
-        <button type="submit" disabled={busy} className="rounded-md bg-primary hover:bg-primary-hover px-4 py-2 text-white disabled:opacity-50">Save</button>
+        <button type="submit" disabled={busy} className="rounded-md bg-primary hover:bg-primary-hover px-4 py-2 text-white disabled:opacity-50">{t.save}</button>
         {status && <span className="text-sm text-gray-500">{status}</span>}
       </div>
     </form>

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { PWARegister } from '@/components/PWARegister';
+import { MotionProvider } from '@/components/MotionProvider';
 
 // TSNAP-034 (David): system font stack — no custom web fonts. PWA wiring per DEC-019.
 export const metadata: Metadata = {
@@ -19,7 +20,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
-        {children}
+        <MotionProvider>{children}</MotionProvider>
         <PWARegister />
       </body>
     </html>

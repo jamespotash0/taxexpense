@@ -17,6 +17,94 @@ Format: date, decision, who pushed back, resolution, rationale.
   "Say hello 👋" → `sms:` deep link to the Tally number; Install as secondary. No pricing.
   Icons still placeholders (designer task). Consulted Sofia (web UX) on motion + accessibility.
 
+### DEC-023 — Cinematic landing pass (Framer Motion scroll-reveal)
+- Added scroll-reveal + stagger to the landing (Reveal/Stagger/StaggerItem) — section headings
+  fade up, bento tiles stagger in, CTA band reveals; plus the existing animated SMS hero + bento
+  hover-lift. Global `MotionProvider` (MotionConfig reducedMotion="user") makes ALL motion
+  respect the OS reduce-motion setting. Completes founder's paywall→onboarding→product order.
+
+### DEC-022 — Web onboarding funnel: animated priming flow → trial (Framer Motion)
+- Built `/start` (OnboardingFlow): tappable, animated steps (Framer Motion, reduced-motion safe)
+  — work type → tax-time pain → value reveal → "text to start (21-day trial, no card)" + install.
+  It primes/personalizes before dropping into the trial (no card; capture begins on first text).
+  No DB writes (no account yet); SMS onboarding remains the profile source of truth.
+- Landing CTAs now route to `/start` ("Start free trial"), with direct-text as the secondary path.
+- Settings gains a Billing section (status + Stripe portal via ManageBillingButton).
+- Installed `framer-motion` (also used for the queued cinematic landing pass).
+
+### DEC-024 — Tax-deadline reminder cron (Phase-2 feature pulled forward)
+- Founder asked for tax-season reminders. CLAUDE.md listed "Tax deadline reminders" as Phase-2
+  (not V1) — pulling it forward at founder request.
+- `lib/tax-deadlines.ts` (pure, 5 unit tests): §6654 estimated quarterly (Jan/Apr/Jun/Sep 15)
+  + annual filing (Apr 15); `remindersDueOn(today)` fires at 7-day and 1-day leads, grouping
+  same-date deadlines (Apr 15 = filing + Q1). `/api/cron/tax-deadlines` (daily 14:00 UTC,
+  CRON_SECRET-protected) texts onboarded, non-opted-out users. Every message says "not tax
+  advice — confirm with your CPA." Nominal dates (reminders, not filing dates).
+- Vercel env: Production fully mirrored from .env.local (8 vars incl. CRON_SECRET). Preview
+  skipped — Vercel CLI 54.7.1 bug (`git_branch_required` loop even with documented flags);
+  set Preview in the dashboard if/when needed (only affects PR/branch deploys).
+
+### DEC-025 — Localization: Spanish first, funnel + AI-language-mirror (no i18n dep)
+- Founder wants the +62.5% localization lift. Chose **Spanish first**, scope **funnel + app UI**.
+- **Approach:** lightweight, dependency-free i18n (lower risk than wiring next-intl into Next 16/
+  Turbopack). Locale from `locale` cookie → Accept-Language → default `en`. `src/i18n/`
+  (config, dictionaries en/es, server getI18n) + `LocaleSwitcher` (EN/ES, cookie + refresh).
+- **Done this pass (the conversion driver):** landing, `/start` onboarding, `/pricing` fully
+  localized EN/ES (server pages resolve the dict; client components — OnboardingFlow, PlanPicker,
+  InstallButton — take dict slices as props). Also upgraded the paywall design (most-popular
+  ribbon, feature checklist, cinematic /pricing).
+- **AI/SMS:** reply prompts now instruct Claude to answer in the user's language (Prompts 2/4/5) —
+  cheap localization of the conversational surface without translating per-string.
+- **Staged next:** app UI strings (dashboard, settings, login, receipt editor) on the same infra.
+  Also not localized: the animated phone's example bubbles, hard-coded SMS onboarding copy, legal
+  pages. USD pricing everywhere (no per-locale Stripe prices in this pass).
+
+### DEC-026 — App-UI localization: dashboard, login, settings, receipt editor (completes DEC-025 stage)
+- Localized the logged-in app surface EN/ES on the same dependency-free infra. Added an `app`
+  namespace to `i18n/dictionaries.ts` (nav, dashboard, login, settings, settingsForm, receipt,
+  badge, emailAccountant, deleteAccount, billing, categories) mirrored EN↔ES (shape enforced by
+  `es: Dict`). Server pages (`dashboard`, `settings`, `login`, `receipts/[id]`) resolve via
+  `getI18n()` and pass dict slices as props to client components (LoginForm, SettingsForm,
+  ReceiptEditor, EmailAccountantButton, DeleteAccountButton, ManageBillingButton). `LocaleSwitcher`
+  now also lives in the dashboard/settings/login headers so logged-in users can switch.
+- **Plurals:** trial "N day(s) left" handled with explicit `*One`/`*Other` strings + `fmt()`
+  (Spanish needs "Queda 1 día" vs "Quedan N días"), not naive `+ 's'`.
+- **Categories:** added a localized display map in the dict used by the dashboard list + editor
+  dropdown. **Left `lib/categories.ts` (CATEGORY_LABELS/QBO) English on purpose** — it backs the
+  CSV/QuickBooks export, which must stay English for accountants. So on-screen labels translate;
+  exported files don't. The editor still iterates the canonical `CATEGORY_LABELS` keys (stable
+  order + value set), showing the localized label.
+- **DELETE confirm token stays literal "DELETE"** in both languages (the API checks that string);
+  only the surrounding warning prose is translated (warningBefore/After around a mono span).
+- **Still English (unchanged from DEC-025 staging):** animated phone example bubbles, hard-coded
+  SMS onboarding copy, legal pages, and DB-sourced IRC summaries (tax content, not UI). USD pricing.
+- Green: `tsc --noEmit`, eslint, `next build`, 34 unit tests.
+
+## 2026-06-02 — Monetization (EPIC-9): free trial + hybrid paywall
+
+### DEC-021 — Paid product: 21-day trial, HYBRID hard paywall, Stripe (supersedes "free during beta")
+- **Context:** Founder set a monetization strategy from mobile-subscription benchmarks (hard
+  paywall ~10.7% vs soft ~2.1%; 17–32d trial > 3d; high price → ~5.4× LTV; localization +62.5%).
+  This supersedes CLAUDE.md "Stripe billing (free during beta)" and the "no localization" line.
+- **Decisions:**
+  - **Hybrid paywall:** no card to start — users text and use Tally free for a **21-day trial**;
+    after the trial a **hard paywall** requires a subscription to keep logging. Preserves the
+    "just text" wedge during trial, then gates continued use. (Optional expense-cap deferred.)
+  - **Billing = Stripe** (PWA, not native → no Apple/Google 30% cut, no IAP rules — real LTV win).
+  - **Price (competitive default, single config constant):** $17.99/mo or $143.88/yr ($11.99/mo,
+    save 33%). Landscape: Keeper ~$20/mo, QuickBooks Solopreneur ~$20/mo, Hurdlr/Everlance ~$8–12.
+    Founder said "stay competitive" → premium-but-under-Keeper. Tunable in `lib/pricing.ts`.
+  - **Animation lib:** Framer Motion (cinematic landing pass queued next).
+- **Funnel (paywall → onboarding → product, per founder):** Landing → start trial (no card) →
+  onboarding provisions the number → text. SMS handler checks entitlement; lapsed trials get a
+  paywall reply. PWA shows a paywall screen when the trial has ended.
+- **Validation caveat (Alex/Marcus):** conversion benchmarks assume demand exists; with 0 validated
+  users the card-required step is *itself* the validation signal — go in knowing that.
+- **Localization (+62.5%):** fast-follow after the English funnel converts (needs i18n + per-locale
+  Stripe prices); not in this pass.
+- **Founder must provide:** Stripe account → secret key, publishable key, the two Price IDs,
+  webhook signing secret (added to `.env.local`).
+
 ## 2026-06-01 — Interface: PWA + WhatsApp (refines DEC-017)
 
 ### DEC-019 — Installable PWA + WhatsApp channel; native app stays Phase-2

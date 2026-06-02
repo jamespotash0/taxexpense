@@ -10,7 +10,17 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
-export function InstallButton({ className = '' }: { className?: string }) {
+export function InstallButton({
+  className = '',
+  label = 'Install Tally',
+  help = 'On iPhone: tap Share → “Add to Home Screen.” On Android: menu → “Install app.”',
+  installedText = 'Installed ✓ — find Tally on your home screen.',
+}: {
+  className?: string;
+  label?: string;
+  help?: string;
+  installedText?: string;
+}) {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [installed, setInstalled] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
@@ -30,7 +40,7 @@ export function InstallButton({ className = '' }: { className?: string }) {
   }, []);
 
   if (installed) {
-    return <p className="text-sm text-gray-500">Installed ✓ — find Tally on your home screen.</p>;
+    return <p className="text-sm text-gray-500">{installedText}</p>;
   }
 
   return (
@@ -46,14 +56,9 @@ export function InstallButton({ className = '' }: { className?: string }) {
         }}
         className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 text-base font-medium text-white transition-colors hover:bg-primary-hover"
       >
-        Install Tally
+        {label}
       </button>
-      {showHelp && !deferred && (
-        <p className="mt-3 text-sm text-gray-500">
-          On <span className="font-medium">iPhone</span>: tap Share → &ldquo;Add to Home Screen.&rdquo; On{' '}
-          <span className="font-medium">Android</span>: menu → &ldquo;Install app.&rdquo;
-        </p>
-      )}
+      {showHelp && !deferred && <p className="mt-3 text-sm text-gray-500">{help}</p>}
     </div>
   );
 }

@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/receipt-reminders",
       "schedule": "0 17 * * 1"
+    },
+    {
+      "path": "/api/cron/tax-deadlines",
+      "schedule": "0 14 * * *"
     }
   ]
 }
