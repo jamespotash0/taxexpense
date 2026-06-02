@@ -36,7 +36,7 @@ const en = {
     t4body: 'Review everything in the app. Download a clean CSV, a QuickBooks-ready file, or email this month straight to your accountant — one tap.',
   },
   cta: { heading: 'Say hello to easy tax time.', sub: 'Text {number} with your first expense.', subNoNumber: 'Install Tally and send your first expense.', button: 'Start free trial' },
-  footer: { tagline: 'Recordkeeping, not tax advice.' },
+  footer: { tagline: 'Recordkeeping, not tax advice.', privacy: 'Privacy', terms: 'Terms' },
   install: { button: 'Install Tally', help: 'On iPhone: tap Share → “Add to Home Screen.” On Android: menu → “Install app.”', installed: 'Installed ✓ — find Tally on your home screen.' },
   onboarding: {
     q1: 'What kind of work do you do?',
@@ -253,7 +253,7 @@ const es: Dict = {
     t4body: 'Revisa todo en la app. Descarga un CSV limpio, un archivo listo para QuickBooks, o envía el mes a tu contador — con un toque.',
   },
   cta: { heading: 'Dile hola a una temporada de impuestos fácil.', sub: 'Escribe a {number} con tu primer gasto.', subNoNumber: 'Instala Tally y envía tu primer gasto.', button: 'Comenzar prueba gratis' },
-  footer: { tagline: 'Llevar registros, no asesoría fiscal.' },
+  footer: { tagline: 'Llevar registros, no asesoría fiscal.', privacy: 'Privacidad', terms: 'Términos' },
   install: { button: 'Instalar Tally', help: 'En iPhone: toca Compartir → “Agregar a inicio”. En Android: menú → “Instalar app”.', installed: 'Instalada ✓ — busca Tally en tu pantalla de inicio.' },
   onboarding: {
     q1: '¿A qué te dedicas?',

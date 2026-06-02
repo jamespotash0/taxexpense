@@ -20,13 +20,15 @@ export default async function Home() {
   ];
 
   return (
-    <div className="text-gray-900">
+    <div className="relative overflow-hidden text-gray-900">
+      {/* Accent glow spans from the very top — behind the nav — so there's no white seam. */}
+      <div className="hero-glow pointer-events-none absolute inset-x-0 top-0 -z-10 h-[820px]" />
+
       {/* Nav — floating pill that sticks near the top */}
       <header className="sticky top-0 z-30 px-4 pt-4">
         <nav className="mx-auto flex max-w-3xl items-center justify-between gap-4 rounded-full border border-gray-200/70 bg-white/80 py-2 pl-5 pr-2 shadow-lg shadow-gray-900/5 backdrop-blur-md">
           <span className="text-lg font-semibold tracking-tight">Tally</span>
           <div className="flex items-center gap-2 text-sm">
-            <LocaleSwitcher current={locale} />
             <Link href="/login" className="rounded-full px-4 py-2 text-gray-600 hover:text-gray-900">{t.nav.login}</Link>
             <Link href="/start" className="rounded-full bg-primary px-4 py-2 font-medium text-white transition-colors hover:bg-primary-hover">
               {t.nav.getStarted}
@@ -36,8 +38,7 @@ export default async function Home() {
       </header>
 
       {/* Hero — headline-first, centered (Linear-style); phone cinematic reveals on scroll */}
-      <section className="relative overflow-hidden">
-        <div className="hero-glow pointer-events-none absolute inset-0 -z-10" />
+      <section className="relative">
         <div className="mx-auto max-w-3xl px-6 pt-24 text-center md:pt-32">
           <h1 className="reveal text-balance text-5xl font-semibold leading-[1.03] tracking-tight sm:text-6xl md:text-7xl">
             <span className="block">
@@ -124,10 +125,12 @@ export default async function Home() {
       <footer className="border-t border-gray-100">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-6 py-8 text-sm text-gray-500 sm:flex-row sm:items-center sm:justify-between">
           <span className="font-semibold text-gray-900">Tally</span>
-          <div className="flex gap-5">
-            <Link href="/privacy" className="hover:text-gray-900">Privacy</Link>
-            <Link href="/terms" className="hover:text-gray-900">Terms</Link>
+          <div className="flex items-center gap-5">
+            <Link href="/privacy" className="hover:text-gray-900">{t.footer.privacy}</Link>
+            <Link href="/terms" className="hover:text-gray-900">{t.footer.terms}</Link>
             <Link href="/login" className="hover:text-gray-900">{t.nav.login}</Link>
+            <span className="h-4 w-px bg-gray-200" aria-hidden />
+            <LocaleSwitcher current={locale} />
           </div>
           <span className="text-xs text-gray-400">© {new Date().getFullYear()} Tally · {t.footer.tagline}</span>
         </div>
