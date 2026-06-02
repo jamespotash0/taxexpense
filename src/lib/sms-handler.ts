@@ -9,7 +9,7 @@ import { handleOnboarding } from './onboarding';
 import { fetchTwilioMedia, extractReceiptFromImageData, storePhotoBuffer, parseTextExpense, type OcrResult } from './ocr';
 import { processNewExpense, processClarification, processAttachment, type ProcessResult } from './expense';
 import type { ExpenseInput } from './categorize';
-import { sendSms } from './twilio';
+import { sendMessage, type Channel } from './twilio';
 import { log, maskPhone } from './log';
 
 export interface InboundMessage {
@@ -17,6 +17,7 @@ export interface InboundMessage {
   body: string;
   numMedia: number;
   mediaUrls: string[];
+  channel: Channel;
 }
 
 // User-facing error/help copy (TSNAP-026 / Sofia — human, not technical).
@@ -132,7 +133,7 @@ export async function handleInboundSms(msg: InboundMessage): Promise<void> {
     user = result.user;
   } catch (err) {
     log.error('user_lookup_failed', { phone: maskPhone(phone), message: errMsg(err) });
-    await safeSend(phone, MSG.failure);
+    await safeSend(phone, MSG.failure, msg.channel);
     return;
   }
 
@@ -155,7 +156,7 @@ export async function handleInboundSms(msg: InboundMessage): Promise<void> {
   }
   if (['START', 'UNSTOP', 'YES'].includes(keyword)) {
     await updateUser(user.id, { sms_opted_out_at: null });
-    await safeSend(phone, "You're re-subscribed to Tally. Send an expense any time.");
+    await safeSend(phone, "You're re-subscribed to Tally. Send an expense any time.", msg.channel);
     return;
   }
 
@@ -169,7 +170,7 @@ export async function handleInboundSms(msg: InboundMessage): Promise<void> {
     reply = { smsText: MSG.failure, receiptId: null, contextState: null };
   }
 
-  await safeSend(phone, reply.smsText);
+  await safeSend(phone, reply.smsText, msg.channel);
   await logConversation({
     userId: user.id,
     organizationId: user.organization_id,
@@ -184,11 +185,11 @@ function errMsg(err: unknown): string {
   return err instanceof Error ? err.message : 'unknown';
 }
 
-async function safeSend(to: string, body: string): Promise<void> {
+async function safeSend(to: string, body: string, channel: Channel): Promise<void> {
   try {
-    await sendSms(to, body);
+    await sendMessage(to, body, channel);
   } catch (err) {
-    log.error('sms_send_failed', { to: maskPhone(to), message: errMsg(err) });
+    log.error('message_send_failed', { to: maskPhone(to), channel, message: errMsg(err) });
   }
 }
 

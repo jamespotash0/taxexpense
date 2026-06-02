@@ -9,6 +9,28 @@ Format: date, decision, who pushed back, resolution, rationale.
 
 ## 2026-06-01 — Day 1 / EPIC-1 Foundation kickoff
 
+## 2026-06-01 — Interface: PWA + WhatsApp (refines DEC-017)
+
+### DEC-019 — Installable PWA + WhatsApp channel; native app stays Phase-2
+- **Context:** Founder wants the landing page to push an installable app and the product to
+  live at the app/messenger level (not a "website"). DEC-017 had said "no app, Phase 2."
+- **Decision:** Make the existing web app an **installable PWA** (manifest + service worker +
+  icons + install affordance) so the landing leads with "Install Tally," AND add **WhatsApp**
+  as a second capture channel alongside SMS. This satisfies both "download/install" and
+  "messenger" without a native build, App Store gate, or losing the no-friction wedge. A
+  **native app stays Phase-2**, gated on user demand.
+- **iMessage/RCS:** confirmed NOT available to a solo founder (Apple Messages for Business /
+  Google RBM are agency/approval-gated). Realistic channels = SMS + WhatsApp.
+- **Implementation:** `public/manifest.webmanifest`, `public/sw.js`, `PWARegister`,
+  `InstallButton`, layout metadata/viewport, placeholder ink icons (David to replace).
+  Messaging is now channel-aware: `sendMessage(to, body, channel)`; inbound route detects the
+  `whatsapp:` prefix; replies go back on the same channel. Env: `TWILIO_WHATSAPP_FROM`.
+- **SMS cost clarification (founder asked):** users are NOT billed by us (their carrier plan
+  applies — unlimited for ~everyone). The operator (you) DOES pay Twilio per message
+  (~$0.008/SMS seg, ~$0.02 MMS) + number + 10DLC fees — ~$6–15/mo at beta scale. WhatsApp is
+  cheaper (free service-conversation window). No messaging channel is truly $0 to the operator;
+  only the PWA's own in-app/web-push path is zero-marginal-cost (but loses the "just message" magic).
+
 ## 2026-06-01 — Receipt image storage hardening
 
 ### DEC-018 — OCR-before-store (no orphaned images) + account-deletion Storage purge

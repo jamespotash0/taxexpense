@@ -42,11 +42,16 @@ export async function POST(req: Request): Promise<NextResponse> {
     if (u) mediaUrls.push(u);
   }
 
+  // Twilio prefixes WhatsApp addresses with "whatsapp:". Same webhook serves both.
+  const rawFrom = params.From ?? '';
+  const isWhatsApp = rawFrom.startsWith('whatsapp:');
+
   const msg: InboundMessage = {
-    from: params.From ?? '',
+    from: rawFrom.replace(/^whatsapp:/, ''),
     body: params.Body ?? '',
     numMedia,
     mediaUrls,
+    channel: isWhatsApp ? 'whatsapp' : 'sms',
   };
 
   try {

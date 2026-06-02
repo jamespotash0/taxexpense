@@ -1,6 +1,7 @@
-// Landing page (EPIC-5: TSNAP-049+). Hero, how-it-works, FAQ, footer. Server Component
-// so it can read the Tally number. Copy reinforces "capture the WHY" positioning.
+// Landing page (EPIC-5: TSNAP-049+). Hero, install CTA, how-it-works, FAQ, footer.
+// Server Component so it can read the Tally number. Copy reinforces "capture the WHY".
 import Link from 'next/link';
+import { InstallButton } from '@/components/InstallButton';
 
 export default function Home() {
   const number = process.env.TWILIO_PHONE_NUMBER ?? '';
@@ -20,12 +21,21 @@ export default function Home() {
           requires it. No app to install.
         </p>
 
-        <div className="mt-8 rounded-lg border border-gray-200 p-5">
-          <p className="text-sm text-gray-500">Start by texting</p>
+        {/* Primary CTA: install the app */}
+        <div className="mt-8">
+          <InstallButton />
+        </div>
+
+        {/* Companion path: capture by message (no app needed) */}
+        <div className="mt-6 rounded-lg border border-gray-200 p-5">
+          <p className="text-sm text-gray-500">…or just message your expenses to</p>
           <p className="mt-1 text-2xl font-semibold">{number || 'number coming soon'}</p>
+          <p className="mt-1 text-sm text-gray-600">by text{' '}
+            <span className="text-gray-400">or WhatsApp</span> — capture on the go, review in the app.
+          </p>
           {/* TCPA opt-in disclosure (Jordan / EPIC-7) */}
           <p className="mt-3 text-xs text-gray-500">
-            By texting Tally you agree to receive SMS messages from us about your expenses. Message
+            By messaging Tally you agree to receive messages from us about your expenses. Message
             &amp; data rates may apply. Reply STOP to opt out at any time. See our{' '}
             <Link href="/privacy" className="underline">Privacy Policy</Link> and{' '}
             <Link href="/terms" className="underline">Terms</Link>.

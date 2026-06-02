@@ -14,14 +14,26 @@ function getTwilio() {
   return _client;
 }
 
-/** Send an outbound SMS from our configured Twilio number. */
-export async function sendSms(to: string, body: string): Promise<string> {
-  const message = await getTwilio().messages.create({
-    to,
-    from: requireEnv('TWILIO_PHONE_NUMBER'),
-    body,
-  });
+export type Channel = 'sms' | 'whatsapp';
+
+/**
+ * Send an outbound message on the given channel. WhatsApp uses the same Twilio API with
+ * `whatsapp:` address prefixes and a WhatsApp-enabled sender (TWILIO_WHATSAPP_FROM, e.g.
+ * "whatsapp:+14155238886" — the Twilio sandbox number works for testing).
+ */
+export async function sendMessage(to: string, body: string, channel: Channel = 'sms'): Promise<string> {
+  const from =
+    channel === 'whatsapp'
+      ? requireEnv('TWILIO_WHATSAPP_FROM') // already "whatsapp:+1..."
+      : requireEnv('TWILIO_PHONE_NUMBER');
+  const toAddr = channel === 'whatsapp' ? `whatsapp:${to}` : to;
+  const message = await getTwilio().messages.create({ to: toAddr, from, body });
   return message.sid;
+}
+
+/** Backwards-compatible SMS helper (OTP, reminders). */
+export async function sendSms(to: string, body: string): Promise<string> {
+  return sendMessage(to, body, 'sms');
 }
 
 /**
