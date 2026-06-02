@@ -11,6 +11,40 @@ Format: date, decision, who pushed back, resolution, rationale.
 
 ## 2026-06-01 — Day 3 / EPIC-2 SMS Pipeline kickoff
 
+### DEC-014 — Capture name over SMS; email + org name at the dashboard (progressive profiling)
+- **Context:** Over SMS we only know a phone number. Founder wanted to also capture name,
+  email, org name so we "know who they are."
+- **Tension:** Adding all three to SMS doubles onboarding (3→6) right after DEC-013 chose
+  minimal. Sofia/Alex: friction at the highest-drop-off moment + off-brand. But the need is
+  real for records / "email my accountant" / personalization.
+- **Per-field reasoning:** name = warm, easy to type, broadly useful → SMS. email = typo-prone
+  over SMS and NOT needed for phone-OTP login → dashboard, optional. org name = often empty for
+  sole props → dashboard, optional.
+- **Decision (progressive profiling):** Add **name** as onboarding Q1 (now 4 questions:
+  name → work → entity → payment). Collect **email** + **org name** at the dashboard / at
+  point-of-need (e.g. email when setting up "email my accountant"). Migration `0004` adds
+  `users.full_name` + `users.email`; `organizations.name` already exists.
+- **Follow-up:** EPIC-4 dashboard settings must collect email + org name (optional). Founder
+  must run migration `0004` (or re-run `RUN_ALL.sql`) in Supabase.
+
+### DEC-013 — Onboarding stays deterministic + minimal, but CONFIG-DRIVEN (not LLM-adaptive)
+- **Context:** Founder asked whether the 3-question onboarding should be hardcoded or
+  adaptive ("re-analyze based on answers to ensure coverage").
+- **Key reframe:** Onboarding data is NOT load-bearing for substantiation — the decision
+  tree runs on category + amount + photo + per-expense context. `business_type` only nudges
+  categorization; `entity_type` does ~nothing in V1 (sole prop ≈ single-member LLC on
+  Schedule C); `default_payment_account` is just a default. The adaptive "ask only what's
+  required" intelligence already lives at EXPENSE time (the clarification flow).
+- **Team:** Sofia/Alex/Marcus against adaptive onboarding (activation is the highest-drop-off
+  moment; LLM nondeterminism/latency/over-asking is wrong there and off-brand vs "only ask
+  when required"). Raj: don't hardcode in a switch — make it config-driven. Priya: instrument
+  per-step completion; question whether `entity_type` earns its slot.
+- **Decision:** Keep onboarding deterministic + minimal, but move questions into a tunable
+  `ONBOARDING_QUESTIONS` config array with light re-ask validation (empty answer → re-ask).
+  Adaptivity stays at expense time. `src/lib/onboarding.ts`.
+- **Follow-up (measure, don't act yet):** instrument per-step completion; revisit whether
+  `entity_type` should be dropped/inferred.
+
 ### DEC-011 — Substantiation decision tree runs in DETERMINISTIC CODE; LLM composes language only
 - **Context:** SYSTEM-PROMPTS Prompt 2 embeds the decision tree and asks Sonnet to apply
   it (decide needs_receipt / thresholds / deductible) AND write the SMS in one call.
