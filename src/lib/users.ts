@@ -20,6 +20,7 @@ export interface AppUser {
   onboarding_completed: boolean;
   onboarding_step: number;
   sms_consent_at: string | null;
+  sms_opted_out_at: string | null;
 }
 
 /** Look up a user by E.164 phone. Returns null if not found. */

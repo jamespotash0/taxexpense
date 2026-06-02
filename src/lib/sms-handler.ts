@@ -3,7 +3,7 @@
 // This function owns the conversation flow and ALWAYS sends exactly one reply.
 
 import { normalizeToE164 } from './phone';
-import { getOrCreateUserByPhone, touchLastActive, type AppUser } from './users';
+import { getOrCreateUserByPhone, touchLastActive, updateUser, type AppUser } from './users';
 import { logConversation, getPendingContext, type ContextState } from './conversations';
 import { handleOnboarding } from './onboarding';
 import { downloadAndStorePhoto, extractReceiptFromPhoto, parseTextExpense, type OcrResult } from './ocr';
@@ -139,6 +139,19 @@ export async function handleInboundSms(msg: InboundMessage): Promise<void> {
     mediaUrl: msg.mediaUrls[0] ?? null,
   });
   await touchLastActive(user.id);
+
+  // TCPA opt-out / opt-in keywords (EPIC-7). Twilio also handles STOP at the carrier
+  // level; we record state so reminders/outbound respect it.
+  const keyword = msg.body.trim().toUpperCase();
+  if (['STOP', 'STOPALL', 'UNSUBSCRIBE', 'CANCEL', 'END', 'QUIT'].includes(keyword)) {
+    await updateUser(user.id, { sms_opted_out_at: new Date().toISOString() });
+    return; // Twilio sends the carrier opt-out confirmation; stay silent.
+  }
+  if (['START', 'UNSTOP', 'YES'].includes(keyword)) {
+    await updateUser(user.id, { sms_opted_out_at: null });
+    await safeSend(phone, "You're re-subscribed to Tally. Send an expense any time.");
+    return;
+  }
 
   let reply: ProcessResult;
   try {

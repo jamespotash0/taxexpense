@@ -9,6 +9,39 @@ Format: date, decision, who pushed back, resolution, rationale.
 
 ## 2026-06-01 — Day 1 / EPIC-1 Foundation kickoff
 
+## 2026-06-01 — EPIC-3/4/5/7/8 build pass
+
+### DEC-015 — Email-accountant ships as CSV + HTML summary in V1; PDF deferred
+- **Context:** TSNAP-047/048 want a generated PDF + CSV emailed to the accountant.
+- **Decision:** V1 sends a formatted HTML summary email with the **CSV attached** (via
+  Resend). The **PDF is deferred** — `@react-pdf/renderer` is a heavy dependency for a
+  P1-can-slip feature.
+- **Rationale:** Accountants import CSV anyway; HTML body carries the at-a-glance summary.
+  Matches EPIC-8's "can slip" priority and Alex's resist-scope-creep. Add PDF post-beta if
+  users ask. `src/lib/email.ts`, `src/app/api/email-accountant/route.ts`.
+
+### DEC-016 — Sentry deferred for V1; structured JSON logging via lib/log instead
+- **Context:** EPIC-6 lists Sentry. It's marked "optional for V1."
+- **Decision:** Skip the `@sentry/nextjs` install + instrumentation for now. Use the existing
+  structured `lib/log` (JSON lines, PII-masked) which surfaces in Vercel logs. Wire Sentry
+  before public/paid scale.
+- **Rationale:** Avoid config overhead + a dependency on the critical path; logging covers
+  beta debugging. `NEXT_PUBLIC_SENTRY_DSN` env slot kept for later.
+
+### BUILD STATUS (end of this pass) — all code compiles, lints, 21 unit tests pass
+- EPIC-1 Foundation: ✅ code/SQL (needs: seeds + migration 0004 run, Twilio, deploy).
+- EPIC-2 SMS pipeline: ✅ code (needs live Twilio + seeds to run end-to-end).
+- EPIC-3 Substantiation + reminders: ✅ decision tree (tested) + weekly cron reminder.
+- EPIC-4 Dashboard: ✅ phone-OTP auth, sessions, proxy gate, list/detail/edit/delete,
+  photo upload, CSV + QBO export, settings (email/org), badges, empty states.
+- EPIC-5 Landing + legal: ✅ landing (TCPA opt-in), privacy (CCPA), terms + tax disclaimer.
+- EPIC-7 Security: ✅ webhook signature, OTP rate-limit + lockout, constant-time compare,
+  HTTP-only/secure/sameSite cookies, private Storage bucket + signed URLs, STOP/START,
+  org-scoped queries + RLS default-deny. (Follow-ups: per-day receipt + per-min API limits.)
+- EPIC-8 Email accountant: ✅ CSV + HTML email (PDF deferred, DEC-015).
+- EPIC-6 Testing/launch: 🟡 unit tests in place; live E2E + carrier/device tests pending
+  Twilio + deploy; Sentry deferred (DEC-016).
+
 ## 2026-06-01 — Day 3 / EPIC-2 SMS Pipeline kickoff
 
 ### DEC-014 — Capture name over SMS; email + org name at the dashboard (progressive profiling)

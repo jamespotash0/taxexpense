@@ -76,6 +76,26 @@ export async function downloadAndStorePhoto(
   return { path, signedUrl: signed.signedUrl };
 }
 
+/** Store a photo provided as a buffer (dashboard upload, TSNAP-041). */
+export async function storePhotoBuffer(
+  buffer: Buffer,
+  contentType: string,
+  userId: string,
+): Promise<{ path: string; signedUrl: string }> {
+  const ext = contentType.includes('png') ? 'png' : contentType.includes('pdf') ? 'pdf' : 'jpg';
+  const path = `${userId}/${randomUUID()}.${ext}`;
+  const admin = getSupabaseAdmin();
+  const { error: upErr } = await admin.storage
+    .from(RECEIPTS_BUCKET)
+    .upload(path, buffer, { contentType, upsert: false });
+  if (upErr) throw upErr;
+  const { data: signed, error: signErr } = await admin.storage
+    .from(RECEIPTS_BUCKET)
+    .createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
+  if (signErr || !signed) throw signErr ?? new Error('sign_url_failed');
+  return { path, signedUrl: signed.signedUrl };
+}
+
 /** Mint a fresh signed URL for an already-stored receipt path. */
 export async function getSignedReceiptUrl(path: string): Promise<string> {
   const { data, error } = await getSupabaseAdmin().storage

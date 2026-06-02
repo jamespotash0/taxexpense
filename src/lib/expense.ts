@@ -113,6 +113,33 @@ export async function processNewExpense(
   return { smsText, receiptId, contextState: nextContextState(decision) };
 }
 
+/**
+ * Reload a receipt and recompute its substantiation flags + deductible from its current
+ * fields (DEC-011). Use after any edit (dashboard) or photo attach. Returns the updated
+ * substantiation_complete, or null if the receipt is missing.
+ */
+export async function recomputeReceipt(orgId: string, receiptId: string): Promise<boolean | null> {
+  const r = await getReceipt(orgId, receiptId);
+  if (!r) return null;
+  const category = r.category ?? 'personal';
+  const rule = (await getSubstantiationRule(category)) ?? generalFallback(category);
+  const decision = evaluateSubstantiation(rule, {
+    amount_cents: r.amount_cents,
+    has_photo: r.photo_url != null,
+    captured_fields: capturedFrom(r),
+  });
+  await updateReceipt(orgId, receiptId, {
+    irc_section: rule.irc_section,
+    deduction_percentage: decision.deduction_percentage,
+    deductible_amount_cents: decision.deductible_amount_cents,
+    needs_receipt: decision.needs_receipt,
+    receipt_reason: decision.receipt_reason,
+    substantiation_complete: decision.substantiation_complete,
+    substantiation_missing_fields: decision.missing_context_fields,
+  });
+  return decision.substantiation_complete;
+}
+
 interface ClarificationResponse {
   updates: {
     business_purpose: string | null;

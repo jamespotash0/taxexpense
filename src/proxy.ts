@@ -1,13 +1,24 @@
-// Edge proxy (Next.js 16 renamed the old `middleware` convention to `proxy`).
-// Pass-through for EPIC-1.
-// OWNER: Emma + Jordan. EPIC-4/EPIC-7, Day 6: gate /dashboard and /receipts behind
-// a valid session cookie and redirect to /login otherwise.
-import { NextResponse } from 'next/server';
+// Edge proxy (Next.js 16; replaces the old `middleware` convention). TSNAP-037.
+// Cheap cookie-presence gate at the edge; the actual session validation happens in
+// the pages via getCurrentUser() (defense in depth). We deliberately do NOT import
+// lib/auth here — it pulls node-only `crypto`/Supabase into the edge runtime — so the
+// cookie name is inlined.
+import { NextResponse, type NextRequest } from 'next/server';
 
-export function proxy() {
-  // TODO(EPIC-4): session gating for protected routes.
+const PROTECTED = ['/dashboard', '/receipts'];
+const SESSION_COOKIE = 'session';
+
+export function proxy(req: NextRequest) {
+  const { pathname } = req.nextUrl;
+  const isProtected = PROTECTED.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  if (!isProtected) return NextResponse.next();
+
+  if (!req.cookies.get(SESSION_COOKIE)?.value) {
+    const url = new URL('/login', req.url);
+    url.searchParams.set('returnTo', pathname);
+    return NextResponse.redirect(url);
+  }
   return NextResponse.next();
 }
 
-// No matcher yet — proxy is a no-op until auth lands.
-export const config = { matcher: [] };
+export const config = { matcher: ['/dashboard/:path*', '/receipts/:path*'] };

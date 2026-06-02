@@ -23,6 +23,28 @@ This document lists the 8 epics that make up V1, their dependencies, and the rec
 
 ---
 
+## Build Status — Claude Code (2026-06-01)
+
+All epic code is implemented and compiles (`npm run build`), lints clean, and **21 unit
+tests pass**. Decisions/conflicts logged in `claude_files/docs/JOURNAL.md` (DEC-001…016).
+
+| Epic | Code status | Blocked on (founder / live) |
+|------|-------------|------------------------------|
+| 1 Foundation | ✅ code + SQL | run seeds (0002/0003) + migration 0004; Twilio; deploy |
+| 2 SMS Pipeline | ✅ code | live Twilio number + seeds to run end-to-end |
+| 3 Substantiation | ✅ tested tree + weekly reminder cron | — |
+| 4 Dashboard | ✅ auth, list, detail/edit, upload, export, settings | live DB session test |
+| 5 Landing + Legal | ✅ landing/privacy/terms | lawyer review before paid launch |
+| 6 Testing + Launch | 🟡 unit tests; E2E pending | Twilio + deploy; Sentry deferred (DEC-016) |
+| 7 Security | ✅ signature, rate-limit, lockout, cookies, RLS, STOP/START | per-day/min rate limits (follow-up) |
+| 8 Email Accountant | ✅ CSV + HTML email | Resend key + verified domain; PDF deferred (DEC-015) |
+
+**Founder run-list to go live:** run `supabase/migrations/RUN_ALL.sql` (seeds + 0004) →
+finish Twilio (sole-prop A2P + number, point webhook to `/api/sms/inbound`) → set env vars
+(incl. `CRON_SECRET`, `RESEND_*`) → `vercel` deploy → end-to-end test.
+
+---
+
 ## Dependency Graph
 
 ```

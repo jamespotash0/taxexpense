@@ -31,6 +31,7 @@ export interface ReceiptRow {
   substantiation_complete: boolean;
   substantiation_missing_fields: string[] | null;
   raw_extracted_data: unknown;
+  notes: string | null;
   created_at: string;
 }
 
@@ -92,6 +93,78 @@ export async function updateReceipt(
 ): Promise<void> {
   const { error } = await orgTable('receipts', orgId).update(patch).eq('id', receiptId);
   if (error) throw error;
+}
+
+export type ReceiptFilter = 'all' | 'needs_attention' | 'this_month';
+
+/** List receipts for the dashboard (org-scoped, newest first, paginated + filtered). */
+export async function listReceipts(
+  orgId: string,
+  opts: { filter?: ReceiptFilter; limit?: number; offset?: number } = {},
+): Promise<{ rows: ReceiptRow[]; hasMore: boolean }> {
+  const limit = Math.min(opts.limit ?? 20, 100);
+  const offset = opts.offset ?? 0;
+  let q = orgTable('receipts', orgId)
+    .select()
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit); // fetch one extra to detect hasMore
+
+  if (opts.filter === 'needs_attention') {
+    q = q.or('needs_receipt.eq.true,substantiation_complete.eq.false');
+  } else if (opts.filter === 'this_month') {
+    q = q.gte('transaction_date', monthStart());
+  }
+
+  const { data, error } = await q;
+  if (error) throw error;
+  const all = (data as unknown as ReceiptRow[]) ?? [];
+  return { rows: all.slice(0, limit), hasMore: all.length > limit };
+}
+
+/** All receipts for an org, newest first — for CSV/QBO export (TSNAP-042/043). */
+export async function getAllReceiptsForExport(orgId: string): Promise<ReceiptRow[]> {
+  const { data, error } = await orgTable('receipts', orgId)
+    .select()
+    .order('transaction_date', { ascending: false });
+  if (error) throw error;
+  return (data as unknown as ReceiptRow[]) ?? [];
+}
+
+export interface MonthlySummary {
+  total_cents: number;
+  count: number;
+  deductible_cents: number;
+  complete_count: number;
+  needs_attention_count: number;
+}
+
+function monthStart(): string {
+  const d = new Date();
+  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
+}
+
+/** Aggregate this-month stats for the dashboard summary widget (TSNAP-038). */
+export async function getMonthlySummary(orgId: string): Promise<MonthlySummary> {
+  const { data, error } = await orgTable('receipts', orgId)
+    .select('amount_cents, deductible_amount_cents, substantiation_complete, needs_receipt, substantiation_missing_fields')
+    .gte('transaction_date', monthStart());
+  if (error) throw error;
+  const rows = (data as unknown as Pick<ReceiptRow, 'amount_cents' | 'deductible_amount_cents' | 'substantiation_complete' | 'needs_receipt' | 'substantiation_missing_fields'>[]) ?? [];
+
+  let total = 0, deductible = 0, complete = 0, attention = 0;
+  for (const r of rows) {
+    total += r.amount_cents ?? 0;
+    deductible += r.deductible_amount_cents ?? 0;
+    if (r.substantiation_complete) complete++;
+    else attention++;
+  }
+  return {
+    total_cents: total,
+    count: rows.length,
+    deductible_cents: deductible,
+    complete_count: complete,
+    needs_attention_count: attention,
+  };
 }
 
 /**

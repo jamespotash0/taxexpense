@@ -1,9 +1,14 @@
-// Phone-OTP login. OWNER: Emma + David. EPIC-4, Day 6.
+// Phone-OTP login page (TSNAP-035/036). The form is a client component; wrap in
+// Suspense because it reads useSearchParams.
+import { Suspense } from 'react';
+import { LoginForm } from '@/components/LoginForm';
+
 export default function LoginPage() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-4 p-8">
-      <h1 className="text-2xl font-semibold">Log in</h1>
-      <p className="text-sm text-gray-500">Phone OTP login — TODO(EPIC-4).</p>
+    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center p-8">
+      <Suspense fallback={<p className="text-sm text-gray-400">Loading…</p>}>
+        <LoginForm />
+      </Suspense>
     </main>
   );
 }
