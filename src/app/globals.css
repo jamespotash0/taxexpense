@@ -16,6 +16,11 @@
   --color-primary: #111827;        /* ink */
   --color-primary-hover: #374151;
 
+  /* Marketing accent (landing only — app/dashboard stays ink). */
+  --color-accent: #4f46e5;         /* indigo */
+  --color-accent-hover: #4338ca;
+  --color-accent-50: #eef2ff;
+
   /* Semantic status (badges, alerts). */
   --color-success-50: #f0fdf4;
   --color-success-600: #16a34a;
@@ -56,4 +61,25 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .animate-bubble-in, .typing-dot { animation: none !important; }
+}
+
+/* Trendy landing: subtle accent glow behind the hero + on-load reveal + card hover lift. */
+.hero-glow {
+  background:
+    radial-gradient(55% 50% at 50% -5%, color-mix(in srgb, var(--color-accent) 14%, transparent), transparent 70%),
+    radial-gradient(40% 40% at 85% 10%, color-mix(in srgb, var(--color-accent) 8%, transparent), transparent 70%);
+}
+@keyframes reveal-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+.reveal { animation: reveal-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.reveal-2 { animation: reveal-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.08s both; }
+.reveal-3 { animation: reveal-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.16s both; }
+.lift { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.lift:hover { transform: translateY(-3px); box-shadow: 0 12px 32px -12px rgba(17, 24, 39, 0.18); }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal, .reveal-2, .reveal-3 { animation: none !important; }
+  .lift:hover { transform: none; }
 }
