@@ -1,8 +1,8 @@
 'use client';
 
-// "Install the app" affordance for the landing page (DEC-019). Uses the browser's
-// beforeinstallprompt where available (Android/desktop Chrome); shows Add-to-Home-Screen
-// instructions on iOS (which has no programmatic prompt).
+// "Install the app" CTA (DEC-019). Always renders a button. Uses the browser's
+// beforeinstallprompt where available (Android/desktop Chrome); on iOS (no programmatic
+// prompt) it reveals Add-to-Home-Screen instructions.
 import { useEffect, useState } from 'react';
 
 interface BeforeInstallPromptEvent extends Event {
@@ -10,9 +10,10 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
-export function InstallButton() {
+export function InstallButton({ className = '' }: { className?: string }) {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [installed, setInstalled] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
   useEffect(() => {
     const onPrompt = (e: Event) => {
@@ -28,27 +29,31 @@ export function InstallButton() {
     };
   }, []);
 
-  if (installed) return <p className="text-sm text-gray-500">Installed ✓ — find Tally on your home screen.</p>;
+  if (installed) {
+    return <p className="text-sm text-gray-500">Installed ✓ — find Tally on your home screen.</p>;
+  }
 
-  if (deferred) {
-    return (
+  return (
+    <div className={className}>
       <button
         onClick={async () => {
-          await deferred.prompt();
-          setDeferred(null);
+          if (deferred) {
+            await deferred.prompt();
+            setDeferred(null);
+          } else {
+            setShowHelp((v) => !v);
+          }
         }}
-        className="rounded-md bg-primary hover:bg-primary-hover px-5 py-2.5 text-white"
+        className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 text-base font-medium text-white transition-colors hover:bg-primary-hover"
       >
         Install Tally
       </button>
-    );
-  }
-
-  // iOS / not-yet-eligible fallback.
-  return (
-    <p className="text-sm text-gray-500">
-      Add Tally to your phone: on <span className="font-medium">iPhone</span> tap Share → &ldquo;Add to Home
-      Screen&rdquo;; on <span className="font-medium">Android</span> use the menu → &ldquo;Install app.&rdquo;
-    </p>
+      {showHelp && !deferred && (
+        <p className="mt-3 text-sm text-gray-500">
+          On <span className="font-medium">iPhone</span>: tap Share → &ldquo;Add to Home Screen.&rdquo; On{' '}
+          <span className="font-medium">Android</span>: menu → &ldquo;Install app.&rdquo;
+        </p>
+      )}
+    </div>
   );
 }

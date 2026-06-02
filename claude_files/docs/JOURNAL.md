@@ -9,6 +9,14 @@ Format: date, decision, who pushed back, resolution, rationale.
 
 ## 2026-06-01 — Day 1 / EPIC-1 Foundation kickoff
 
+### DEC-020 — Landing redesign: animated SMS hero, 3 sections, "Say hello" CTA, no pricing
+- Rebuilt the landing to 3 sections (hero / features / footer-CTA). Hero visual is an
+  **animated SMS thread** (`AnimatedPhone`): user texts an expense → typing indicator → Tally
+  replies, looping. Custom CSS keyframes + a setTimeout state machine (no animation library).
+  Honors `prefers-reduced-motion` (static thread, no loop) per Sofia/a11y. Primary CTA is
+  "Say hello 👋" → `sms:` deep link to the Tally number; Install as secondary. No pricing.
+  Icons still placeholders (designer task). Consulted Sofia (web UX) on motion + accessibility.
+
 ## 2026-06-01 — Interface: PWA + WhatsApp (refines DEC-017)
 
 ### DEC-019 — Installable PWA + WhatsApp channel; native app stays Phase-2
