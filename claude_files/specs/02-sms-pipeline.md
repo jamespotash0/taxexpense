@@ -21,6 +21,40 @@ The core capture mechanism. Users text the number, AI handles the conversation, 
 
 ---
 
+## Build Status — Claude Code session 2026-06-01 (EPIC-2 first pass)
+
+Full SMS pipeline coded; `tsc` + `eslint` + `npm run build` + `npm test` (13 decision-tree
+tests) all green. Architecture decision DEC-011 governs this epic (deterministic decision
+tree in code; LLM for language only). DEC-012 corrected the gift rule.
+
+| Ticket | Status | Where |
+|--------|--------|-------|
+| TSNAP-013 Webhook skeleton | ✅ | `src/app/api/sms/inbound/route.ts` |
+| TSNAP-014 Outbound SMS helper | ✅ | `src/lib/twilio.ts` (`sendSms`) |
+| TSNAP-015 Signature validation | ✅ | route validates `X-Twilio-Signature`, 403 on fail |
+| TSNAP-016 User lookup + convo logging | ✅ | `src/lib/users.ts`, `src/lib/conversations.ts` |
+| TSNAP-017 Onboarding state machine | ✅ | `src/lib/onboarding.ts` (hard-coded copy) |
+| TSNAP-018 Photo → Storage | ✅ CODE + bucket created | `src/lib/ocr.ts`; private `receipts` bucket live |
+| TSNAP-019 Claude Vision OCR | ✅ CODE | `extractReceiptFromPhoto` (Haiku) — needs live receipt testing |
+| TSNAP-020 Text expense parse | ✅ CODE | `parseTextExpense` (Haiku) — needs live testing |
+| TSNAP-021 Categorize + substantiation | ✅ CODE | `categorize.ts` + `substantiation.ts` (tested) |
+| TSNAP-022 Receipt save | ✅ | `src/lib/receipts.ts` (`saveReceipt`, org-scoped) |
+| TSNAP-023 Clarification flow | ✅ CODE | `expense.ts` `processClarification` (Prompt 4) |
+| TSNAP-024 Attachment flow | ✅ CODE | `expense.ts` `processAttachment` (Prompt 5) |
+| TSNAP-025 Multi-tenant isolation | ✅ structural | all receipt/convo access via `orgTable()` (DEC-001) |
+| TSNAP-026 Error handling | ✅ | graceful fallbacks in `sms-handler.ts` (Sofia copy) |
+
+**Blocked on live services before end-to-end works** (code is ready):
+- Run seeds `0002`+`0003` — runtime needs `substantiation_rules` + `irc_summaries` populated.
+- Twilio number + webhook → `https://<host>/api/sms/inbound`; verify your phone (trial).
+- Deploy (public URL) so Twilio can reach the webhook. Local: tunnel + `ALLOW_INSECURE_SMS_WEBHOOK=1`.
+
+**Still needs human/live validation (can't unit-test):** OCR accuracy on real receipts
+(TSNAP-019), text-parse on 20 inputs (TSNAP-020), 9 SYSTEM-PROMPTS examples (TSNAP-021),
+2-user isolation test (TSNAP-025), Sofia conversation-feel sign-off, Jordan isolation sign-off.
+
+---
+
 ## Tickets in Order
 
 ### TSNAP-013 — Twilio Webhook Endpoint Skeleton

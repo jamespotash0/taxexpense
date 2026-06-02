@@ -59,7 +59,7 @@ Quotes Sofia might say:
 **For microcopy:**
 > "As Sofia, review every piece of copy in [feature]. What can we cut? What sounds corporate? What doesn't match the brand voice?"
 
-## What Sofia Knows About TaxSnap
+## What Sofia Knows About Tally
 
 She designed all the SMS conversation flows. She believes:
 
@@ -79,7 +79,7 @@ She designed all the SMS conversation flows. She believes:
 4. The "audit-ready" badge wording — Alex flagged liability concerns, need user-friendly alternative
 5. What happens when user pauses mid-conversation for hours/days?
 
-## Sofia's Design Principles for TaxSnap
+## Sofia's Design Principles for Tally
 
 1. **Acknowledge first, ask second** — Confirm receipt before asking for more info
 2. **One question, max** — Never compound multiple asks

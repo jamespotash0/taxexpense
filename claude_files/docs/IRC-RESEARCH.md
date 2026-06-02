@@ -1,8 +1,8 @@
-# TaxSnap — IRC Research & Sourcing Reference
+# Tally — IRC Research & Sourcing Reference
 
 **Purpose:** This is the *sourced* reference behind [`IRC-SUMMARIES.md`](./IRC-SUMMARIES.md). Where IRC-SUMMARIES.md holds the short, user-facing copy seeded into the `irc_summaries` table, **this file holds the statutory detail at subsection level, the "WHY" each provision requires a user to capture, and the primary/secondary sources** so the summaries can be audited and kept current.
 
-**Scope:** The Internal Revenue Code sections and subsections that matter to TaxSnap's target user — a **sole proprietor, single-member LLC, or 1099 contractor filing Schedule C** — for the product's core job: **capturing the business purpose ("the WHY") of an expense and meeting IRS substantiation rules.**
+**Scope:** The Internal Revenue Code sections and subsections that matter to Tally's target user — a **sole proprietor, single-member LLC, or 1099 contractor filing Schedule C** — for the product's core job: **capturing the business purpose ("the WHY") of an expense and meeting IRS substantiation rules.**
 
 **Currency:** Current as of **2026 tax year**, and explicitly reconciled to the **One Big Beautiful Bill Act (OBBBA), Public Law 119-21, enacted July 4, 2025.** Several dollar figures changed under OBBBA — a summary written before July 2025 will be *wrong* on §179, §168(k), and §199A. See the [What Changed for 2026](#what-changed-for-2026-obbba) box.
 
@@ -14,13 +14,13 @@
 > _This is general information about the Internal Revenue Code, not tax advice for your specific situation. Tax law is complex and changes frequently. For advice on your specific circumstances, consult a licensed tax professional._
 
 > ### ❗ This document is not a substitute for a CPA spot-check
-> These summaries are research-grade and primary-sourced, but TaxSnap is a logger, not an advisor. Per [`CLAUDE.md`](../../CLAUDE.md) Critical Open Items, the IRC summaries still warrant a **CPA spot-check before/just-after launch**. Items needing professional confirmation are flagged inline and collected in [Open Items & CPA-Review Flags](#open-items--cpa-review-flags).
+> These summaries are research-grade and primary-sourced, but Tally is a logger, not an advisor. Per [`CLAUDE.md`](../../CLAUDE.md) Critical Open Items, the IRC summaries still warrant a **CPA spot-check before/just-after launch**. Items needing professional confirmation are flagged inline and collected in [Open Items & CPA-Review Flags](#open-items--cpa-review-flags).
 
 ---
 
 ## What Changed for 2026 (OBBBA)
 
-The **One Big Beautiful Bill Act (P.L. 119-21, July 4, 2025)** changed several of exactly the provisions TaxSnap cites. A summary based on pre-OBBBA (TCJA-sunset) assumptions would be out of date:
+The **One Big Beautiful Bill Act (P.L. 119-21, July 4, 2025)** changed several of exactly the provisions Tally cites. A summary based on pre-OBBBA (TCJA-sunset) assumptions would be out of date:
 
 | Provision | Old (pre-OBBBA) | **Current (2026, post-OBBBA)** |
 |---|---|---|
@@ -31,11 +31,11 @@ The **One Big Beautiful Bill Act (P.L. 119-21, July 4, 2025)** changed several o
 
 The IRS confirmed these are operative in 2026 law via **Rev. Proc. 2025-32** ("inflation adjustments for tax year 2026, including amendments from the One, Big, Beautiful Bill"). Primary: https://www.irs.gov/newsroom/irs-releases-tax-inflation-adjustments-for-tax-year-2026-including-amendments-from-the-one-big-beautiful-bill
 
-**Refuted during research (do NOT repeat):** the claim that OBBBA's *Qualified Production Property* shares the bonus-depreciation "after Jan 19, 2025" acquired-and-placed-in-service date — QPP timing differs. (Verdict 0–3; excluded.) QPP is out of scope for TaxSnap's Schedule-C users anyway.
+**Refuted during research (do NOT repeat):** the claim that OBBBA's *Qualified Production Property* shares the bonus-depreciation "after Jan 19, 2025" acquired-and-placed-in-service date — QPP timing differs. (Verdict 0–3; excluded.) QPP is out of scope for Tally's Schedule-C users anyway.
 
 ---
 
-## Quick Reference: Sections Flagged for TaxSnap
+## Quick Reference: Sections Flagged for Tally
 
 | § | Topic | Substantiation regime | Deduct % | Key figure (2026) | Annual review? |
 |---|---|---|---|---|---|
@@ -66,7 +66,7 @@ The IRS confirmed these are operative in 2026 law via **Rev. Proc. 2025-32** ("i
 
 # Section Detail
 
-Each entry separates **(a) the statutory rule**, **(b) the WHY to capture** (what TaxSnap should record/ask for), and **(c) sources + flags**.
+Each entry separates **(a) the statutory rule**, **(b) the WHY to capture** (what Tally should record/ask for), and **(c) sources + flags**.
 
 ---
 
@@ -80,11 +80,11 @@ Each entry separates **(a) the statutory rule**, **(b) the WHY to capture** (wha
 
 ### §162(a)(1) — Reasonable compensation (and the owner-draw trap)
 
-**(a) Rule.** §162(a)(1) allows a deduction for *a reasonable allowance for salaries or other compensation for personal services actually rendered.* **Critically for TaxSnap's user:** a sole proprietor / single-member LLC owner **cannot deduct compensation paid to themselves.** Owner draws are not deductible. The Schedule C instructions state plainly: "Do not include … amounts paid to yourself." The owner's "pay" is the residual **net profit** (Schedule C line 31), which is then subject to SE tax — regardless of how much cash they actually withdrew.
+**(a) Rule.** §162(a)(1) allows a deduction for *a reasonable allowance for salaries or other compensation for personal services actually rendered.* **Critically for Tally's user:** a sole proprietor / single-member LLC owner **cannot deduct compensation paid to themselves.** Owner draws are not deductible. The Schedule C instructions state plainly: "Do not include … amounts paid to yourself." The owner's "pay" is the residual **net profit** (Schedule C line 31), which is then subject to SE tax — regardless of how much cash they actually withdrew.
 
 **(b) The WHY to capture.** Capture deductible *business* expenses to reduce net profit; do **not** treat owner draws as expenses.
 
-**(c) Sources & flags.** Primary: https://www.law.cornell.edu/uscode/text/26/162 + Schedule C instructions https://www.irs.gov/instructions/i1040sc · **Product implication:** TaxSnap must never suggest a sole prop "pay themselves a salary" or log an owner draw as a deductible expense. Stable; no OBBBA change. Confidence: **high**.
+**(c) Sources & flags.** Primary: https://www.law.cornell.edu/uscode/text/26/162 + Schedule C instructions https://www.irs.gov/instructions/i1040sc · **Product implication:** Tally must never suggest a sole prop "pay themselves a salary" or log an owner draw as a deductible expense. Stable; no OBBBA change. Confidence: **high**.
 
 ### §162(l) — Self-employed health insurance deduction
 
@@ -92,7 +92,7 @@ Each entry separates **(a) the statutory rule**, **(b) the WHY to capture** (wha
 
 **(b) The WHY to capture.** Premium-payment proof, policy/coverage type and covered persons, and that the taxpayer was *not* eligible for employer-subsidized coverage in the claimed months.
 
-**(c) Sources & flags.** Primary: https://www.law.cornell.edu/uscode/text/26/162 + Form 7206 instructions https://www.irs.gov/instructions/i7206 · IRS Topic 305/502. **Flag:** LTC age caps are **inflation-adjusted annually** (review). This is an above-the-line item, *not* a Schedule C expense — likely **out of TaxSnap's core capture loop**, but worth knowing so the AI doesn't mis-bucket health premiums as a Schedule C deduction. Confidence: **high**.
+**(c) Sources & flags.** Primary: https://www.law.cornell.edu/uscode/text/26/162 + Form 7206 instructions https://www.irs.gov/instructions/i7206 · IRS Topic 305/502. **Flag:** LTC age caps are **inflation-adjusted annually** (review). This is an above-the-line item, *not* a Schedule C expense — likely **out of Tally's core capture loop**, but worth knowing so the AI doesn't mis-bucket health premiums as a Schedule C deduction. Confidence: **high**.
 
 ---
 
@@ -106,7 +106,7 @@ Each entry separates **(a) the statutory rule**, **(b) the WHY to capture** (wha
 
 ---
 
-## §274 — The Strict Substantiation Regime (the heart of TaxSnap)
+## §274 — The Strict Substantiation Regime (the heart of Tally)
 
 §274 is where the product's "capture the WHY only when the code requires it" logic lives. Treat each subsection separately.
 
@@ -114,9 +114,9 @@ Each entry separates **(a) the statutory rule**, **(b) the WHY to capture** (wha
 
 **(a) Rule.** For **travel, meals, gifts, and listed property**, **NO deduction is allowed** unless the taxpayer substantiates — *by adequate records or sufficient corroborating evidence of the taxpayer's own statement* — these elements: **(A) amount; (B) time and place** of travel (or, for a gift, **date and description**); **(C) business purpose**; and **(D) the business relationship** of the person receiving the meal/gift. Treas. Reg. §1.274-5 (operative detail in temp. §1.274-5T) carries the same elements.
 
-**Documentary-evidence ($75) threshold — Reg. §1.274-5(c)(2):** a **receipt/paid bill is required** for (1) **any lodging** expense while traveling away from home, and (2) **any other expenditure of $75 or more.** **Below $75 (and not lodging), the taxpayer's own adequate written record suffices** — *this is the statutory basis for TaxSnap's rule that for a sub-$75 strict-category expense the user's SMS IS the IRS-compliant documentation.* The **$75 threshold is fixed (since Oct 1, 1995), not inflation-adjusted**, and unchanged by OBBBA.
+**Documentary-evidence ($75) threshold — Reg. §1.274-5(c)(2):** a **receipt/paid bill is required** for (1) **any lodging** expense while traveling away from home, and (2) **any other expenditure of $75 or more.** **Below $75 (and not lodging), the taxpayer's own adequate written record suffices** — *this is the statutory basis for Tally's rule that for a sub-$75 strict-category expense the user's SMS IS the IRS-compliant documentation.* The **$75 threshold is fixed (since Oct 1, 1995), not inflation-adjusted**, and unchanged by OBBBA.
 
-**(b) The WHY to capture.** This subsection literally defines what TaxSnap asks for on strict-category expenses: **amount, when, where, why (business purpose), and for whom (business relationship).** Lodging and any ≥$75 strict expense additionally require an attached receipt.
+**(b) The WHY to capture.** This subsection literally defines what Tally asks for on strict-category expenses: **amount, when, where, why (business purpose), and for whom (business relationship).** Lodging and any ≥$75 strict expense additionally require an attached receipt.
 
 **(c) Sources & flags.** Primary: https://www.law.cornell.edu/uscode/text/26/274 + https://www.law.cornell.edu/cfr/text/26/1.274-5 (+ eCFR §1.274-5T). **Flag:** $75 documentary threshold is **fixed, not indexed**. Confidence: **high** (3-0). *Nuance:* for **gifts**, element (B) is *date and description of the gift*, not "place."
 
@@ -132,9 +132,9 @@ Each entry separates **(a) the statutory rule**, **(b) the WHY to capture** (wha
 
 **(a) Rule.** The deduction for business gifts to any one individual is capped at **$25 per person per taxable year**, cumulative across all gifts to that person. Pub 463 corroborates and adds: incidental promotional items ≤$4 with your name on them don't count, and spouses are treated as one donor.
 
-**(b) The WHY to capture.** Recipient identity and a **running per-recipient annual total**; flag amounts over $25/recipient as nondeductible above the cap. (Gifts also always require strict §274(d) substantiation — TaxSnap models gifts as `always_receipt`.)
+**(b) The WHY to capture.** Recipient identity and a **running per-recipient annual total**; flag amounts over $25/recipient as nondeductible above the cap. (Gifts also always require strict §274(d) substantiation — Tally models gifts as `always_receipt`.)
 
-**(c) Sources & flags.** Primary: https://www.law.cornell.edu/uscode/text/26/274 · Secondary: https://www.irs.gov/publications/p463. **Flag:** **$25 is fixed (since 1962), not inflation-adjusted**, unchanged by OBBBA. Confidence: **high**. *(Note: TaxSnap's `substantiation_rules` seed encodes this as `deduction_cap_cents = 2500`.)*
+**(c) Sources & flags.** Primary: https://www.law.cornell.edu/uscode/text/26/274 · Secondary: https://www.irs.gov/publications/p463. **Flag:** **$25 is fixed (since 1962), not inflation-adjusted**, unchanged by OBBBA. Confidence: **high**. *(Note: Tally's `substantiation_rules` seed encodes this as `deduction_cap_cents = 2500`.)*
 
 ### §274(k) — Meals: not lavish + taxpayer/employee present
 
@@ -148,7 +148,7 @@ Each entry separates **(a) the statutory rule**, **(b) the WHY to capture** (wha
 
 **(a) Rule.** §274(n)(1): the deduction for food/beverages **cannot exceed 50%** of the amount. The temporary **100% restaurant-meal deduction (§274(n)(2)(D)) applied only to 2021–2022 and has fully expired** — 2026 meals are **50%**. **OBBBA added a *new* §274(o)** (effective 2026) disallowing *employer-convenience* meals and employer eating-facility costs — this targets employers with employees and **does not affect** a sole proprietor's client meals or meals while traveling.
 
-**(b) The WHY to capture.** Standard §274(d) meal elements; apply 50% to the deductible amount. TaxSnap's `meals_business` / `meals_travel` rules already carry `deduction_percentage = 50`.
+**(b) The WHY to capture.** Standard §274(d) meal elements; apply 50% to the deductible amount. Tally's `meals_business` / `meals_travel` rules already carry `deduction_percentage = 50`.
 
 **(c) Sources & flags.** Primary: https://www.law.cornell.edu/uscode/text/26/274 · Secondary: Pub 463; CohnReznick / UHY / Forvis on §274(o). **Flag:** 50% is statutory, not indexed; the 100% (2021–22) provision is **expired** — any copy implying 100% restaurant meals is wrong. Confidence: **high**.
 
@@ -184,7 +184,7 @@ Both are capped by **§280A(c)(5)**: the deduction can't exceed gross income fro
 
 (The $8,000 first-year gap is the §168(k)(2)(F)(i) bonus add-on. "Passenger automobiles" includes trucks and vans.)
 
-**(b) The WHY to capture.** A **contemporaneous mileage/usage log** establishing the business-use %: business miles, total miles, dates, and purpose of trips. This is the §274(d) substantiation that supports both the deduction and the >50% test. TaxSnap's `vehicle_business` rule captures `business_miles` + `business_purpose`.
+**(b) The WHY to capture.** A **contemporaneous mileage/usage log** establishing the business-use %: business miles, total miles, dates, and purpose of trips. This is the §274(d) substantiation that supports both the deduction and the >50% test. Tally's `vehicle_business` rule captures `business_miles` + `business_purpose`.
 
 **(c) Sources & flags.** Primary: https://www.law.cornell.edu/uscode/text/26/280F + Rev. Proc. 2026-15 https://www.irs.gov/pub/irs-drop/rp-26-15.pdf · Secondary: Pub 946 https://www.irs.gov/publications/p946. **Flag:** Auto caps are **inflation-adjusted annually — re-verify every tax year** (2025 caps actually *dropped* vs. prior year). Confidence: **high**.
 
@@ -246,7 +246,7 @@ Both are capped by **§280A(c)(5)**: the deduction can't exceed gross income fro
 
 **(b) The WHY to capture.** Documented quarterly payments (dates/amounts), income projections, and prior-year tax (if using the 100/110% harbor).
 
-**(c) Sources & flags.** Primary: https://www.law.cornell.edu/uscode/text/26/6654 · Official: IRS Topic 306 https://www.irs.gov/taxtopics/tc306, Pub 505 https://www.irs.gov/publications/p505, Estimated Taxes hub. **Flag:** $1,000 threshold and 90/100/110% harbors stable; OBBBA added only a narrow *farmland-deferral* interaction (Notice 2026-3) irrelevant to TaxSnap's users. **Out of core scope** for V1 (no tax-deadline reminders in V1 per SPEC), but relevant context for the "why track expenses" story. Confidence: **high**.
+**(c) Sources & flags.** Primary: https://www.law.cornell.edu/uscode/text/26/6654 · Official: IRS Topic 306 https://www.irs.gov/taxtopics/tc306, Pub 505 https://www.irs.gov/publications/p505, Estimated Taxes hub. **Flag:** $1,000 threshold and 90/100/110% harbors stable; OBBBA added only a narrow *farmland-deferral* interaction (Notice 2026-3) irrelevant to Tally's users. **Out of core scope** for V1 (no tax-deadline reminders in V1 per SPEC), but relevant context for the "why track expenses" story. Confidence: **high**.
 
 ---
 
@@ -262,7 +262,7 @@ Both are capped by **§280A(c)(5)**: the deduction can't exceed gross income fro
 | Single / HoH (all other) | **$201,750** | $276,750 |
 | MFS | $201,775 | $276,775 |
 
-**(b) The WHY to capture.** Whether the business is an **SSTB**, and taxable income relative to these thresholds — together they decide whether the 20% is limited. (This is a *return-level* computation, not a per-expense capture — context for the product, not a field TaxSnap collects per receipt.)
+**(b) The WHY to capture.** Whether the business is an **SSTB**, and taxable income relative to these thresholds — together they decide whether the 20% is limited. (This is a *return-level* computation, not a per-expense capture — context for the product, not a field Tally collects per receipt.)
 
 **(c) Sources & flags.** Primary: https://www.law.cornell.edu/uscode/text/26/199A + Rev. Proc. 2025-32 https://www.irs.gov/pub/irs-drop/rp-25-32.pdf · Secondary: KPMG, RSM. **Flag (OBBBA + annual):** **Made permanent — a summary saying §199A expires after 2025 is WRONG.** Thresholds are **inflation-adjusted annually — review yearly.** Confidence: **high**.
 
@@ -287,8 +287,8 @@ Re-verify these **every tax year** against the then-current IRS revenue procedur
 Per [`CLAUDE.md`](../../CLAUDE.md) ("Defer to professionals" / Critical Open Items), surface these for a CPA spot-check before relying on them in user-facing advice:
 
 1. **§164(f) × 0.9% Additional Medicare Tax** — confirm whether one-half of the *surtax* (vs. only the base SE tax) is deductible. Conservative position: §164(f) covers only the regular SE tax. *Flagged low-confidence; do not assert in copy.*
-2. **Meals percentage messaging** — confirm 50% is correct for the user's facts and that the new **§274(o)** employer-convenience-meal disallowance genuinely doesn't reach any of TaxSnap's sole-prop users (it shouldn't, but a user with employees changes this).
-3. **§280A "exclusive use" edge cases** — the regular-and-exclusive standard is strict and fact-specific; keep TaxSnap's role to logging, not advising on borderline home-office claims.
+2. **Meals percentage messaging** — confirm 50% is correct for the user's facts and that the new **§274(o)** employer-convenience-meal disallowance genuinely doesn't reach any of Tally's sole-prop users (it shouldn't, but a user with employees changes this).
+3. **§280A "exclusive use" edge cases** — the regular-and-exclusive standard is strict and fact-specific; keep Tally's role to logging, not advising on borderline home-office claims.
 4. **§199A SSTB classification** — whether a given user's trade is an SSTB is a judgment call with real consequences above the threshold; defer to CPA.
 5. **State conformity** — all of the above is *federal*. States vary on §179/§168(k) conformity and SE-tax-equivalents; out of V1 scope, but a known gap.
 

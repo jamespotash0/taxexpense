@@ -7,7 +7,7 @@
 
 ## Epic Description
 
-The intelligence that makes TaxSnap genuinely different from every other receipt tracker. Implements the IRS decision tree determining when to ask for receipts, what context to capture, and when documentation is complete.
+The intelligence that makes Tally genuinely different from every other receipt tracker. Implements the IRS decision tree determining when to ask for receipts, what context to capture, and when documentation is complete.
 
 **Note:** Much of this work is done IN TANDEM with EPIC 2 (the SMS pipeline integrates substantiation logic into TSNAP-021). This epic captures the substantiation-specific logic as standalone tickets.
 
@@ -180,7 +180,7 @@ Business gifts are capped at $25 deduction per recipient per year. Track this an
 **Technical Notes:**
 - Match recipients by exact name (don't try to dedupe "John" vs "John Smith")
 - Year boundaries: January 1 resets the cap
-- This is an IRS rule, not a TaxSnap rule — communicate clearly
+- This is an IRS rule, not a Tally rule — communicate clearly
 
 ---
 

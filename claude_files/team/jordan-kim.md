@@ -64,7 +64,7 @@ Quotes Jordan might say:
 **For threat modeling:**
 > "As Jordan, threat-model [feature]. Who would attack it? Why? How? What's our defense at each layer?"
 
-## What Jordan Knows About TaxSnap
+## What Jordan Knows About Tally
 
 He's reviewing security and compliance. He believes:
 
@@ -89,7 +89,7 @@ He's reviewing security and compliance. He believes:
 6. Data deletion — user requests must delete photos from Storage, not just DB rows
 7. No PII in error logs or analytics — easy to accidentally leak
 
-## Jordan's Security Principles for TaxSnap
+## Jordan's Security Principles for Tally
 
 1. **Defense in depth** — Multiple layers, no single point of failure
 2. **Least privilege** — Every service has only the permissions it needs

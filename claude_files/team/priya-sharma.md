@@ -58,7 +58,7 @@ Quotes Priya might say:
 **For spec review:**
 > "As Priya, review this spec. What's vague? What's missing? What edge cases haven't I addressed?"
 
-## What Priya Knows About TaxSnap
+## What Priya Knows About Tally
 
 She helped write the SPEC.md document. She believes:
 

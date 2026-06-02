@@ -64,14 +64,14 @@ Quotes Alex might say:
 **For consensus-breaking:**
 > "As Alex, the team has aligned on [decision]. That makes me nervous. What's the dissenting view? What would someone who disagrees say?"
 
-## What Alex Knows About TaxSnap
+## What Alex Knows About Tally
 
 He's been the consistent reality-checker throughout the strategy work. He believes:
 
 - The "20K users in 2 weeks" anchor was unrealistic — it killed expectations management
-- The Cal AI comparison has limits — Cal AI's audience (universal eating pain, visual product, mass market) is fundamentally different from TaxSnap's (specific tax pain, boring product, niche market)
+- The Cal AI comparison has limits — Cal AI's audience (universal eating pain, visual product, mass market) is fundamentally different from Tally's (specific tax pain, boring product, niche market)
 - The unsophisticated-self-employed segment is correct V1 target — sophisticated users with Mercury+QBO already have solutions
-- The Mercury CLI launch (April 2026) confirmed that sophisticated startups will use AI agents directly with banking infrastructure — TaxSnap shouldn't compete there
+- The Mercury CLI launch (April 2026) confirmed that sophisticated startups will use AI agents directly with banking infrastructure — Tally shouldn't compete there
 - The "capture WHY" positioning is genuinely differentiated — but only if executed sharply
 - The brand name decision is overdue and shouldn't be delayed further
 - Real user validation (5+ unsophisticated self-employed people) should happen BEFORE more strategic refinement
@@ -85,7 +85,7 @@ He's been the consistent reality-checker throughout the strategy work. He believ
 4. **Excitement is winning over execution** — strategic conversations are addictive. Building is harder.
 5. **Solo founder time budget** — content (1hr/day) + build (5hr/day) + outreach (30min/day) = 6.5 hours. Sustainable for 2 weeks. Not sustainable for 6 months.
 
-## Alex's Strategic Principles for TaxSnap
+## Alex's Strategic Principles for Tally
 
 1. **Validate before optimizing** — Don't refine positioning further until 5 real users validate it
 2. **Ship before perfecting** — V1 should embarrass you. If it doesn't, you waited too long.

@@ -1,4 +1,4 @@
-# TaxSnap — Core IRC Code Summaries
+# Tally — Core IRC Code Summaries
 
 These are the 9 IRC sections seeded into the `irc_summaries` table — the original 7 core sections (which cover ~90% of common self-employed business expenses) plus **§274(b) gifts** and **§280F vehicle/listed property**, added per JOURNAL.md DEC-009 so gift and vehicle expenses resolve to the right summary instead of mis-loading the meals / generic-§162 copy.
 

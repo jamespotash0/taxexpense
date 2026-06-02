@@ -1,4 +1,4 @@
-# TaxSnap — V1 Execution Plan
+# Tally — V1 Execution Plan
 
 This is the **high-level roadmap** for V1. For granular execution detail, see `tickets/` folder.
 

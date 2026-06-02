@@ -1,4 +1,4 @@
-# TaxSnap — Project Context
+# Tally — Project Context
 
 ## What This Is
 
@@ -12,7 +12,7 @@ This is the long-form positioning statement. Use it for: spec documents, team al
 
 ## Positioning Statement (External)
 
-**"Your bank knows WHAT you spent — but not WHY. TaxSnap captures both."**
+**"Your bank knows WHAT you spent — but not WHY. Tally captures both."**
 
 This is the public-facing hook. Use it for: landing page hero, demo video voiceovers, social media bios, ad headlines, anywhere a stranger sees the brand cold.
 
@@ -20,7 +20,7 @@ This is the public-facing hook. Use it for: landing page hero, demo video voiceo
 
 Banks (TD, Chase, Mercury, Brex) capture transactions — vendor, amount, date. But IRS substantiation rules under §274(d) for meals, travel, gifts, and vehicles require additional context: business purpose, attendees, business relationship, location, miles. This context lives in the user's head at the moment of purchase — and is gone by April.
 
-**TaxSnap captures the WHY at the moment it's still fresh, via text — the muscle memory people already use.**
+**Tally captures the WHY at the moment it's still fresh, via text — the muscle memory people already use.**
 
 ## Target Customer
 
@@ -48,7 +48,7 @@ Banks (TD, Chase, Mercury, Brex) capture transactions — vendor, amount, date. 
 5. **Show the work** — every categorization cites IRC code with plain English summary
 6. **User has final say** — every AI decision is overridable
 7. **Plain English always** — no IRS jargon, no accounting-speak
-8. **The SMS IS the written record** — for sub-$75 strict-category expenses, the user's text to TaxSnap meets IRS substantiation requirements per Reg §1.274-5(c)(2)(iii)
+8. **The SMS IS the written record** — for sub-$75 strict-category expenses, the user's text to Tally meets IRS substantiation requirements per Reg §1.274-5(c)(2)(iii)
 
 ## Competitors (For Reference)
 

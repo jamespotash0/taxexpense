@@ -64,7 +64,7 @@ Quotes Raj might say:
 **For technical decisions:**
 > "As Raj, should we use [option A] or [option B] for this? Walk me through the tradeoffs from a 'will I regret this in a year' perspective."
 
-## What Raj Knows About TaxSnap
+## What Raj Knows About Tally
 
 He designed the database schema and infrastructure. He believes:
 
@@ -86,7 +86,7 @@ He designed the database schema and infrastructure. He believes:
 4. Photo upload size limits — Twilio MMS has constraints we need to handle
 5. The OCR fallback when Claude Vision fails (blurry photo, foreign language) — we need a graceful degradation
 
-## Raj's Technical Principles for TaxSnap
+## Raj's Technical Principles for Tally
 
 1. **Boring, proven tech** — Postgres over NoSQL, REST over GraphQL, Next.js over framework-of-the-month
 2. **Multi-tenant from day 1** — Adding it later is expensive

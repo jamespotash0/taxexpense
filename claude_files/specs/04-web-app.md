@@ -84,7 +84,7 @@ User enters phone number → receives 6-digit code via SMS → enters code to lo
 - [ ] On submit: POST `/api/auth/request-code` with phone number
 - [ ] API generates 6-digit code (e.g., `crypto.randomInt(100000, 999999)`)
 - [ ] Code stored in `auth_codes` table with 10-min expiry
-- [ ] SMS sent: "Your TaxSnap code is: 123456 (expires in 10 min)"
+- [ ] SMS sent: "Your Tally code is: 123456 (expires in 10 min)"
 - [ ] UI transitions to code entry screen
 - [ ] Rate limited: max 3 requests per phone per 15 minutes
 - [ ] If rate limit hit: clear error message to user
@@ -320,7 +320,7 @@ User can download a CSV of all their receipts. Useful for accountants, personal 
 - [ ] "Export CSV" button on dashboard
 - [ ] Endpoint `/api/receipts/export?format=csv`
 - [ ] CSV columns: Date, Vendor, Amount, Category, IRC Section, Deductible Amount, Payment Account, Business Purpose, Attendees, Notes, Receipt Photo URL
-- [ ] Filename: `taxsnap-export-YYYY-MM-DD.csv`
+- [ ] Filename: `tally-export-YYYY-MM-DD.csv`
 - [ ] All amounts formatted as currency
 - [ ] Dates in YYYY-MM-DD format
 - [ ] Triggers browser download
@@ -479,7 +479,7 @@ Generate a monthly summary PDF for a user.
 
 **Acceptance Criteria:**
 - [ ] Function `generateMonthlySummaryPDF(userId, year, month)` returns PDF buffer
-- [ ] PDF includes: TaxSnap header, user name, period, summary stats, table of all receipts
+- [ ] PDF includes: Tally header, user name, period, summary stats, table of all receipts
 - [ ] PDF is well-formatted (use library like `@react-pdf/renderer`)
 - [ ] Tested: opens correctly in Preview, Adobe Reader, web browser
 
@@ -498,7 +498,7 @@ User adds accountant email, clicks button, accountant receives PDF + CSV.
 - [ ] Settings field: `accountant_email` in user profile
 - [ ] Dashboard button: "Email this month to my accountant"
 - [ ] Endpoint `/api/email-accountant` generates PDF + CSV, sends to configured email
-- [ ] Email subject: "TaxSnap Monthly Summary — {User Name} — {Month YYYY}"
+- [ ] Email subject: "Tally Monthly Summary — {User Name} — {Month YYYY}"
 - [ ] Email body: brief explanation + attachment list
 - [ ] Confirmation in UI: "Sent to accountant@example.com"
 - [ ] If no email configured: prompt user to add one first

@@ -1,4 +1,4 @@
-# TaxSnap — The Team
+# Tally — The Team
 
 The team is split across individual files in the `team/` folder. Each file contains one persona's background, expertise, voice, and when to invoke them.
 

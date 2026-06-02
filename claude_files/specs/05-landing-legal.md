@@ -7,7 +7,7 @@
 
 ## Epic Description
 
-Public face of the product. Visitors discover what TaxSnap does, get the phone number to text, and read legal disclaimers. Includes mandatory privacy policy, terms of service, and tax disclaimer.
+Public face of the product. Visitors discover what Tally does, get the phone number to text, and read legal disclaimers. Includes mandatory privacy policy, terms of service, and tax disclaimer.
 
 ## Epic Acceptance Criteria
 
@@ -33,7 +33,7 @@ Public face of the product. Visitors discover what TaxSnap does, get the phone n
 The hero section is the first thing visitors see. Must communicate the value prop instantly using the locked positioning.
 
 **Acceptance Criteria:**
-- [ ] Headline: "Your bank knows WHAT you spent — but not WHY. TaxSnap captures both."
+- [ ] Headline: "Your bank knows WHAT you spent — but not WHY. Tally captures both."
 - [ ] Subheadline: 1-2 sentences expanding on the hook
 - [ ] Primary CTA: Phone number to text, prominently displayed (e.g., "Text +1 555-XXX-XXXX to start")
 - [ ] Visual: optional simple illustration or screenshot of an SMS exchange
@@ -60,7 +60,7 @@ The hero section is the first thing visitors see. Must communicate the value pro
 **Priority:** P0
 
 **Description:**
-Three-step explanation of how TaxSnap works. Visual, scannable.
+Three-step explanation of how Tally works. Visual, scannable.
 
 **Acceptance Criteria:**
 - [ ] Section title: "How it works"
@@ -128,7 +128,7 @@ Required legal page. Outlines what data we collect, how we use it, retention, us
 
 **Technical Notes:**
 - Use a privacy policy template as starting point (https://termly.io or similar)
-- Customize for TaxSnap-specific data flows
+- Customize for Tally-specific data flows
 - Jordan reviews for compliance gaps
 - A lawyer review is RECOMMENDED before launch (~$500-1,500) but not blocking for beta
 
@@ -161,7 +161,7 @@ Standard ToS. Limits liability, sets expectations, defines acceptable use.
 
 **Technical Notes:**
 - Use template from termly.io or similar
-- IMPORTANT: include "TaxSnap is not a tax advisor" disclaimer
+- IMPORTANT: include "Tally is not a tax advisor" disclaimer
 - Jordan reviews
 
 ---
@@ -174,12 +174,12 @@ Standard ToS. Limits liability, sets expectations, defines acceptable use.
 **Priority:** P0 (legal critical)
 
 **Description:**
-Specific page making clear TaxSnap is NOT a tax advisor. This is critical for liability.
+Specific page making clear Tally is NOT a tax advisor. This is critical for liability.
 
 **Acceptance Criteria:**
 - [ ] `/disclaimer` page accessible
 - [ ] Clear statements:
-  - "TaxSnap is a tracking tool, not a tax advisor"
+  - "Tally is a tracking tool, not a tax advisor"
   - "We do not provide tax advice for your specific situation"
   - "Always consult a qualified CPA or tax professional"
   - "We don't guarantee tax outcomes"
@@ -189,9 +189,9 @@ Specific page making clear TaxSnap is NOT a tax advisor. This is critical for li
 - [ ] Easy to understand language
 
 **Technical Notes:**
-- This is the most important legal page for TaxSnap specifically
+- This is the most important legal page for Tally specifically
 - A lawyer review is STRONGLY RECOMMENDED before launch (~$500-1,000)
-- Jordan: this is the document that protects us from claims like "TaxSnap told me this was deductible"
+- Jordan: this is the document that protects us from claims like "Tally told me this was deductible"
 
 ---
 
@@ -207,7 +207,7 @@ If we collect phone numbers via web form (not just from inbound SMS), TCPA requi
 
 **Acceptance Criteria:**
 - [ ] Any web form that captures phone number includes:
-  - Required checkbox: "I consent to receive SMS messages from TaxSnap"
+  - Required checkbox: "I consent to receive SMS messages from Tally"
   - Disclaimer: "Message and data rates may apply. Reply STOP to opt out."
   - Link to Privacy Policy
 - [ ] Consent is logged in database with timestamp

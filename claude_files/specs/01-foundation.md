@@ -118,7 +118,7 @@ Create accounts on all required services and gather API credentials. This must b
 Create a new Next.js 14+ project with App Router, TypeScript, and Tailwind CSS.
 
 **Acceptance Criteria:**
-- [ ] `npx create-next-app@latest taxsnap-mvp` completed
+- [ ] `npx create-next-app@latest tally-mvp` completed
 - [ ] TypeScript enabled
 - [ ] Tailwind CSS configured
 - [ ] App Router (not Pages Router) selected
@@ -129,7 +129,7 @@ Create a new Next.js 14+ project with App Router, TypeScript, and Tailwind CSS.
 - [ ] Initial commit pushed to new GitHub repo
 
 **Technical Notes:**
-- Use exact command: `npx create-next-app@latest taxsnap-mvp --typescript --tailwind --app --src-dir --import-alias "@/*"`
+- Use exact command: `npx create-next-app@latest tally-mvp --typescript --tailwind --app --src-dir --import-alias "@/*"`
 - Node 20+ required
 - Create `.gitignore` includes `.env.local`, `.env`, `node_modules`, `.next`
 

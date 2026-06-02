@@ -9,6 +9,42 @@ Format: date, decision, who pushed back, resolution, rationale.
 
 ## 2026-06-01 — Day 1 / EPIC-1 Foundation kickoff
 
+## 2026-06-01 — Day 3 / EPIC-2 SMS Pipeline kickoff
+
+### DEC-011 — Substantiation decision tree runs in DETERMINISTIC CODE; LLM composes language only
+- **Context:** SYSTEM-PROMPTS Prompt 2 embeds the decision tree and asks Sonnet to apply
+  it (decide needs_receipt / thresholds / deductible) AND write the SMS in one call.
+- **Tension:** CLAUDE.md mandates "code controls flow … substantiation_rules is the single
+  source of truth — don't hardcode category logic." Raj: tax thresholds ($75, 50% meals,
+  $25 gift cap) must be deterministic + unit-testable, never left to an LLM that can drift.
+- **Decision:** `lib/substantiation.ts` computes the authoritative result from the
+  `substantiation_rules` row: `needs_receipt`, `receipt_reason`, `missing_context_fields`,
+  `substantiation_complete`, `deductible_amount_cents`. The LLM is used ONLY to (a) extract
+  & categorize (Prompts 1/6, Haiku) and (b) compose the SMS wording given the already-computed
+  decision (Prompt 2, Sonnet). The `receipts` row is written from the CODE decision, never
+  parsed from LLM prose. Prompt 2 still carries the tree for tone, but flags are authoritative
+  from code.
+- **Rationale:** Tax correctness is deterministic, testable, and cheap; the LLM does what it's
+  good at (language). Matches the AI-workflow-not-agent architecture.
+- **Owners:** Raj + Priya (logic), Sofia (response wording).
+
+### DEC-012 — Business gifts are THRESHOLD-based ($75), not always-receipt (doc prose was wrong)
+- **Found:** Building the decision-tree unit tests surfaced a conflict. CLAUDE.md's tree
+  and SPEC's "exceptions" prose say *gifts always require a receipt (lodging, gifts)*. But
+  the seed data has `business_gifts.always_receipt = FALSE` (threshold $75), and
+  SYSTEM-PROMPTS Example 6 (team-authored) shows a $45 gift getting **no receipt ask** —
+  only the $25-cap note + a context question.
+- **Decision:** The `substantiation_rules` table is the source of truth (DEC-011). Gifts are
+  **threshold-based**: a sub-$75 gift needs no receipt; a $75+ gift does. Only **lodging** is
+  truly always_receipt. The $25/recipient deduction cap still always applies.
+- **Rationale:** Matches Example 6 and the "ask only when required" rule (a $20 gift's
+  deductible is tiny — demanding a receipt would over-ask). Also closer to IRS: the
+  always-receipt rule is specific to lodging (Reg §1.274-5); gifts fall under the general
+  $75 documentary-evidence threshold.
+- **Follow-up (doc fix, NOT code):** correct CLAUDE.md decision tree + SPEC "exceptions"
+  prose to say "always_receipt: lodging" (drop "gifts" from the always-list). Code + seed
+  already correct.
+
 ### DEC-001 — Multi-tenant isolation: app-layer filtering + RLS default-deny backstop
 - **Context:** SPEC routes all server-side DB access through the Supabase service-role
   client and relies on `organization_id` filters on every query (Raj). Jordan wants
@@ -45,7 +81,36 @@ Format: date, decision, who pushed back, resolution, rationale.
   break the core product. At-rest encryption + log masking covers the realistic
   exposure (leaked logs / casual DB browsing).
 
-### DEC-008 — Beta domain: gettaxsnap.com; "TaxSnap" kept as rebrandable working name
+### DEC-010 — Beta name change: "TaxSnap" → "Tally"; domain gettallyexpense.com (supersedes DEC-008)
+- **Context:** Founder ran a fresh naming pass from the problem statement ("your bank knows
+  WHAT you spent, not WHY"). Explored gesture/action monikers and the WHY/substantiation
+  angle; candidates pressure-tested for sound, category fit, domain, and trademark.
+- **Path walked (so the reasoning isn't lost):**
+  - *Jot* → killed: Chase already shipped an expense app called "Jot" (+ JotNot/Jotform).
+  - *Clip* → liked the gesture, killed on collisions: "Clip" is a $2B Mexican payments
+    unicorn (PayClip) + Clip Money (public co); `getclip.com` registered since 2000;
+    `clip.com` is a lawn-care company. `clipexpense.com` was free but the mark is crowded.
+  - *Whyceipt* (why+receipt) → on-strategy and bare `.com` free, but sounds bad spoken.
+  - *Tally* → chosen on **sound + category fit** ("a tally" = a running financial record;
+    warm, two-syllable, verb-able — "it tallies as you go").
+- **Why a plain-sounding name is OK:** Keeper precedent — "Keeper" contains no "tax"/
+  "deduction"; the tagline carries the value. Same here: "Tally" names the gesture, the
+  **tagline must carry the WHY** (Marcus/Maya caveat — name points at the running-record
+  action, not the differentiator, and "Tally" is hard to search/hear in audio).
+- **Domain reality:** "Tally" namespace is saturated — `tally.com` + clean `tally-*` .coms
+  taken or parked-for-sale ($1k–5k+); even `gettallyapp.com` is gone. Best **free** `.com`
+  is **`gettallyexpense.com`** (.com matters for the non-technical audience's trust;
+  "expense" does the category work; mirrors the `gettaxsnap.com` `get<name>` pattern).
+- **Decision:** Beta brand = **"Tally"**, subtitle **"Tally · expense tracking"**, domain
+  **gettallyexpense.com**. Set `NEXT_PUBLIC_APP_URL=https://gettallyexpense.com` when the
+  rename ships.
+- **Caveat (carried, not resolved):** "Tally" is a crowded fintech trademark thicket. Treat
+  as a **rebrandable beta name** — do NOT spend on the "Tally" mark. Distinctive-name +
+  trademark exercise stays deferred to paid/public scale (CLAUDE.md Critical Open Item #1).
+- **Follow-up (NOT done in this change):** a full find-replace of "TaxSnap" → "Tally" across
+  docs/code is a separate task; this entry only locks the name + domain decision.
+
+### DEC-008 — Beta domain: gettaxsnap.com; "TaxSnap" kept as rebrandable working name (SUPERSEDED BY DEC-010)
 - **Context:** Setting up Twilio A2P registration forced a business-website (and thus
   domain) decision. Availability check: `taxsnap.com` is parked-for-sale since 2009
   (premium/slow); `.app/.io/.co/.ai/.us` all taken. Only "get/try" prefixes free.

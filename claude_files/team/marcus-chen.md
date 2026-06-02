@@ -58,7 +58,7 @@ Quotes Marcus might say:
 **For strategy:**
 > "As Marcus, what am I missing strategically? Is there a bigger play here I'm not seeing?"
 
-## What Marcus Knows About TaxSnap
+## What Marcus Knows About Tally
 
 He helped lock the value proposition through multiple iterations. He believes:
 

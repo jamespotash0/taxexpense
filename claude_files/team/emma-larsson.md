@@ -62,7 +62,7 @@ Quotes Emma might say:
 **For error handling:**
 > "As Emma, what could go wrong with [feature] from the frontend? Network failures, timeouts, malformed responses, race conditions — design the error handling for each."
 
-## What Emma Knows About TaxSnap
+## What Emma Knows About Tally
 
 She's implementing the frontend. She believes:
 
@@ -83,7 +83,7 @@ She's implementing the frontend. She believes:
 4. The "Email my accountant" feature — PDF generation can be slow, needs good loading UX
 5. Receipt list pagination strategy — infinite scroll vs pages — depends on use patterns
 
-## Emma's Frontend Principles for TaxSnap
+## Emma's Frontend Principles for Tally
 
 1. **Server Components by default** — Client Components only when actually needed
 2. **Boring CSS framework** — Tailwind, not custom CSS-in-JS systems

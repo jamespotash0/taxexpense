@@ -1,4 +1,4 @@
-# TaxSnap V1 — Master Epics & Dependency Graph
+# Tally V1 — Master Epics & Dependency Graph
 
 **Priya Sharma led this breakdown. The team contributed to their domain areas.**
 
@@ -125,7 +125,7 @@ The core capture mechanism. Users text the number, AI handles the conversation, 
 **Days:** 4-5
 **Priority:** P0 (Blocker)
 
-The intelligence that makes TaxSnap different from every other receipt tracker. Implements the IRS decision tree that determines when to ask for receipts, what context to capture, and when documentation is complete.
+The intelligence that makes Tally different from every other receipt tracker. Implements the IRS decision tree that determines when to ask for receipts, what context to capture, and when documentation is complete.
 
 **Key deliverables:**
 - Substantiation rules engine
@@ -167,7 +167,7 @@ The review/management interface. Users come here to see their records, edit deta
 **Day:** 9
 **Priority:** P0 (Blocker)
 
-Public face of the product. Visitors discover what TaxSnap does, get the phone number to text, and read legal disclaimers. Includes mandatory privacy policy, terms of service, and tax disclaimer.
+Public face of the product. Visitors discover what Tally does, get the phone number to text, and read legal disclaimers. Includes mandatory privacy policy, terms of service, and tax disclaimer.
 
 **Key deliverables:**
 - Landing page with hero, how-it-works, FAQ

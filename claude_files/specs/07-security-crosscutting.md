@@ -30,14 +30,14 @@ This file serves as the SECURITY MASTER CHECKLIST. Jordan should review this ent
 **Priority:** P0
 
 **Description:**
-Map out who would attack TaxSnap, why, and how. This guides every other security decision.
+Map out who would attack Tally, why, and how. This guides every other security decision.
 
 **Acceptance Criteria:**
 - [ ] Document `/docs/THREAT-MODEL.md` created
 - [ ] Identifies threat actors:
   - Curious users (try to access others' data)
   - Spammers (abuse SMS gateway)
-  - Phishers (impersonate TaxSnap to steal credentials)
+  - Phishers (impersonate Tally to steal credentials)
   - Competitors (scrape data)
   - Insiders (e.g., compromised dev account)
 - [ ] For each threat, identifies:
@@ -213,7 +213,7 @@ Verify no secrets in code, git history, or client bundles.
 **Technical Notes:**
 - If a secret was ever committed, ROTATE it immediately — git history is forever
 - Tools like `git-secrets` or `truffleHog` can scan for accidentally committed secrets
-- TruffleHog: `pip install trufflehog && trufflehog --regex git@github.com:you/taxsnap-mvp.git`
+- TruffleHog: `pip install trufflehog && trufflehog --regex git@github.com:you/tally-mvp.git`
 
 ---
 
@@ -228,7 +228,7 @@ Verify no secrets in code, git history, or client bundles.
 SMS marketing in the US requires explicit consent per TCPA. Penalties are $500-1,500 per violation.
 
 **Acceptance Criteria:**
-- [ ] User initiating SMS to TaxSnap (texting first) = implicit consent — but document it
+- [ ] User initiating SMS to Tally (texting first) = implicit consent — but document it
 - [ ] If user submits a web form requesting SMS, require explicit checkbox
 - [ ] Required disclaimers: "Message and data rates may apply. Reply STOP to opt out."
 - [ ] Privacy Policy mentions SMS communications
@@ -253,7 +253,7 @@ SMS marketing in the US requires explicit consent per TCPA. Penalties are $500-1
 STOP keyword must work. Twilio handles automatically, but verify.
 
 **Acceptance Criteria:**
-- [ ] Test: text STOP to TaxSnap number → automatic confirmation from Twilio
+- [ ] Test: text STOP to Tally number → automatic confirmation from Twilio
 - [ ] Test: try to send to opted-out number → Twilio rejects
 - [ ] User can rejoin with START or YES keyword
 - [ ] User's opt-out status visible in Twilio Console
@@ -297,7 +297,7 @@ STOP keyword must work. Twilio handles automatically, but verify.
 GDPR/CCPA require ability to delete user data on request. Build the process.
 
 **Acceptance Criteria:**
-- [ ] User can request deletion via email (privacy@taxsnap.com or similar)
+- [ ] User can request deletion via email (privacy@gettallyexpense.com or similar)
 - [ ] Deletion script removes:
   - User record
   - All receipts

@@ -35,7 +35,7 @@ End-to-end validation before opening to beta users. Tests every flow, every edge
 Walk through the entire happy path from a fresh phone number, document everything.
 
 **Acceptance Criteria:**
-- [ ] From a phone number NEVER used with TaxSnap:
+- [ ] From a phone number NEVER used with Tally:
   - [ ] Text "hi" to the number
   - [ ] Complete 3-question onboarding successfully
   - [ ] Send a photo receipt — gets categorized correctly with IRC reference

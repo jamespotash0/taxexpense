@@ -1,4 +1,4 @@
-# TaxSnap — AI Architecture: Workflow vs Agent
+# Tally — AI Architecture: Workflow vs Agent
 
 ## TL;DR
 

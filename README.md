@@ -1,6 +1,6 @@
-# TaxSnap MVP — Claude Code Handoff Package
+# Tally MVP — Claude Code Handoff Package
 
-This folder contains everything needed to build TaxSnap V1 in 10 working days using Claude Code.
+This folder contains everything needed to build Tally V1 in 10 working days using Claude Code.
 
 **33 files total.** Don't be overwhelmed — you don't read them all at once. CLAUDE.md loads automatically, and the rest get pulled in as you work on specific things.
 
@@ -15,16 +15,16 @@ Visit [claude.com/code](https://claude.com/code) and follow installation instruc
 ### 2. Create Your Project Directory
 
 ```bash
-mkdir taxsnap-mvp
-cd taxsnap-mvp
+mkdir tally-mvp
+cd tally-mvp
 ```
 
 ### 3. Copy All Files Into Your Project
 
-Place this entire `taxsnap-handoff/` folder contents into your `taxsnap-mvp/` directory:
+Place this entire `tally-handoff/` folder contents into your `tally-mvp/` directory:
 
 ```
-taxsnap-mvp/
+tally-mvp/
 ├── CLAUDE.md            ← Auto-loaded by Claude Code
 ├── README.md            ← This file
 ├── PLAN.md
@@ -48,7 +48,7 @@ Claude Code automatically reads `CLAUDE.md` on startup — it now knows the proj
 Paste this:
 
 ```
-I'm starting Day 1 of the TaxSnap build. Read tickets/01-foundation.md 
+I'm starting Day 1 of the Tally build. Read tickets/01-foundation.md 
 and walk me through TSNAP-001. After we complete it, suggest the next 
 ticket.
 ```
@@ -206,7 +206,7 @@ Don't relitigate these mid-build. If you must change a major decision, log it in
 
 ## What's Still Pending
 
-⏳ **Brand name** — Working name is "TaxSnap." Use BRAND.md to pick a real one before Day 9 (when it appears on landing page).
+⏳ **Brand name** — Working name is "Tally." Use BRAND.md to pick a real one before Day 9 (when it appears on landing page).
 
 ⏳ **User validation** — Talk to 5 real unsophisticated self-employed people before Day 1 (or in parallel with build). Use VALIDATION.md for the structure.
 

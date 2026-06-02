@@ -10,7 +10,7 @@ This file is automatically read by Claude Code on every session start. It contai
 
 ## What This Project Is
 
-TaxSnap is a text-based AI assistant that captures business expense context (the WHY) in real-time for self-employed people. Users text expenses to a phone number — photo or text. The AI extracts data, categorizes it under the correct IRC section, and asks for additional context **only when the IRS substantiation rules actually require it**.
+Tally is a text-based AI assistant that captures business expense context (the WHY) in real-time for self-employed people. Users text expenses to a phone number — photo or text. The AI extracts data, categorizes it under the correct IRC section, and asks for additional context **only when the IRS substantiation rules actually require it**.
 
 ## Positioning Statement
 
@@ -18,7 +18,7 @@ TaxSnap is a text-based AI assistant that captures business expense context (the
 "We solve tax-time scrambles for self-employed people whose bank tracks WHAT they spent but not WHY — and by April it's too late to remember."
 
 **External (for user-facing copy):**
-"Your bank knows WHAT you spent — but not WHY. TaxSnap captures both."
+"Your bank knows WHAT you spent — but not WHY. Tally captures both."
 
 The product is NOT just "AI receipt tracking." It's "capture WHY in real-time." Every design decision should reinforce this positioning.
 
@@ -75,7 +75,7 @@ Look up substantiation_rules
 Strict category?
 ├── NO → Log it. Done.
 └── YES:
-    ├── always_receipt? (lodging, gifts)
+    ├── always_receipt? (lodging only — gifts are threshold-based, see JOURNAL DEC-012)
     │   ├── Has photo? → ask only for context
     │   └── No photo? → log + ask for receipt
     └── amount >= $75?
@@ -182,11 +182,17 @@ Load these as needed for domain-specific perspective (under `claude_files/team/`
 
 ## Brand Name
 
-**Working name:** TaxSnap · **Beta domain:** gettaxsnap.com (see JOURNAL DEC-008)
+**Working name:** Tally · **Beta domain:** gettallyexpense.com (see JOURNAL DEC-010, supersedes DEC-008)
+**App Store / subtitle descriptor:** "Tally · expense tracking" — the tagline must carry the WHY.
 
-**Status:** Treated as a rebrandable beta name. `taxsnap.com` is parked/premium and the
-term is descriptive (weak trademark). A distinctive-name + trademark exercise is deferred
-until paid/public scale. Fine to use "TaxSnap" + gettaxsnap.com through the beta.
+**Status:** Treated as a rebrandable beta name (same posture as the prior "TaxSnap" handle).
+"Tally" was chosen on sound + category fit ("a tally" = a running financial record; warm,
+verb-able — "it tallies as you go"). The WHY differentiator is carried by the tagline,
+Keeper-style, since the name itself points at the gesture, not the value. Its namespace is
+crowded — bare `tally.com` and clean `tally-*` domains are taken or parked-for-sale, and
+"Tally" is an active fintech trademark thicket (ex Tally credit-card app, Tally forms,
+tally.cash/.money). So: do NOT invest in the "Tally" mark; `gettallyexpense.com` is the beta
+handle. A distinctive-name + trademark exercise stays deferred until paid/public scale.
 
 ## Critical Open Items
 

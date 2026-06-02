@@ -1,4 +1,4 @@
-# TaxSnap — Technical Specification
+# Tally — Technical Specification
 
 ## Stack
 
@@ -17,7 +17,7 @@
 
 ## Core Product Behavior
 
-TaxSnap captures **business context** (WHY) for each transaction in addition to the standard data (WHAT). It implements IRS substantiation rules intelligently — asking for receipts and additional context **only when the tax code actually requires it**.
+Tally captures **business context** (WHY) for each transaction in addition to the standard data (WHAT). It implements IRS substantiation rules intelligently — asking for receipts and additional context **only when the tax code actually requires it**.
 
 ### The Three Input Types
 
@@ -45,7 +45,7 @@ Requires: payee, amount, proof of payment, date, description. Credit card statem
 
 For strict-category expenses **at or over $75**, the IRS requires a third-party receipt.
 
-For strict-category expenses **under $75**, a written record (the user's SMS to TaxSnap) is sufficient.
+For strict-category expenses **under $75**, a written record (the user's SMS to Tally) is sufficient.
 
 **Exceptions** (always require receipts regardless of amount):
 - Lodging
@@ -552,7 +552,7 @@ Plus fixed costs:
 ## File Structure
 
 ```
-taxsnap-mvp/
+tally-mvp/
 ├── app/
 │   ├── api/
 │   │   ├── sms/
