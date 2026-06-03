@@ -7,6 +7,22 @@ Format: date, decision, who pushed back, resolution, rationale.
 
 ---
 
+## 2026-06-02 — 1099-NEC deadline added to tax-deadline reminders
+
+### DEC-032 — Added Jan 31 `1099-NEC filing` deadline; broadcast-to-all accepted for V1
+- **Trigger.** Founder asked that tax-deadline reminders cover quarterly/1099 obligations.
+  Confirmed the daily cron + 7/1-day lead logic already covers the quarterly estimated
+  dates (Jan 15, Apr 15, Jun 15, Sep 15) and annual filing — those live in `DEADLINES`
+  data, not the schedule. **Did NOT change the cron schedule** (`0 14 * * *`): a quarterly
+  cron would miss the 7-day/1-day marks and never send. Gap found: no 1099-NEC date.
+- **Change.** Added `{ id: '1099nec', label: '1099-NEC filing', month: 1, day: 31 }` to
+  `src/lib/tax-deadlines.ts` (+ unit test). Fires Jan 24 (7-day) and Jan 30 (1-day).
+- **Deferred consideration (post-V1):** the cron texts **every** onboarded, opted-in user,
+  but 1099-NEC only applies to those who paid a contractor $600+. Copy is a soft "heads up"
+  that defers to a CPA, so it's defensible for V1. If a "do you pay contractors?" user flag
+  is added later, target the 1099-NEC reminder to those users only. Same pattern could
+  later partition estimated-tax reminders by filing status.
+
 ## 2026-06-02 — §274(b) gift summary corrected against statute
 
 ### DEC-031 — `irc_summaries` §274b content fixed to match §274(b)(1) (v1 → v2)

@@ -36,7 +36,7 @@ export function HeroCopy({ variant, a, b }: { variant: HeroVariant; a: CopyA; b:
   const headingClass = 'reveal text-balance text-4xl font-semibold leading-[1.05] tracking-tight sm:text-5xl md:text-6xl lg:text-7xl';
   // Scales down on phones (text-base) and widens its container on large screens — at the
   // capped max-w-xl the long subtitle wrapped to 3 lines past ~1125px; lg:max-w-3xl keeps it to 2.
-  const subClass = 'reveal-2 mx-auto mt-5 max-w-xl text-balance text-base text-gray-600 sm:mt-6 sm:text-lg lg:max-w-3xl';
+  const subClass = 'reveal-2 mx-auto mt-5 max-w-xl text-balance text-base text-gray-600 sm:mt-6 sm:text-lg lg:mx-0 lg:max-w-xl';
 
   if (variant === 'B') {
     return (

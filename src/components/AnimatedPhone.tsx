@@ -8,38 +8,57 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-type Msg = { from: 'user'; text: React.ReactNode } | { from: 'tally'; text: React.ReactNode };
+type Msg = { from: 'user' | 'tally'; text: React.ReactNode; photo?: boolean };
 
+// Faux receipt "photo" — reads as a snapped receipt without shipping an image asset.
+function ReceiptThumb() {
+  return (
+    <div className="w-[150px] rounded-lg bg-white p-2.5 shadow-sm ring-1 ring-black/5">
+      <div className="text-[10px] font-bold tracking-wide text-gray-700">SWEETGREEN</div>
+      <div className="text-[8px] text-gray-400">123 Market St</div>
+      <div className="mt-2 space-y-1">
+        <div className="h-1 w-full rounded-full bg-gray-200" />
+        <div className="h-1 w-5/6 rounded-full bg-gray-200" />
+        <div className="h-1 w-2/3 rounded-full bg-gray-200" />
+      </div>
+      <div className="mt-2 flex items-center justify-between border-t border-dashed border-gray-300 pt-1.5">
+        <span className="text-[9px] font-medium text-gray-500">TOTAL</span>
+        <span className="text-[12px] font-bold text-gray-900">$92.40</span>
+      </div>
+    </div>
+  );
+}
+
+// Real product flow: snap a receipt → Tally reads + classifies → asks the why → confirms
+// with IRC + deductible amount + "documentation complete" (meals are 50%, ≥$75 needs context).
+// The confirm bubble carries a plain-English IRC summary card (the "why"), faithful to the
+// seeded §274 short_summary — this is the product's differentiator, so the hero shows it.
 const SCRIPT: Msg[] = [
-  { from: 'user', text: '📷  $340 dinner — John @ Acme, Q3 roadmap' },
+  { from: 'user', photo: true, text: <ReceiptThumb /> },
   {
     from: 'tally',
-    text: (
-      <>
-        Got it — $340 client meal with John (Acme). Over $75, so snap the receipt when you can and I&apos;ll
-        attach it.
-        <br />
-        <br />
-        IRC §274 → <span className="font-semibold">$170 deductible</span>.
-      </>
-    ),
+    text: <>Got it — $92.40 at Sweetgreen. Business meal? Tell me who you were with and I&apos;ll log it.</>,
   },
-  { from: 'user', text: '$48 lunch w/ Sarah re partnership' },
+  { from: 'user', text: 'Client lunch — Sarah @ Acme, Q3 planning' },
   {
     from: 'tally',
     text: (
       <>
-        ✓ Documentation complete. Under $75 — your text is the record, no receipt needed.
-        <br />
-        <br />
-        IRC §274 → <span className="font-semibold">$24 deductible</span>.
+        ✓ Documentation complete. Client meal →{' '}
+        <span className="font-semibold">$46.20 deductible</span> (50%).
+        <span className="mt-1.5 block rounded-lg bg-black/[0.06] px-2 py-1.5 text-[11px] leading-snug text-gray-600">
+          <span className="font-semibold text-gray-800">IRC §274</span> · Business meals are 50%
+          deductible when there&apos;s a clear business purpose and a business contact present.
+        </span>
       </>
     ),
   },
 ];
 
-function Bubble({ from, children }: { from: Msg['from']; children: React.ReactNode }) {
-  const base = 'max-w-[80%] rounded-[18px] px-3 py-2 text-[13px] leading-snug animate-bubble-in';
+function Bubble({ from, photo, children }: { from: Msg['from']; photo?: boolean; children: React.ReactNode }) {
+  const base = `max-w-[80%] animate-bubble-in rounded-[18px] ${
+    photo ? 'p-1' : 'px-3 py-2 text-[13px] leading-snug'
+  }`;
   return from === 'user' ? (
     <div className="flex justify-end">
       <div className={`${base} rounded-br-[5px] bg-[#34C759] text-white`}>{children}</div>
@@ -90,6 +109,14 @@ export function AnimatedPhone() {
   const [count, setCount] = useState(0); // messages revealed
   const [typing, setTyping] = useState(false);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const threadRef = useRef<HTMLDivElement>(null);
+
+  // Keep the newest message in view inside the fixed-height screen (like real Messages) —
+  // the thread scrolls up rather than the phone growing taller.
+  useEffect(() => {
+    const el = threadRef.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+  }, [count, typing]);
 
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -159,12 +186,12 @@ export function AnimatedPhone() {
           </div>
 
           {/* Thread */}
-          <div className="flex min-h-[358px] flex-col gap-1.5 px-3 pb-3 pt-3">
+          <div ref={threadRef} className="flex h-[360px] flex-col gap-1.5 overflow-hidden px-3 pb-3 pt-3">
             <p className="pb-1 text-center text-[10px] text-gray-400">
               <span className="font-semibold text-gray-500">Text Message</span> · Today 9:41 AM
             </p>
             {SCRIPT.slice(0, count).map((m, i) => (
-              <Bubble key={i} from={m.from}>
+              <Bubble key={i} from={m.from} photo={m.photo}>
                 {m.text}
               </Bubble>
             ))}

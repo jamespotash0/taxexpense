@@ -20,6 +20,13 @@ test('1 day before Jun 15 → Q2 only', () => {
   assert.equal(r[0].daysUntil, 1);
 });
 
+test('7 days before Jan 31 → 1099-NEC filing', () => {
+  const r = remindersDueOn(d('2026-01-24'));
+  assert.equal(r.length, 1);
+  assert.equal(r[0].dateISO, '2026-01-31');
+  assert.deepEqual(r[0].labels, ['1099-NEC filing']);
+});
+
 test('non-reminder day → nothing', () => {
   assert.deepEqual(remindersDueOn(d('2026-07-04')), []);
 });

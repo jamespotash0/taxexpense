@@ -14,7 +14,7 @@ const en = {
     line2post: '.',
     // Kept to ~2 lines at the hero's max-w-xl measure (matches variant B below).
     subtitle:
-      'Text a photo or a quick note. Tally logs it the IRS way — and only asks for a receipt when the code actually requires one.',
+      'Text a photo or a quick note. Tally captures the why behind each one — so the deductions you’ve earned actually hold up at tax time.',
     ctaTrial: 'Start free trial',
     tryEyebrow: 'Try it out',
     tryText: 'Text {number}',
@@ -44,8 +44,9 @@ const en = {
   },
   // "How it works" — a 3-step marketing flow (Text → capture the why → done by tax time).
   bento: {
-    heading: 'Tax season, handled — by text.',
-    sub: 'No app to download, no spreadsheet, no shoebox. Text Tally as you spend, and walk into April already done.',
+    eyebrow: 'More than an expense tracker',
+    heading: 'Tax time, organized — by text.',
+    sub: 'No app to download, no spreadsheet, no shoebox. Text Tally as you spend, and walk into April already sorted.',
     steps: [
       {
         title: 'Text it the second you spend',
@@ -53,17 +54,17 @@ const en = {
       },
       {
         title: 'Tally captures the why',
-        body: 'Each expense is filed under the right tax code, and a receipt is requested only when the IRS actually requires one — so the context your bank never sees is locked in while it’s still fresh.',
+        body: 'Each expense is filed under the right tax code, and a receipt is requested only when the IRS actually requires one — so the context your bank never sees is locked in while it’s fresh: the difference between a deduction that holds up and one that gets disallowed.',
       },
       {
-        title: 'Walk into tax time done',
+        title: 'Walk into tax time ready',
         body: 'Every expense documented the IRS way. Export a clean CSV, a QuickBooks-ready file, or email the whole year to your accountant — one tap.',
       },
     ],
     chipComplete: '✓ $48 lunch — documentation complete',
     chipSnap: '⚠ $340 dinner — snap a receipt',
   },
-  cta: { heading: 'Say hello to easy tax time.', sub: 'Text {number} with your first expense.', subNoNumber: 'Install Tally and send your first expense.', button: 'Start free trial' },
+  cta: { heading: 'Say hello to easy tax time.', sub: 'Snap a receipt or fire off a note — that’s your first expense, logged.', subNoNumber: 'Install Tally and send your first expense.', button: 'Start free trial' },
   footer: { tagline: 'Recordkeeping, not tax advice.', privacy: 'Privacy', terms: 'Terms' },
   install: { button: 'Install Tally', help: 'On iPhone: tap Share → “Add to Home Screen.” On Android: menu → “Install app.”', installed: 'Installed ✓ — find Tally on your home screen.' },
   onboarding: {
@@ -87,7 +88,7 @@ const en = {
   pricing: {
     badge: '{days}-day free trial · no card',
     title: 'Less than a client lunch a month.',
-    subtitle: 'One plan, everything included. Keep capturing the why behind every expense — and walk into tax time already done.',
+    subtitle: 'One plan, everything included. Keep capturing the why behind every expense — and walk into tax time already sorted.',
     mostPopular: 'Most popular',
     planMonthly: 'Monthly',
     planAnnual: 'Annual',
@@ -97,10 +98,10 @@ const en = {
     billedMonthly: 'billed monthly · cancel anytime',
     subscribe: 'Subscribe',
     starting: 'Starting…',
-    included: ['Unlimited capture by text & WhatsApp', 'IRS-rule substantiation + IRC citations', 'Receipt reminders & tax-deadline alerts', 'Dashboard, CSV & QuickBooks export', 'Email your accountant in one tap'],
+    included: ['Unlimited capture by text & WhatsApp', 'Follows the real IRS rules — shows the code behind each', 'Receipt reminders & tax-deadline alerts', 'Dashboard, CSV & QuickBooks export', 'Email your accountant in one tap'],
     noCommit: 'No commitment — cancel anytime',
     trust: 'Secure checkout by Stripe',
-    value: "One missed deduction usually costs more than a year of Tally. It pays for itself the first time it catches a $340 client dinner you'd have forgotten by April.",
+    value: 'Trackers log what you spent. Tally captures why it counts — so a write-off doesn’t get tossed for missing the paper trail. One saved deduction usually covers a year of Tally.',
     faqHeading: 'Questions',
     faqs: [
       { q: 'Do I need a card for the trial?', a: 'No. You get 21 days free with no card — just text Tally. Subscribe only if you want to keep going.' },
@@ -278,7 +279,7 @@ const es: Dict = {
     line2post: '.',
     // A ~2 líneas en el ancho del hero (max-w-xl), igual que la variante B.
     subtitle:
-      'Envía una foto o una nota rápida. Tally lo registra como pide el IRS — y solo te pide recibo cuando la ley lo exige.',
+      'Envía una foto o una nota rápida. Tally captura el porqué de cada uno — para que las deducciones que ya ganaste de verdad se sostengan en la temporada de impuestos.',
     ctaTrial: 'Empezar gratis',
     tryEyebrow: 'Pruébalo',
     tryText: 'Escribe a {number}',
@@ -307,7 +308,8 @@ const es: Dict = {
     errServer: 'Algo salió mal. Inténtalo de nuevo.',
   },
   bento: {
-    heading: 'La temporada de impuestos, resuelta — por texto.',
+    eyebrow: 'Más que un registro de gastos',
+    heading: 'La temporada de impuestos, organizada — por texto.',
     sub: 'Sin app que instalar, sin hoja de cálculo, sin caja de recibos. Escríbele a Tally al gastar y llega a abril ya listo.',
     steps: [
       {
@@ -316,7 +318,7 @@ const es: Dict = {
       },
       {
         title: 'Tally captura el porqué',
-        body: 'Cada gasto se archiva bajo el código fiscal correcto, y solo se pide recibo cuando el IRS realmente lo exige — así el contexto que tu banco nunca ve queda guardado mientras está fresco.',
+        body: 'Cada gasto se archiva bajo el código fiscal correcto, y solo se pide recibo cuando el IRS realmente lo exige — así el contexto que tu banco nunca ve queda guardado mientras está fresco: la diferencia entre una deducción que se sostiene y una que el IRS rechaza.',
       },
       {
         title: 'Llega a la temporada de impuestos ya listo',
@@ -326,7 +328,7 @@ const es: Dict = {
     chipComplete: '✓ Almuerzo $48 — documentación completa',
     chipSnap: '⚠ Cena $340 — toma una foto del recibo',
   },
-  cta: { heading: 'Dile hola a impuestos fáciles.', sub: 'Escribe a {number} con tu primer gasto.', subNoNumber: 'Instala Tally y envía tu primer gasto.', button: 'Empezar gratis' },
+  cta: { heading: 'Dile hola a impuestos fáciles.', sub: 'Toma una foto del recibo o manda una nota — ese es tu primer gasto, registrado.', subNoNumber: 'Instala Tally y envía tu primer gasto.', button: 'Empezar gratis' },
   footer: { tagline: 'Llevar registros, no asesoría fiscal.', privacy: 'Privacidad', terms: 'Términos' },
   install: { button: 'Instalar Tally', help: 'En iPhone: toca Compartir → “Agregar a inicio”. En Android: menú → “Instalar app”.', installed: 'Instalada ✓ — busca Tally en tu pantalla de inicio.' },
   onboarding: {
@@ -360,10 +362,10 @@ const es: Dict = {
     billedMonthly: 'facturado al mes · cancela cuando quieras',
     subscribe: 'Suscribirse',
     starting: 'Iniciando…',
-    included: ['Captura ilimitada por texto y WhatsApp', 'Sustanciación según el IRS + citas del IRC', 'Recordatorios de recibos y fechas límite', 'Panel, exportación CSV y QuickBooks', 'Envía a tu contador con un toque'],
+    included: ['Captura ilimitada por texto y WhatsApp', 'Sigue las reglas reales del IRS — y muestra el código de cada una', 'Recordatorios de recibos y fechas límite', 'Panel, exportación CSV y QuickBooks', 'Envía a tu contador con un toque'],
     noCommit: 'Sin compromiso — cancela cuando quieras',
     trust: 'Pago seguro con Stripe',
-    value: 'Una deducción perdida suele costar más que un año de Tally. Se paga sola la primera vez que captura una cena de $340 con cliente que habrías olvidado para abril.',
+    value: 'Los registros anotan qué gastaste. Tally captura por qué cuenta — para que una deducción no se descarte por falta de respaldo. Una deducción salvada suele cubrir un año de Tally.',
     faqHeading: 'Preguntas',
     faqs: [
       { q: '¿Necesito tarjeta para la prueba?', a: 'No. Tienes 21 días gratis sin tarjeta — solo escribe a Tally. Suscríbete solo si quieres continuar.' },

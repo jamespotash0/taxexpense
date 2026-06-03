@@ -16,6 +16,8 @@ export interface Deadline {
 
 export const DEADLINES: Deadline[] = [
   { id: 'q4', label: 'Q4 estimated taxes', month: 1, day: 15, kind: 'estimated' },
+  // 1099-NEC: due Jan 31 for anyone who paid a contractor $600+ last year.
+  { id: '1099nec', label: '1099-NEC filing', month: 1, day: 31, kind: 'filing' },
   { id: 'filing', label: 'annual tax filing', month: 4, day: 15, kind: 'filing' },
   { id: 'q1', label: 'Q1 estimated taxes', month: 4, day: 15, kind: 'estimated' },
   { id: 'q2', label: 'Q2 estimated taxes', month: 6, day: 15, kind: 'estimated' },

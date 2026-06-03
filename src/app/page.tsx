@@ -39,67 +39,72 @@ export default async function Home() {
       {/* Nav — floating pill that condenses on scroll (SiteHeader) */}
       <SiteHeader login={t.nav.login} getStarted={t.nav.getStarted} howItWorks={t.nav.howItWorks} pricing={t.nav.pricing} />
 
-      {/* Hero — headline-first, centered (Linear-style); phone cinematic reveals on scroll */}
+      {/* Hero — two-column on lg: copy left, the live phone tilted toward the lower-right (SE).
+          Stacks centered below lg. */}
       <section className="relative">
-        <div className="mx-auto max-w-3xl px-6 pt-24 text-center md:pt-32">
-          <HeroCopy
-            variant={heroVariant}
-            a={{
-              line1pre: t.hero.line1pre,
-              line1em: t.hero.line1em,
-              line1post: t.hero.line1post,
-              line2pre: t.hero.line2pre,
-              line2em: t.hero.line2em,
-              line2post: t.hero.line2post,
-              subtitle: t.hero.subtitle,
-            }}
-            b={t.hero.vb}
-          />
+        <div className="mx-auto grid max-w-6xl items-center gap-12 px-6 pt-24 pb-20 md:pt-32 lg:grid-cols-2 lg:gap-8 lg:pb-28 lg:px-8">
+          {/* Left — copy + CTA */}
+          <div className="text-center lg:text-left">
+            <HeroCopy
+              variant={heroVariant}
+              a={{
+                line1pre: t.hero.line1pre,
+                line1em: t.hero.line1em,
+                line1post: t.hero.line1post,
+                line2pre: t.hero.line2pre,
+                line2em: t.hero.line2em,
+                line2post: t.hero.line2post,
+                subtitle: t.hero.subtitle,
+              }}
+              b={t.hero.vb}
+            />
 
-          {/* Primary + secondary CTAs. Arm C (see lib/ab.ts) swaps the sms: link for a "text me
-              first" phone input — captures consent + attribution and works on desktop. Arms A/B
-              keep the text-the-number link (the actual product entry). The two buttons sit side
-              by side from sm: up; on phones they stack (the phone-number pill is too wide to share
-              a row at 390px). /start is the quieter outline secondary. */}
-          {heroVariant === 'C' ? (
-            <HeroTextMeForm variant={heroVariant} t={t.heroForm} />
-          ) : (
-            <>
-              <p className="reveal-3 mt-8 text-xs font-semibold uppercase tracking-wider text-gray-500">{t.hero.tryEyebrow}</p>
-              <div className="reveal-3 mt-2 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                <TextNumberCta
-                  number={number}
-                  smsHref={smsHref!}
-                  variant={heroVariant}
-                  label={fmt(t.hero.tryText, { number })}
-                  copiedLabel={t.hero.copied}
-                  className="press inline-flex max-w-full flex-wrap items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3.5 text-sm font-medium text-white shadow-lg shadow-accent/20 hover:bg-accent-hover sm:px-6 sm:text-base"
-                />
-                <TrackedLink
-                  href="/start"
-                  event="hero_cta_click"
-                  data={{ experiment: 'hero-copy', variant: heroVariant }}
-                  className="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-5 py-3.5 text-sm font-medium text-gray-900 transition-colors hover:bg-gray-50 sm:text-base"
-                >
-                  {t.hero.ctaTrial}
-                </TrackedLink>
-              </div>
-            </>
-          )}
+            {/* Primary + secondary CTAs. Arm C (see lib/ab.ts) swaps the sms: link for a "text me
+                first" phone input. Arms A/B keep the text-the-number link. Centered on mobile,
+                left-aligned from lg: to match the two-column layout. */}
+            {heroVariant === 'C' ? (
+              <HeroTextMeForm variant={heroVariant} t={t.heroForm} />
+            ) : (
+              <>
+                <p className="reveal-3 mt-8 text-xs font-semibold uppercase tracking-wider text-gray-500">{t.hero.tryEyebrow}</p>
+                <div className="reveal-3 mt-2 flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start">
+                  <TextNumberCta
+                    number={number}
+                    smsHref={smsHref!}
+                    variant={heroVariant}
+                    label={fmt(t.hero.tryText, { number })}
+                    copiedLabel={t.hero.copied}
+                    className="press inline-flex max-w-full flex-wrap items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3.5 text-sm font-medium text-white shadow-lg shadow-accent/20 hover:bg-accent-hover sm:px-6 sm:text-base"
+                  />
+                  <TrackedLink
+                    href="/start"
+                    event="hero_cta_click"
+                    data={{ experiment: 'hero-copy', variant: heroVariant }}
+                    className="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-5 py-3.5 text-sm font-medium text-gray-900 transition-colors hover:bg-gray-50 sm:text-base"
+                  >
+                    {t.hero.ctaTrial}
+                  </TrackedLink>
+                </div>
+              </>
+            )}
 
-          <p className="reveal-3 mt-4 text-xs text-gray-400">{t.hero.disclaimer}</p>
+            <p className="reveal-3 mt-4 text-xs text-gray-400">{t.hero.disclaimer}</p>
+          </div>
+
+          {/* Right — the live phone, tilted toward the lower-right on desktop. */}
+          <Reveal className="flex justify-center lg:justify-end" delay={0.05}>
+            <div className="lg:translate-y-6 lg:rotate-[7deg]">
+              <AnimatedPhone />
+            </div>
+          </Reveal>
         </div>
-
-        {/* Cinematic product visual sits below the headline and fades up as you scroll. */}
-        <Reveal className="mx-auto mt-16 max-w-sm px-6 pb-20 md:mt-20 md:pb-28" delay={0.05}>
-          <AnimatedPhone />
-        </Reveal>
       </section>
 
       {/* How it works — a 3-step marketing flow: Text it → Tally captures the why → done by tax time. */}
       <section id="how-it-works" className="mx-auto max-w-5xl scroll-mt-24 px-6 py-24 lg:px-8">
         <Reveal className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">{t.bento.heading}</h2>
+          <p className="text-sm font-semibold uppercase tracking-wider text-accent">{t.bento.eyebrow}</p>
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">{t.bento.heading}</h2>
           <p className="mt-4 text-lg text-gray-600">{t.bento.sub}</p>
         </Reveal>
         <Stagger className="mt-14 grid gap-10 md:grid-cols-3 md:gap-8">
@@ -141,7 +146,7 @@ export default async function Home() {
       </section>
 
       {/* Footer — one closing card: the text-to-test CTA up top, the footer nav folded in below. */}
-      <footer id="install" className="border-t border-gray-100 px-6 pb-10 pt-16 lg:px-8">
+      <footer id="install" className="px-6 pb-10 pt-16 lg:px-8">
         <Reveal className="mx-auto max-w-page overflow-hidden rounded-3xl bg-primary text-white">
           {/* Closing CTA — text the number to try it for real */}
           <div className="px-8 py-16 text-center sm:py-20">
