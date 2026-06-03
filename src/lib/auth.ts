@@ -9,6 +9,7 @@
 //    The raw token lives only in an HTTP-only/secure/sameSite=lax cookie.
 //  - Login requires an EXISTING user (SMS-first) — we never create accounts here.
 
+import type { NextResponse } from 'next/server';
 import { randomInt, randomBytes, timingSafeEqual, createHash } from 'crypto';
 import { getSupabaseAdmin } from './supabase';
 import { getUserByPhone, type AppUser } from './users';
@@ -165,4 +166,9 @@ export async function getSessionUser(token: string | undefined | null): Promise<
 export async function destroySession(token: string | undefined | null): Promise<void> {
   if (!token) return;
   await getSupabaseAdmin().from('sessions').delete().eq('token_hash', hashToken(token));
+}
+
+/** Clear the session cookie on a response (logout / account deletion). */
+export function clearSessionCookie(res: NextResponse): void {
+  res.cookies.set(SESSION_COOKIE, '', { path: '/', maxAge: 0 });
 }

@@ -7,6 +7,76 @@ Format: date, decision, who pushed back, resolution, rationale.
 
 ---
 
+## 2026-06-03 — Palette revision: indigo-led design tokens
+
+### DEC-042 — Indigo is now the primary action color (app + landing); fuller semantic set
+
+- **Context.** Founder supplied a new color spec alongside the brand icon work
+  ([[hero-redesign-direction]] / brand pass).
+- **What changed (supersedes the color half of DEC-017).** Rewrote the `@theme` block in
+  `src/app/globals.css`:
+  - **Primary action flips from ink → indigo.** `--color-primary` is now indigo-500
+    `#5b57e0` (hover/pressed indigo-600 `#4843c4`, tint indigo-50 `#efeefe`) used across
+    **both** app/dashboard and landing. DEC-017 had deliberately kept indigo *marketing-only*
+    with ink as the app accent — that split is retired. `--color-accent*` now alias indigo so
+    existing landing utilities (hero-glow, `bg-accent`) keep working unchanged.
+  - **New neutral scale** (cool/blue-tinted): 50 `#f7f7fb` (page), 200 `#e3e3ea` (borders),
+    500 `#6e6e80` (secondary text), 900 `#16161f` (primary text). Page background moved from
+    white → neutral-50; added `--color-surface` (#fff) for cards and `--color-muted` /
+    `--color-border` aliases.
+  - **Semantic colors now do real work:** green = income/deductible/under-budget,
+    red = overdue/over-budget/alerts, amber = due-soon/needs-review, blue = synced/info.
+    Each gets 50/500/600/700 steps. Added `info-*` (blue) and a `--color-sky` (#a9c6ff)
+    chart-only accent that didn't exist before.
+- **Accessibility note (founder-flagged).** Amber and sky are bright — small text on those
+  tints must use the **700** shade (amber text `#8a6310`), never the base, to clear contrast.
+- **Pushback / watch-items.** This is a visual pivot, not just new tokens: any component
+  hard-coded to `bg-primary`/`text-primary` expecting dark ink will now render indigo, and
+  surfaces assuming a white page now sit on neutral-50.
+- **Follow-up done (surface migration).** Audited all `primary`/`accent`/`gray-*` usage and
+  migrated the **app screens** (dashboard, dashboard/cleanup, receipts/[id], settings, login,
+  + form components: ReceiptEditor, SettingsForm, LoginForm, DeleteAccountButton,
+  ManageBillingButton, EmailAccountantButton) off raw `gray-*` onto tokens: cards now use
+  `bg-surface`+`shadow-sm` (white) on the neutral-50 page, `gray-*` text→`text-muted`/
+  `text-foreground`, borders→`border-border`, list/chip hovers→`hover:bg-neutral-50` /
+  `hover:bg-primary-50`. The `bg-primary` action buttons were already correct (now indigo,
+  intended). **Landing left untouched** (already used real white cards + indigo CTAs). Phone
+  mockups (AnimatedPhone/HeroVideo) keep their hard-coded iOS hexes by design. `tsc` + `eslint`
+  clean; verified via `scripts/shot-tokens.mjs` that body bg computes to neutral-50 and the
+  login screen renders white-surface inputs + indigo button across 360/768/1280px
+  ([[verify-ui-with-playwright]]). Authenticated screens not screenshotted (would require
+  minting a session against the prod Supabase) — covered by code + shared-token confidence.
+
+### DEC-041 — Extracted `lib/api.ts` route helpers; deferred file-splits and `lib/` reorg
+
+- **Context.** Founder asked for a directory/organization + refactoring pass under the eng-lead
+  (Raj) lens. Finding: the codebase is already well-structured (acyclic imports, consistent
+  client-init singletons, org-scoped `db.orgTable()` data layer, pure/testable rule engine,
+  colocated tests). No structural problem to fix — only repeated route boilerplate.
+- **Done (Tier 1, low-risk DRY).**
+  - New **`src/lib/api.ts`**: `requireUser()`, `parseBody(req, schema)`, `requireCron(req)`,
+    `serverError(event, err, fields?)`, `jsonError(error, status, extra?)`, `getAppBase(req)`.
+    Collapsed ~25 copy-pasted sites across 13 API routes (10× auth `401`, 6× zod parse `400`,
+    3× `CRON_SECRET` check, ~7× catch→`log.error`+`500`) into shared helpers so error contracts
+    stay uniform. Public error strings unchanged (incl. checkout's `invalid_plan`).
+  - Deduped `shortDate()` (was identical in `queries.ts` + `router.ts`) → `lib/format.ts`.
+  - Consolidated `new Date().toISOString().slice(0,10)` (4 sites: receipts/sms-handler/export/
+    recurring-cron) into `format.todayISO()`. Left `monthStart()` and `tax-deadlines` date math
+    alone (different semantics). Added `auth.clearSessionCookie(res)` (logout + account-delete).
+  - Deleted dead `src/components/index.ts` (`export {}` stub, never imported as a barrel).
+  - Gitignored `design_refs/` and untracked the committed 5.5 MB PNG (binary repo bloat).
+  - Verified: `tsc --noEmit` clean, `eslint` clean on all touched files, 111/111 tests pass.
+- **Deferred (Tier 2 — Raj: premature for V1, revisit at scale/need).**
+  - Splitting `sms-handler.ts` (410), `cleanup.ts` (361), `router.ts` (326) into submodules.
+    They're long but cohesive (one flow each); splitting now adds indirection without cutting
+    real complexity. Revisit when one must change for two unrelated reasons.
+  - Reorganizing the flat `src/lib/` (~38 files) into domain subfolders (`infra/db/ai/tax/
+    workflows/dashboard`). Worth it ~60–80 files; not yet — churn > payoff.
+- **Pre-existing, untouched:** lint error in `HeroVideo.tsx` (setState-in-effect) + a
+  `check-hero.mjs` unused-var warning. Out of scope for this pass; flagged for later.
+
+---
+
 ## 2026-06-03 — Reusing the existing Twilio number: A2P compliance + OTP toll-fraud hardening
 
 ### DEC-040 — Homegrown OTP retained (Verify deferred); US-only phone + global SMS-pumping caps

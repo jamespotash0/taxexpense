@@ -2,15 +2,15 @@
 // Purges Storage objects (not covered by DB cascade), then deletes the user (cascades
 // receipts/conversations/user_roles/sessions), the org, and any leftover auth codes.
 import { NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/session';
+import { requireUser, serverError } from '@/lib/api';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { deleteAllUserPhotos } from '@/lib/ocr';
-import { SESSION_COOKIE } from '@/lib/auth';
+import { clearSessionCookie } from '@/lib/auth';
 import { log, maskPhone } from '@/lib/log';
 
 export async function DELETE(): Promise<NextResponse> {
-  const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  const user = await requireUser();
+  if (user instanceof NextResponse) return user;
 
   const admin = getSupabaseAdmin();
   try {
@@ -23,11 +23,10 @@ export async function DELETE(): Promise<NextResponse> {
     await admin.from('auth_codes').delete().eq('phone_number', user.phone_number);
 
     const res = NextResponse.json({ ok: true });
-    res.cookies.set(SESSION_COOKIE, '', { path: '/', maxAge: 0 });
+    clearSessionCookie(res);
     log.info('account_deleted', { phone: maskPhone(user.phone_number) });
     return res;
   } catch (err) {
-    log.error('account_delete_failed', { user: user.id, message: err instanceof Error ? err.message : 'unknown' });
-    return NextResponse.json({ error: 'server_error' }, { status: 500 });
+    return serverError('account_delete_failed', err, { user: user.id });
   }
 }

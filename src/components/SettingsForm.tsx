@@ -57,8 +57,8 @@ export function SettingsForm({ initial, t }: { initial: Initial; t: SettingsCopy
     }
   }
 
-  const field = 'w-full rounded-md border border-gray-300 px-3 py-2 text-base outline-none focus:border-primary';
-  const labelCls = 'text-xs font-medium text-gray-500';
+  const field = 'w-full rounded-md border border-border bg-surface px-3 py-2 text-base outline-none focus:border-primary';
+  const labelCls = 'text-xs font-medium text-muted';
 
   return (
     <form onSubmit={save} className="space-y-4">
@@ -71,7 +71,7 @@ export function SettingsForm({ initial, t }: { initial: Initial; t: SettingsCopy
       </div>
       <div className="flex items-center gap-3">
         <button type="submit" disabled={busy} className="rounded-md bg-primary hover:bg-primary-hover px-4 py-2 text-white disabled:opacity-50">{t.save}</button>
-        {status && <span className="text-sm text-gray-500">{status}</span>}
+        {status && <span className="text-sm text-muted">{status}</span>}
       </div>
     </form>
   );

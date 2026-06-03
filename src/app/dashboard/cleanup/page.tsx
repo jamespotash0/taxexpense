@@ -70,13 +70,13 @@ export default async function CleanupPage({
     <main className="mx-auto max-w-3xl p-4 sm:p-8">
       <header className="flex items-center justify-between">
         <h1 className="text-xl font-semibold tracking-tight">{c.title}</h1>
-        <Link href="/dashboard" className="text-sm text-gray-500 hover:text-gray-900">
+        <Link href="/dashboard" className="text-sm text-muted hover:text-foreground">
           {c.back}
         </Link>
       </header>
 
-      <p className="mt-2 text-sm text-gray-600">{fmt(c.subtitle, { year })}</p>
-      <p className="mt-1 text-xs text-gray-400">{fmt(c.scanned, { count: report.scanned_count, year })}</p>
+      <p className="mt-2 text-sm text-muted">{fmt(c.subtitle, { year })}</p>
+      <p className="mt-1 text-xs text-muted">{fmt(c.scanned, { count: report.scanned_count, year })}</p>
 
       {yearOptions.length > 1 && (
         <div className="mt-4 flex flex-wrap gap-1 text-sm">
@@ -85,7 +85,7 @@ export default async function CleanupPage({
               key={y}
               href={`/dashboard/cleanup?year=${y}${memoQuery}`}
               aria-current={y === year ? 'page' : undefined}
-              className={`rounded-md px-3 py-1 ${y === year ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+              className={`rounded-md px-3 py-1 ${y === year ? 'bg-primary text-white' : 'text-muted hover:bg-primary-50'}`}
             >
               {y}
             </Link>
@@ -100,18 +100,18 @@ export default async function CleanupPage({
       ) : (
         <div className="mt-6 space-y-6">
           {grouped.map((g) => (
-            <section key={g.type} className="rounded-lg border border-gray-200">
-              <h2 className="flex items-center justify-between border-b border-gray-100 px-4 py-2 text-sm font-medium">
+            <section key={g.type} className="rounded-lg border border-border bg-surface shadow-sm">
+              <h2 className="flex items-center justify-between border-b border-border px-4 py-2 text-sm font-medium">
                 <span>{c[GROUP_LABEL[g.type]]}</span>
-                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">{g.issues.length}</span>
+                <span className="rounded-full bg-neutral-200 px-2 py-0.5 text-xs text-muted">{g.issues.length}</span>
               </h2>
-              <ul className="divide-y divide-gray-100">
+              <ul className="divide-y divide-border">
                 {g.issues.map((issue, idx) => (
                   <li key={`${issue.type}-${idx}`} className="flex items-center justify-between gap-3 px-4 py-3">
-                    <p className="min-w-0 text-sm text-gray-700">{issue.message}</p>
+                    <p className="min-w-0 text-sm text-foreground">{issue.message}</p>
                     <Link
                       href={`/receipts/${issue.receipt_ids[0]}`}
-                      className="shrink-0 rounded-md border border-gray-300 px-3 py-1 text-xs hover:bg-gray-50"
+                      className="shrink-0 rounded-md border border-border bg-surface px-3 py-1 text-xs hover:bg-neutral-50"
                     >
                       {issue.receipt_ids.length > 1
                         ? fmt(c.openCount, { count: issue.receipt_ids.length })

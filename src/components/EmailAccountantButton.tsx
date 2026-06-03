@@ -36,12 +36,12 @@ export function EmailAccountantButton({ hasAccountantEmail, t }: { hasAccountant
       <button
         onClick={send}
         disabled={busy || !hasAccountantEmail}
-        className="rounded-md border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50 disabled:opacity-50"
+        className="rounded-md border border-border bg-surface px-4 py-2 text-sm hover:bg-neutral-50 disabled:opacity-50"
         title={hasAccountantEmail ? '' : t.addEmailFirst}
       >
         {busy ? t.sending : t.button}
       </button>
-      {status && <p className="text-sm text-gray-500">{status}</p>}
+      {status && <p className="text-sm text-muted">{status}</p>}
     </div>
   );
 }

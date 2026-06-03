@@ -2,7 +2,7 @@
 // email, organization name, accountant email, display name.
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getCurrentUser } from '@/lib/session';
+import { requireUser, parseBody } from '@/lib/api';
 import { updateUser } from '@/lib/users';
 import { getSupabaseAdmin } from '@/lib/supabase';
 
@@ -16,12 +16,12 @@ const Body = z
   .partial();
 
 export async function PATCH(req: Request): Promise<NextResponse> {
-  const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  const user = await requireUser();
+  if (user instanceof NextResponse) return user;
 
-  const parsed = Body.safeParse(await req.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: 'invalid_request' }, { status: 400 });
-  const { organization_name, ...userFields } = parsed.data;
+  const body = await parseBody(req, Body);
+  if (body instanceof NextResponse) return body;
+  const { organization_name, ...userFields } = body;
 
   if (Object.keys(userFields).length > 0) await updateUser(user.id, userFields);
   if (organization_name !== undefined) {

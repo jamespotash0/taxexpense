@@ -57,7 +57,7 @@ export function DeleteAccountButton({ t }: { t: DeleteCopy }) {
         value={confirm}
         onChange={(e) => setConfirm(e.target.value)}
         placeholder="DELETE"
-        className="w-40 rounded-md border border-gray-300 px-3 py-2 text-base outline-none focus:border-error-600"
+        className="w-40 rounded-md border border-border bg-surface px-3 py-2 text-base outline-none focus:border-error-600"
       />
       <div className="flex items-center gap-3">
         <button
@@ -67,7 +67,7 @@ export function DeleteAccountButton({ t }: { t: DeleteCopy }) {
         >
           {busy ? t.deleting : t.permanentlyDelete}
         </button>
-        <button onClick={() => { setOpen(false); setConfirm(''); setError(null); }} className="text-sm text-gray-500 underline">
+        <button onClick={() => { setOpen(false); setConfirm(''); setError(null); }} className="text-sm text-muted underline">
           {t.cancel}
         </button>
       </div>

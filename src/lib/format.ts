@@ -16,3 +16,16 @@ export function formatDate(date: string | null | undefined): string {
       : { month: 'short', day: 'numeric', year: 'numeric' };
   return d.toLocaleDateString('en-US', opts);
 }
+
+/** Today as a YYYY-MM-DD string (UTC), e.g. for DB date columns / filenames. */
+export function todayISO(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/** Parenthetical short date for inline SMS lines, e.g. " (Jun 1)". Empty if no/invalid date. */
+export function shortDate(date: string | null): string {
+  if (!date) return '';
+  const d = new Date(`${date}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return '';
+  return ` (${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`;
+}

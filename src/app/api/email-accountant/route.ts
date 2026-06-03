@@ -2,20 +2,19 @@
 // configured accountant (TSNAP-048, EPIC-8). PDF generation deferred (DEC-015).
 // Jordan: only send to the configured accountant_email; never an arbitrary address.
 import { NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/session';
+import { requireUser, jsonError, serverError } from '@/lib/api';
 import { getMonthlySummary, getAllReceiptsForExport } from '@/lib/receipts';
 import { toStandardCsv } from '@/lib/csv';
 import { sendEmail } from '@/lib/email';
 import { formatMoney } from '@/lib/format';
-import { log } from '@/lib/log';
 
 export const maxDuration = 30;
 
 export async function POST(): Promise<NextResponse> {
-  const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  const user = await requireUser();
+  if (user instanceof NextResponse) return user;
   if (!user.accountant_email) {
-    return NextResponse.json({ error: 'no_accountant_email', message: 'Add your accountant’s email in Settings first.' }, { status: 400 });
+    return jsonError('no_accountant_email', 400, { message: 'Add your accountant’s email in Settings first.' });
   }
 
   try {
@@ -56,7 +55,6 @@ export async function POST(): Promise<NextResponse> {
 
     return NextResponse.json({ ok: true, sent_to: user.accountant_email });
   } catch (err) {
-    log.error('email_accountant_failed', { user: user.id, message: err instanceof Error ? err.message : 'unknown' });
-    return NextResponse.json({ error: 'server_error' }, { status: 500 });
+    return serverError('email_accountant_failed', err, { user: user.id });
   }
 }

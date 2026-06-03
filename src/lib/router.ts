@@ -17,7 +17,7 @@ import { PUBLIC_ENV } from './env';
 import { log } from './log';
 import { getSupabaseAdmin } from './supabase';
 import { listReceipts, updateReceipt, getReceipt, type ReceiptRow } from './receipts';
-import { formatMoney } from './format';
+import { formatMoney, shortDate } from './format';
 import type { AppUser } from './users';
 import type { ProcessResult } from './expense';
 import {
@@ -226,12 +226,6 @@ export function parseFlagTarget(text: string): FlagTarget {
     .replace(/\s+/g, ' ')
     .trim();
   return { amountCents, term: term.length >= 2 ? term : undefined };
-}
-
-function shortDate(date: string | null): string {
-  if (!date) return '';
-  const d = new Date(`${date}T00:00:00`);
-  return Number.isNaN(d.getTime()) ? '' : ` (${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`;
 }
 
 /** Find receipts matching a flag target (amount exact, term ILIKE vendor/purpose/attendees). */

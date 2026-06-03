@@ -34,11 +34,11 @@ export default async function SettingsPage() {
   return (
     <main className="mx-auto max-w-lg p-4 sm:p-8">
       <div className="flex items-center justify-between">
-        <Link href="/dashboard" className="text-sm text-gray-500 hover:text-gray-900">{t.app.nav.back}</Link>
+        <Link href="/dashboard" className="text-sm text-muted hover:text-foreground">{t.app.nav.back}</Link>
         <LocaleSwitcher current={locale} />
       </div>
       <h1 className="mt-4 text-xl font-semibold">{s.title}</h1>
-      <p className="mt-1 text-sm text-gray-500">{fmt(s.loggedInAs, { phone: user.phone_number })}</p>
+      <p className="mt-1 text-sm text-muted">{fmt(s.loggedInAs, { phone: user.phone_number })}</p>
       <div className="mt-6">
         <SettingsForm
           t={t.app.settingsForm}
@@ -51,21 +51,21 @@ export default async function SettingsPage() {
         />
       </div>
 
-      <div className="mt-8 border-t border-gray-100 pt-6">
+      <div className="mt-8 border-t border-border pt-6">
         <h2 className="text-sm font-medium">{s.accountant}</h2>
-        <p className="mb-3 mt-1 text-sm text-gray-500">{s.accountantBody}</p>
+        <p className="mb-3 mt-1 text-sm text-muted">{s.accountantBody}</p>
         <EmailAccountantButton hasAccountantEmail={!!user.accountant_email} t={t.app.emailAccountant} />
       </div>
 
-      <div className="mt-8 border-t border-gray-100 pt-6">
+      <div className="mt-8 border-t border-border pt-6">
         <h2 className="text-sm font-medium">{s.billing}</h2>
-        <p className="mb-3 mt-1 text-sm text-gray-500">{billingLine}</p>
+        <p className="mb-3 mt-1 text-sm text-muted">{billingLine}</p>
         <ManageBillingButton t={t.app.billing} />
       </div>
 
-      <div className="mt-8 border-t border-gray-100 pt-6">
+      <div className="mt-8 border-t border-border pt-6">
         <h2 className="text-sm font-medium text-error-700">{s.dangerZone}</h2>
-        <p className="mb-3 mt-1 text-sm text-gray-500">{s.dangerBody}</p>
+        <p className="mb-3 mt-1 text-sm text-muted">{s.dangerBody}</p>
         <DeleteAccountButton t={t.app.deleteAccount} />
       </div>
     </main>

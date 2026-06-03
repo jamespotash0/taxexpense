@@ -2,7 +2,7 @@
 // Org-scoped; user has final say (AI overridable). Edits recompute substantiation.
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getCurrentUser } from '@/lib/session';
+import { requireUser, parseBody, jsonError } from '@/lib/api';
 import { getReceipt, updateReceipt } from '@/lib/receipts';
 import { recomputeReceipt } from '@/lib/expense';
 import { getSupabaseAdmin } from '@/lib/supabase';
@@ -27,29 +27,29 @@ const Patch = z
   .partial();
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }): Promise<NextResponse> {
-  const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  const user = await requireUser();
+  if (user instanceof NextResponse) return user;
   const { id } = await params;
 
-  const parsed = Patch.safeParse(await req.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: 'invalid_request' }, { status: 400 });
+  const body = await parseBody(req, Patch);
+  if (body instanceof NextResponse) return body;
 
   const existing = await getReceipt(user.organization_id, id);
-  if (!existing) return NextResponse.json({ error: 'not_found' }, { status: 404 });
+  if (!existing) return jsonError('not_found', 404);
 
-  await updateReceipt(user.organization_id, id, parsed.data);
+  await updateReceipt(user.organization_id, id, body);
   await recomputeReceipt(user.organization_id, id); // re-derive substantiation after edit
   const updated = await getReceipt(user.organization_id, id);
   return NextResponse.json({ receipt: updated });
 }
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }): Promise<NextResponse> {
-  const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  const user = await requireUser();
+  if (user instanceof NextResponse) return user;
   const { id } = await params;
 
   const existing = await getReceipt(user.organization_id, id);
-  if (!existing) return NextResponse.json({ error: 'not_found' }, { status: 404 });
+  if (!existing) return jsonError('not_found', 404);
 
   // Delete the stored photo too (Jordan: deletion must remove Storage objects, not just rows).
   if (existing.photo_url) {
@@ -60,6 +60,6 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     .delete()
     .eq('organization_id', user.organization_id)
     .eq('id', id);
-  if (error) return NextResponse.json({ error: 'server_error' }, { status: 500 });
+  if (error) return jsonError('server_error', 500);
   return NextResponse.json({ ok: true });
 }

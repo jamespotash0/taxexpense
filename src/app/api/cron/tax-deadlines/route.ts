@@ -4,9 +4,10 @@
 //
 // NOT tax advice — every message defers to a CPA. Respects STOP (sms_opted_out_at).
 import { NextResponse } from 'next/server';
+import { requireCron } from '@/lib/api';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { sendSms } from '@/lib/twilio';
-import { optionalEnv, PUBLIC_ENV } from '@/lib/env';
+import { PUBLIC_ENV } from '@/lib/env';
 import { remindersDueOn } from '@/lib/tax-deadlines';
 import { log, maskPhone } from '@/lib/log';
 
@@ -21,10 +22,8 @@ function joinLabels(labels: string[]): string {
 }
 
 export async function GET(req: Request): Promise<NextResponse> {
-  const secret = optionalEnv('CRON_SECRET');
-  if (!secret || req.headers.get('authorization') !== `Bearer ${secret}`) {
-    return NextResponse.json({ error: 'forbidden' }, { status: 403 });
-  }
+  const denied = requireCron(req);
+  if (denied) return denied;
 
   const due = remindersDueOn(new Date());
   if (due.length === 0) return NextResponse.json({ ok: true, due: 0, sent: 0 });

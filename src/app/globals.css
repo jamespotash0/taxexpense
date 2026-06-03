@@ -1,35 +1,68 @@
 @import "tailwindcss";
 
 /*
- * Tally design tokens (TSNAP-034 / David). Restraint over expression:
- * one accent (ink), Tailwind's default neutral gray scale, and three semantic
- * status colors. Single light theme for V1 (no auto dark mode — it conflicted with
- * the light components and isn't worth the polish budget yet).
- * Tailwind v4 is CSS-first: tokens defined here generate utilities
- * (e.g. bg-primary, text-success-700, ring-warning-600).
+ * Tally design tokens (TSNAP-034, revised — see JOURNAL DEC-019). Indigo-led palette:
+ * indigo is now the single primary action color across BOTH app and landing (it was
+ * marketing-only ink before). Custom neutral scale (cool, slightly blue), white card
+ * surfaces over a neutral-50 page, and a working semantic set (green/red/amber/blue +
+ * a sky chart accent). Single light theme for V1 (no auto dark mode).
+ * Tailwind v4 is CSS-first: tokens here generate utilities
+ * (e.g. bg-primary, text-success-700, ring-warning-600, bg-neutral-50).
  */
 @theme {
-  --color-background: #ffffff;
-  --color-foreground: #171717;
+  /* Neutral scale (cool/blue-tinted). 50 = page, 200 = borders, 500 = secondary text, 900 = text. */
+  --color-neutral-50: #f7f7fb;
+  --color-neutral-200: #e3e3ea;
+  --color-neutral-500: #6e6e80;
+  --color-neutral-900: #16161f;
 
-  /* Accent — used for primary actions, links, focus rings. */
-  --color-primary: #111827;        /* ink */
-  --color-primary-hover: #374151;
+  /* Surfaces: neutral-50 page background, white cards. Foreground = primary text. */
+  --color-background: #f7f7fb;     /* page (neutral-50) */
+  --color-surface: #ffffff;        /* cards / panels */
+  --color-foreground: #16161f;     /* primary text (neutral-900) */
+  --color-muted: #6e6e80;          /* secondary text (neutral-500) */
+  --color-border: #e3e3ea;         /* hairlines / dividers (neutral-200) */
 
-  /* Marketing accent (landing only — app/dashboard stays ink). */
-  --color-accent: #4f46e5;         /* indigo */
-  --color-accent-hover: #4338ca;
-  --color-accent-50: #eef2ff;
+  /* Primary action — indigo. Used for primary buttons, links, focus rings (app + landing). */
+  --color-primary: #5b57e0;        /* indigo 500 */
+  --color-primary-hover: #4843c4;  /* indigo 600 — hover/pressed */
+  --color-primary-50: #efeefe;     /* indigo 50 — tinted bg + secondary buttons */
 
-  /* Semantic status (badges, alerts). */
-  --color-success-50: #f0fdf4;
-  --color-success-600: #16a34a;
-  --color-success-700: #15803d;
-  --color-warning-50: #fffbeb;
-  --color-warning-600: #d97706;
-  --color-warning-700: #b45309;
-  --color-error-600: #dc2626;
-  --color-error-700: #b91c1c;
+  /* Accent aliases kept so existing landing utilities (hero-glow, bg-accent) resolve to indigo. */
+  --color-accent: #5b57e0;
+  --color-accent-hover: #4843c4;
+  --color-accent-50: #efeefe;
+
+  /* ── Semantic status — these do real work in a tax tool. ───────────────────
+     50 = tint bg, 500 = base, 600 = strong/icon, 700 = accessible text on white/tint.
+     Bright tints (amber, sky) need the 700 text shade for small copy, never the base. */
+
+  /* Green — income, deductible items, under-budget. (50 = tint, 500 = base.) */
+  --color-success-50: #e4f6ee;
+  --color-success-500: #1fa971;
+  --color-success-600: #178a5d;
+  --color-success-700: #0e6b46;
+
+  /* Red — overdue, over-budget, alerts. */
+  --color-error-50: #fbe7e8;
+  --color-error-500: #e5484d;
+  --color-error-600: #cc3b40;
+  --color-error-700: #a82b30;
+
+  /* Amber — due-soon, needs-review. Use 700 (#8a6310) for small text on the tint, not the base. */
+  --color-warning-50: #fbf0d7;
+  --color-warning-500: #e0a11b;
+  --color-warning-600: #b5800f;
+  --color-warning-700: #8a6310;
+
+  /* Blue — synced / info / tips. */
+  --color-info-50: #e5effe;
+  --color-info-500: #3b82f6;
+  --color-info-600: #2563eb;
+  --color-info-700: #1d4ed8;
+
+  /* Sky accent — chart highlights + data points only (too bright for text on white). */
+  --color-sky: #a9c6ff;
 
   /* System font stack — no custom fonts. */
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -109,4 +142,43 @@ body {
   .reveal, .reveal-2, .reveal-3, .hero-glow, .squiggle-draw { animation: none !important; }
   .lift:hover, .press:hover, .press:active { transform: none; }
   .squiggle-draw { stroke-dashoffset: 0; }
+}
+
+/* ── Interactive video hero (HeroVideo) ──────────────────────────────────────
+   A cinematic "moment of spending" plays while the Tally SMS thread types in
+   over it — the WHAT and the WHY captured in one beat (glu/etail-style scrubber).
+   Until real clips land in /public/hero, each scene shows a warm gradient
+   backdrop with a slow Ken Burns drift so it reads as filmic, not broken. */
+.ken-burns {
+  /* Slow pan + zoom; each scene offsets the origin (via --kb-x/--kb-y) so the
+     three backdrops don't drift identically. */
+  animation: ken-burns 18s ease-in-out infinite alternate;
+  transform-origin: var(--kb-x, 50%) var(--kb-y, 50%);
+}
+@keyframes ken-burns {
+  from { transform: scale(1.04) translate3d(0, 0, 0); }
+  to   { transform: scale(1.16) translate3d(-1.5%, -1.5%, 0); }
+}
+
+/* Cinematic vignette + bottom-up scrim so overlaid text stays legible over
+   bright footage. */
+.scene-scrim {
+  background:
+    linear-gradient(to top, rgba(8, 10, 20, 0.74) 0%, rgba(8, 10, 20, 0.12) 44%, rgba(8, 10, 20, 0) 72%),
+    radial-gradient(120% 80% at 50% 35%, transparent 55%, rgba(8, 10, 20, 0.45) 100%);
+}
+
+/* Scenes crossfade — the leaving scene fades while the entering one rises in. */
+.scene-fade { transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1); }
+
+/* The SMS overlay panel rises in when a scene becomes active. */
+@keyframes panel-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+.panel-rise { animation: panel-rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ken-burns, .panel-rise { animation: none !important; }
+  .scene-fade { transition: none !important; }
 }

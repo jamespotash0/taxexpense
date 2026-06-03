@@ -29,7 +29,7 @@ export default async function ReceiptDetailPage({ params }: { params: Promise<{ 
   return (
     <main className="mx-auto max-w-3xl p-4 sm:p-8">
       <div className="flex items-center justify-between">
-        <Link href="/dashboard" className="text-sm text-gray-500 hover:text-gray-900">{t.app.nav.back}</Link>
+        <Link href="/dashboard" className="text-sm text-muted hover:text-foreground">{t.app.nav.back}</Link>
         <SubstantiationBadge
           substantiationComplete={receipt.substantiation_complete}
           needsReceipt={receipt.needs_receipt}
@@ -46,11 +46,11 @@ export default async function ReceiptDetailPage({ params }: { params: Promise<{ 
         </div>
         <aside className="text-sm">
           {irc ? (
-            <div className="rounded-lg border border-gray-200 p-4">
+            <div className="rounded-lg border border-border bg-surface p-4 shadow-sm">
               <p className="font-medium">IRC §{irc.section_id} — {irc.title}</p>
-              <p className="mt-2 text-gray-600">{irc.short_summary}</p>
-              {irc.worth_noting && <p className="mt-2 text-xs text-gray-500">{r.worthNoting} {irc.worth_noting}</p>}
-              <p className="mt-3 text-xs text-gray-400">{r.ircNote}</p>
+              <p className="mt-2 text-muted">{irc.short_summary}</p>
+              {irc.worth_noting && <p className="mt-2 text-xs text-muted">{r.worthNoting} {irc.worth_noting}</p>}
+              <p className="mt-3 text-xs text-muted">{r.ircNote}</p>
             </div>
           ) : null}
         </aside>

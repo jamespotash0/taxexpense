@@ -149,14 +149,14 @@ export function ReceiptEditor({
     }
   }
 
-  const field = 'w-full rounded-md border border-gray-300 px-3 py-2 text-base outline-none focus:border-primary';
-  const labelCls = 'text-xs font-medium text-gray-500';
+  const field = 'w-full rounded-md border border-border bg-surface px-3 py-2 text-base outline-none focus:border-primary';
+  const labelCls = 'text-xs font-medium text-muted';
 
   return (
     <div className="space-y-4">
       {photoUrl && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={photoUrl} alt="Receipt" className="max-h-72 rounded-md border border-gray-200 object-contain" />
+        <img src={photoUrl} alt="Receipt" className="max-h-72 rounded-md border border-border object-contain" />
       )}
       {!photoUrl && receipt.needs_receipt && (
         <label className="flex cursor-pointer items-center justify-center rounded-md border border-dashed border-warning-600 bg-warning-50 px-4 py-6 text-sm text-warning-700">
@@ -190,14 +190,14 @@ export function ReceiptEditor({
         <div className="sm:col-span-2"><label className={labelCls}>{t.notes}</label><textarea className={field} rows={2} value={form.notes} onChange={(e) => set('notes', e.target.value)} /></div>
       </div>
 
-      <label className="flex cursor-pointer items-center gap-2 rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-700">
+      <label className="flex cursor-pointer items-center gap-2 rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground">
         <input type="checkbox" checked={flagged} onChange={(e) => setFlagged(e.target.checked)} className="h-4 w-4 accent-accent" />
         {t.flagForCpa}
       </label>
 
       <div className="flex items-center justify-between">
         <button onClick={save} disabled={busy} className="rounded-md bg-primary hover:bg-primary-hover px-4 py-2 text-white disabled:opacity-50">{t.save}</button>
-        {status && <span className="text-sm text-gray-500">{status}</span>}
+        {status && <span className="text-sm text-muted">{status}</span>}
         <button onClick={remove} disabled={busy} className="text-sm text-error-600 hover:underline">{t.delete}</button>
       </div>
     </div>

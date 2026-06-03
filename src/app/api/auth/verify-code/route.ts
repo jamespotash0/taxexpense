@@ -2,9 +2,10 @@
 // Attempt lockout (5) + constant-time compare in verifyCode() (Jordan).
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { parseBody, jsonError, serverError } from '@/lib/api';
 import { normalizeToE164 } from '@/lib/phone';
 import { verifyCode, SESSION_COOKIE, SESSION_MAX_AGE_SECONDS } from '@/lib/auth';
-import { log, maskPhone } from '@/lib/log';
+import { maskPhone } from '@/lib/log';
 
 const Body = z.object({
   phone_number: z.string().min(7).max(20),
@@ -20,19 +21,16 @@ const FAIL_MESSAGES: Record<string, string> = {
 };
 
 export async function POST(req: Request): Promise<NextResponse> {
-  const parsed = Body.safeParse(await req.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: 'invalid_request' }, { status: 400 });
+  const body = await parseBody(req, Body);
+  if (body instanceof NextResponse) return body;
 
-  const phone = normalizeToE164(parsed.data.phone_number);
-  if (!phone) return NextResponse.json({ error: 'invalid_phone' }, { status: 400 });
+  const phone = normalizeToE164(body.phone_number);
+  if (!phone) return jsonError('invalid_phone', 400);
 
   try {
-    const result = await verifyCode(phone, parsed.data.code);
+    const result = await verifyCode(phone, body.code);
     if (!result.ok) {
-      return NextResponse.json(
-        { error: result.reason, message: FAIL_MESSAGES[result.reason] ?? 'Verification failed.' },
-        { status: 401 },
-      );
+      return jsonError(result.reason, 401, { message: FAIL_MESSAGES[result.reason] ?? 'Verification failed.' });
     }
 
     const res = NextResponse.json({ ok: true, user_id: result.user.id });
@@ -45,7 +43,6 @@ export async function POST(req: Request): Promise<NextResponse> {
     });
     return res;
   } catch (err) {
-    log.error('verify_code_failed', { phone: maskPhone(phone), message: err instanceof Error ? err.message : 'unknown' });
-    return NextResponse.json({ error: 'server_error' }, { status: 500 });
+    return serverError('verify_code_failed', err, { phone: maskPhone(phone) });
   }
 }

@@ -5,20 +5,17 @@
 // Priya's flag: 30-50% of users forget to send the receipt — this closes that loop.
 
 import { NextResponse } from 'next/server';
+import { requireCron, jsonError } from '@/lib/api';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { sendSms } from '@/lib/twilio';
-import { optionalEnv } from '@/lib/env';
 import { log, maskPhone } from '@/lib/log';
 
 // Only remind about receipts at least this old (don't nag the same day).
 const MIN_AGE_HOURS = 24;
 
 export async function GET(req: Request): Promise<NextResponse> {
-  const secret = optionalEnv('CRON_SECRET');
-  const auth = req.headers.get('authorization');
-  if (!secret || auth !== `Bearer ${secret}`) {
-    return NextResponse.json({ error: 'forbidden' }, { status: 403 });
-  }
+  const denied = requireCron(req);
+  if (denied) return denied;
 
   const admin = getSupabaseAdmin();
   const cutoff = new Date(Date.now() - MIN_AGE_HOURS * 3600 * 1000).toISOString();
@@ -29,7 +26,7 @@ export async function GET(req: Request): Promise<NextResponse> {
     .select('user_id')
     .eq('needs_receipt', true)
     .lte('created_at', cutoff);
-  if (error) return NextResponse.json({ error: 'query_failed' }, { status: 500 });
+  if (error) return jsonError('query_failed', 500);
 
   const counts = new Map<string, number>();
   for (const r of (pending as { user_id: string }[]) ?? []) {

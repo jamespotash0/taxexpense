@@ -12,6 +12,7 @@ import { fetchTwilioMedia, extractReceiptFromImageData, storePhotoBuffer, parseT
 import { processNewExpense, processClarification, processAttachment, type ProcessResult } from './expense';
 import { routeTextMessage, resolveFlagChoice } from './router';
 import { getReceipt } from './receipts';
+import { todayISO } from './format';
 import {
   isAffirmative,
   isNegative,
@@ -122,10 +123,6 @@ async function handleTextAsNewExpense(user: AppUser, body: string): Promise<Proc
   return processNewExpense(user, input, null);
 }
 
-function todayStr(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
 /** Recurring (DEC-033): after a COMPLETE log, offer to track it monthly when it's
  *  subscription-shaped — either the AI category implies a subscription/bill (software,
  *  internet/phone, insurance, rent → offer on the FIRST log) OR we've seen the same
@@ -153,7 +150,7 @@ async function maybeOfferRecurring(user: AppUser, result: ProcessResult): Promis
 async function handleRecurringOptin(user: AppUser, receiptId: string): Promise<ProcessResult | null> {
   const receipt = await getReceipt(user.organization_id, receiptId);
   if (!receipt) return null;
-  await createRecurringFromReceipt(receipt, todayStr());
+  await createRecurringFromReceipt(receipt, todayISO());
   return { smsText: recurringCreatedMsg(receipt.vendor, receipt.amount_cents), receiptId, contextState: null };
 }
 
@@ -161,10 +158,10 @@ async function handleRecurringOptin(user: AppUser, receiptId: string): Promise<P
 async function handleRenewalConfirm(user: AppUser, tmpl: RecurringRow, body: string): Promise<ProcessResult> {
   if (isAffirmative(body)) {
     const result = await processNewExpense(user, templateToExpenseInput(tmpl), null);
-    await advanceRecurring(tmpl.id, todayStr(), true);
+    await advanceRecurring(tmpl.id, todayISO(), true);
     return result;
   }
-  await advanceRecurring(tmpl.id, todayStr(), false);
+  await advanceRecurring(tmpl.id, todayISO(), false);
   return { smsText: skippedRenewalMsg(tmpl.vendor), receiptId: null, contextState: null };
 }
 

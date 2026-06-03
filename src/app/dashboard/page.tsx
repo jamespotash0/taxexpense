@@ -46,10 +46,10 @@ export default async function DashboardPage({
     <main className="mx-auto max-w-3xl p-4 sm:p-8">
       <header className="flex items-center justify-between">
         <h1 className="text-xl font-semibold tracking-tight">Tally</h1>
-        <nav className="flex items-center gap-4 text-sm text-gray-500">
+        <nav className="flex items-center gap-4 text-sm text-muted">
           <LocaleSwitcher current={locale} />
-          <Link href="/settings" className="hover:text-gray-900">{t.app.nav.settings}</Link>
-          <a href="/api/auth/logout" className="hover:text-gray-900">{t.app.nav.logout}</a>
+          <Link href="/settings" className="hover:text-foreground">{t.app.nav.settings}</Link>
+          <a href="/api/auth/logout" className="hover:text-foreground">{t.app.nav.logout}</a>
         </nav>
       </header>
 
@@ -57,14 +57,14 @@ export default async function DashboardPage({
       {!entitlement.entitled ? (
         <div className="mt-6 rounded-lg border border-warning-600 bg-warning-50 p-4">
           <p className="font-medium text-warning-700">{d.trialEndedTitle}</p>
-          <p className="mt-1 text-sm text-gray-600">{d.trialEndedBody}</p>
+          <p className="mt-1 text-sm text-muted">{d.trialEndedBody}</p>
           <Link href="/pricing" className="mt-3 inline-block rounded-md bg-primary px-4 py-2 text-sm text-white hover:bg-primary-hover">
             {d.seePlans}
           </Link>
         </div>
       ) : entitlement.reason === 'trialing' ? (
-        <div className="mt-6 flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm">
-          <span className="text-gray-600">
+        <div className="mt-6 flex items-center justify-between gap-3 rounded-lg border border-border bg-surface p-3 text-sm shadow-sm">
+          <span className="text-muted">
             {fmt(entitlement.trialDaysLeft === 1 ? d.trialDaysLeftOne : d.trialDaysLeftOther, { days: entitlement.trialDaysLeft })}
           </span>
           <Link href="/pricing" className="font-medium text-accent hover:underline">{d.subscribe}</Link>
@@ -72,15 +72,15 @@ export default async function DashboardPage({
       ) : null}
 
       {/* Summary widget */}
-      <section className="mt-6 rounded-lg border border-gray-200 p-5">
-        <p className="text-sm text-gray-500">{d.thisMonth}</p>
+      <section className="mt-6 rounded-lg border border-border bg-surface p-5 shadow-sm">
+        <p className="text-sm text-muted">{d.thisMonth}</p>
         <p className="mt-1 text-3xl font-semibold">{formatMoney(summary.total_cents)}</p>
         <dl className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-          <div><dt className="text-gray-500">{d.receipts}</dt><dd className="font-medium">{summary.count}</dd></div>
-          <div><dt className="text-gray-500">{d.deductible}</dt><dd className="font-medium">{formatMoney(summary.deductible_cents)}</dd></div>
-          <div><dt className="text-gray-500">{d.documented}</dt><dd className="font-medium">{summary.complete_count} ({completePct}%)</dd></div>
+          <div><dt className="text-muted">{d.receipts}</dt><dd className="font-medium">{summary.count}</dd></div>
+          <div><dt className="text-muted">{d.deductible}</dt><dd className="font-medium">{formatMoney(summary.deductible_cents)}</dd></div>
+          <div><dt className="text-muted">{d.documented}</dt><dd className="font-medium">{summary.complete_count} ({completePct}%)</dd></div>
           <div>
-            <dt className="text-gray-500">{d.needsAttention}</dt>
+            <dt className="text-muted">{d.needsAttention}</dt>
             <dd className="font-medium">
               {summary.needs_attention_count > 0 ? (
                 <Link href="/dashboard?filter=needs_attention" className="text-warning-700 underline">
@@ -99,28 +99,28 @@ export default async function DashboardPage({
             <Link
               key={f.key}
               href={`/dashboard?filter=${f.key}`}
-              className={`rounded-md px-3 py-1 ${filter === f.key ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+              className={`rounded-md px-3 py-1 ${filter === f.key ? 'bg-primary text-white' : 'text-muted hover:bg-primary-50'}`}
             >
               {f.label}
             </Link>
           ))}
         </div>
         <div className="flex gap-2 text-sm">
-          <Link href="/dashboard/cleanup" className="rounded-md border border-gray-300 px-3 py-1 hover:bg-gray-50">{d.cleanupLink}</Link>
+          <Link href="/dashboard/cleanup" className="rounded-md border border-border bg-surface px-3 py-1 hover:bg-neutral-50">{d.cleanupLink}</Link>
           {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- file download, not navigation */}
-          <a href="/api/receipts/export?format=csv" className="rounded-md border border-gray-300 px-3 py-1 hover:bg-gray-50">{d.exportCsv}</a>
+          <a href="/api/receipts/export?format=csv" className="rounded-md border border-border bg-surface px-3 py-1 hover:bg-neutral-50">{d.exportCsv}</a>
           {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- file download, not navigation */}
-          <a href="/api/receipts/export?format=quickbooks" className="rounded-md border border-gray-300 px-3 py-1 hover:bg-gray-50">{d.quickbooks}</a>
+          <a href="/api/receipts/export?format=quickbooks" className="rounded-md border border-border bg-surface px-3 py-1 hover:bg-neutral-50">{d.quickbooks}</a>
         </div>
       </div>
 
       {/* Receipt list */}
-      <section className="mt-4 divide-y divide-gray-100 rounded-lg border border-gray-200">
+      <section className="mt-4 divide-y divide-border rounded-lg border border-border bg-surface shadow-sm">
         {rows.length === 0 ? (
-          <div className="p-8 text-center text-sm text-gray-500">
+          <div className="p-8 text-center text-sm text-muted">
             {(() => {
               const [before, after] = d.emptyState.split('{number}');
-              return (<>{before}<span className="font-medium text-gray-900">{tallyNumber}</span>{after}</>);
+              return (<>{before}<span className="font-medium text-foreground">{tallyNumber}</span>{after}</>);
             })()}
           </div>
         ) : (
@@ -128,11 +128,11 @@ export default async function DashboardPage({
             <Link
               key={r.id}
               href={`/receipts/${r.id}`}
-              className="flex items-center justify-between gap-3 p-3 hover:bg-gray-50"
+              className="flex items-center justify-between gap-3 p-3 hover:bg-neutral-50"
             >
               <div className="min-w-0">
                 <p className="truncate font-medium">{r.vendor ?? d.unknownVendor}</p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted">
                   {formatDate(r.transaction_date)} · {catLabel(r.category)}
                   {r.payment_account && r.payment_account !== 'unknown' ? ` · ${r.payment_account}` : ''}
                 </p>

@@ -7,6 +7,7 @@ import { getSupabaseAdmin } from './supabase';
 import type { AppUser } from './users';
 import type { ExpenseInput } from './categorize';
 import type { SubstantiationRule, SubstantiationResult } from './substantiation';
+import { todayISO } from './format';
 
 export interface ReceiptRow {
   id: string;
@@ -36,10 +37,6 @@ export interface ReceiptRow {
   created_at: string;
 }
 
-function today(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
 /** Insert a categorized expense. Returns the new receipt id. */
 export async function saveReceipt(args: {
   user: AppUser;
@@ -55,7 +52,7 @@ export async function saveReceipt(args: {
     user_id: user.id,
     vendor: input.vendor,
     amount_cents: input.amount_cents ?? 0,
-    transaction_date: input.transaction_date ?? today(),
+    transaction_date: input.transaction_date ?? todayISO(),
     payment_account: user.default_payment_account ?? 'unknown',
     category,
     irc_section: rule.irc_section,

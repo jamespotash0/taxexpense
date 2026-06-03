@@ -6,7 +6,7 @@
 // Everything here is READ-ONLY and org-scoped. No mutations live in this module.
 
 import { orgTable } from './db';
-import { formatMoney } from './format';
+import { formatMoney, shortDate } from './format';
 import { categoryLabel, CATEGORY_LABELS } from './categories';
 import { listReceipts } from './receipts';
 
@@ -269,13 +269,6 @@ export function formatAggregate(r: AggregateResult): string {
   return `You've logged ${formatMoney(r.total_cents)} across ${r.count} ${noun}${scope} ${r.periodLabel} — ${formatMoney(
     r.deductible_cents,
   )} deductible.`;
-}
-
-function shortDate(date: string | null): string {
-  if (!date) return '';
-  const d = new Date(`${date}T00:00:00`);
-  if (Number.isNaN(d.getTime())) return '';
-  return ` (${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`;
 }
 
 /** "Your last N: • $54 Uber — Vehicle (Jun 1) • …" */

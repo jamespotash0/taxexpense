@@ -4,6 +4,7 @@
 // number is configured; otherwise simulates success so the beta works before go-live.
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { parseBody, jsonError, serverError } from '@/lib/api';
 import { normalizeToE164 } from '@/lib/phone';
 import { sendSms } from '@/lib/twilio';
 import { optionalEnv } from '@/lib/env';
@@ -21,18 +22,18 @@ const ipLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 10 });
 
 export async function POST(req: Request): Promise<NextResponse> {
   if (ipLimiter(getClientIp(req), Date.now())) {
-    return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
+    return jsonError('rate_limited', 429);
   }
 
-  const parsed = Body.safeParse(await req.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: 'invalid_request' }, { status: 400 });
+  const body = await parseBody(req, Body);
+  if (body instanceof NextResponse) return body;
 
-  const phone = normalizeToE164(parsed.data.phone_number);
-  if (!phone) return NextResponse.json({ error: 'invalid_phone' }, { status: 400 });
+  const phone = normalizeToE164(body.phone_number);
+  if (!phone) return jsonError('invalid_phone', 400);
 
   // Date.now() is the request clock here (not a workflow script) — allowed.
   if (isRateLimited(phone, Date.now())) {
-    return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
+    return jsonError('rate_limited', 429);
   }
 
   // Opt-in confirmation. Must stay aligned with the registered A2P 10DLC campaign's declared
@@ -52,7 +53,6 @@ export async function POST(req: Request): Promise<NextResponse> {
     }
     return NextResponse.json({ ok: true });
   } catch (err) {
-    log.error('hero_optin_failed', { phone: maskPhone(phone), message: err instanceof Error ? err.message : 'unknown' });
-    return NextResponse.json({ error: 'server_error' }, { status: 500 });
+    return serverError('hero_optin_failed', err, { phone: maskPhone(phone) });
   }
 }

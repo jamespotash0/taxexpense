@@ -75,7 +75,7 @@ export function LoginForm({ t }: { t: LoginCopy }) {
   return (
     <div className="w-full max-w-sm">
       <h1 className="text-2xl font-semibold tracking-tight">{t.title}</h1>
-      <p className="mt-1 text-sm text-gray-500">{t.subtitle}</p>
+      <p className="mt-1 text-sm text-muted">{t.subtitle}</p>
 
       {phase === 'phone' ? (
         <form onSubmit={requestCode} className="mt-6 space-y-3">
@@ -87,7 +87,7 @@ export function LoginForm({ t }: { t: LoginCopy }) {
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             required
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-base outline-none focus:border-primary"
+            className="w-full rounded-md border border-border bg-surface px-3 py-2 text-base outline-none focus:border-primary"
           />
           <button
             type="submit"
@@ -108,7 +108,7 @@ export function LoginForm({ t }: { t: LoginCopy }) {
             value={code}
             onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
             required
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-center text-lg tracking-[0.4em] outline-none focus:border-primary"
+            className="w-full rounded-md border border-border bg-surface px-3 py-2 text-center text-lg tracking-[0.4em] outline-none focus:border-primary"
           />
           <button
             type="submit"
@@ -120,7 +120,7 @@ export function LoginForm({ t }: { t: LoginCopy }) {
           <button
             type="button"
             onClick={() => { setPhase('phone'); setCode(''); setError(null); }}
-            className="w-full text-sm text-gray-500 underline"
+            className="w-full text-sm text-muted underline"
           >
             {t.useDifferent}
           </button>

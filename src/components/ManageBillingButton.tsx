@@ -26,7 +26,7 @@ export function ManageBillingButton({ t }: { t: { manage: string; opening: strin
     <button
       onClick={open}
       disabled={busy}
-      className="rounded-md border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50 disabled:opacity-50"
+      className="rounded-md border border-border bg-surface px-4 py-2 text-sm hover:bg-neutral-50 disabled:opacity-50"
     >
       {busy ? t.opening : t.manage}
     </button>

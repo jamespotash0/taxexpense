@@ -12,7 +12,7 @@ export default async function LoginPage() {
       <div className="mb-6 flex justify-end">
         <LocaleSwitcher current={locale} />
       </div>
-      <Suspense fallback={<p className="text-sm text-gray-400">{t.app.login.loading}</p>}>
+      <Suspense fallback={<p className="text-sm text-muted">{t.app.login.loading}</p>}>
         <LoginForm t={t.app.login} />
       </Suspense>
     </main>

@@ -2,13 +2,13 @@
 // Org-scoped (DEC-001). Deterministic checks always run; the vague-memo LLM pass
 // runs only when memo=1 (it costs a Haiku call). Defaults to the current year.
 import { NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/session';
+import { requireUser } from '@/lib/api';
 import { getReceiptsForYear } from '@/lib/receipts';
 import { scanReceipts, scanWithMemoReview } from '@/lib/cleanup';
 
 export async function GET(req: Request): Promise<NextResponse> {
-  const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  const user = await requireUser();
+  if (user instanceof NextResponse) return user;
 
   const url = new URL(req.url);
   const yearParam = Number(url.searchParams.get('year'));

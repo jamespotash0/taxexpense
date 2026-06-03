@@ -5,9 +5,10 @@
 // template can't get stuck. Secured by CRON_SECRET. Run daily via Vercel Cron.
 
 import { NextResponse } from 'next/server';
+import { requireCron } from '@/lib/api';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { sendSms } from '@/lib/twilio';
-import { optionalEnv } from '@/lib/env';
+import { todayISO } from '@/lib/format';
 import { log, maskPhone } from '@/lib/log';
 import {
   getDueRecurring,
@@ -18,14 +19,11 @@ import {
 } from '@/lib/recurring';
 
 export async function GET(req: Request): Promise<NextResponse> {
-  const secret = optionalEnv('CRON_SECRET');
-  const auth = req.headers.get('authorization');
-  if (!secret || auth !== `Bearer ${secret}`) {
-    return NextResponse.json({ error: 'forbidden' }, { status: 403 });
-  }
+  const denied = requireCron(req);
+  if (denied) return denied;
 
   const admin = getSupabaseAdmin();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayISO();
   const now = new Date().toISOString();
 
   // 1. Auto-skip nudges that were never answered (roll forward so they don't stick).

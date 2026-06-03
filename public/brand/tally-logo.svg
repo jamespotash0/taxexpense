@@ -1,0 +1,11 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Tally — ledger T">
+  <title>Tally — ledger T</title>
+  <rect width="512" height="512" rx="116" fill="#5B57E0"/>
+  <g transform="scale(5.12)" fill="none" stroke="#F3F3FF" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M28 28 L72 28" stroke-width="6.5"/>
+    <path d="M50 28 L50 74" stroke-width="6.5"/>
+    <path d="M40 42 L60 42" stroke-width="4"/>
+    <path d="M40 54 L60 54" stroke-width="4"/>
+    <path d="M40 66 L60 66" stroke-width="4"/>
+  </g>
+</svg>

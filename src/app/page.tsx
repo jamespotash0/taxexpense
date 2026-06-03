@@ -2,8 +2,9 @@
 // Server Component: resolves locale + dictionary, reads the Tally number.
 import Link from 'next/link';
 import { cookies } from 'next/headers';
-import { AnimatedPhone } from '@/components/AnimatedPhone';
-import { Reveal, Stagger, StaggerItem } from '@/components/Reveal';
+import { HeroVideo } from '@/components/HeroVideo';
+import { HowItWorks } from '@/components/HowItWorks';
+import { Reveal } from '@/components/Reveal';
 import { LocaleSwitcher } from '@/components/LocaleSwitcher';
 import { SiteHeader } from '@/components/SiteHeader';
 import { LandingPricing } from '@/components/LandingPricing';
@@ -91,57 +92,37 @@ export default async function Home() {
             <p className="reveal-3 mt-4 text-xs text-gray-400">{t.hero.disclaimer}</p>
           </div>
 
-          {/* Right — the live phone, tilted toward the lower-right on desktop. */}
+          {/* Right — the interactive video centerpiece: a cinematic moment of spending with
+              the Tally SMS thread typing in over it (reduced-motion → static phone). */}
           <Reveal className="flex justify-center lg:justify-end" delay={0.05}>
-            <div className="lg:translate-y-6 lg:rotate-[7deg]">
-              <AnimatedPhone />
-            </div>
+            <HeroVideo />
           </Reveal>
         </div>
       </section>
 
-      {/* How it works — a 3-step marketing flow: Text it → Tally captures the why → done by tax time. */}
-      <section id="how-it-works" className="mx-auto max-w-5xl scroll-mt-24 px-6 py-24 lg:px-8">
-        <Reveal className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-wider text-accent">{t.bento.eyebrow}</p>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">{t.bento.heading}</h2>
-          <p className="mt-4 text-lg text-gray-600">{t.bento.sub}</p>
-        </Reveal>
-        <Stagger className="mt-14 grid gap-10 md:grid-cols-3 md:gap-8">
-          {t.bento.steps.map((step, i) => (
-            <StaggerItem key={i} className="relative">
-              {/* Connector to the next step's number — flows through the column gap (md+ only). */}
-              {i < t.bento.steps.length - 1 && (
-                <div
-                  className="absolute left-[3.25rem] top-[21px] -right-6 hidden h-px bg-gradient-to-r from-accent/40 to-gray-200 md:block"
-                  aria-hidden
-                />
-              )}
-              <div className="relative z-10 flex h-11 w-11 items-center justify-center rounded-full bg-accent text-lg font-semibold text-white shadow-sm shadow-accent/30">
-                {i + 1}
-              </div>
-              <h3 className="mt-5 text-lg font-semibold">{step.title}</h3>
-              <p className="mt-2 text-gray-600">{step.body}</p>
-              {/* Step 2 carries the concrete "ask only when required" proof. */}
-              {i === 1 && (
-                <div className="mt-4 flex flex-wrap gap-2 text-xs">
-                  <span className="rounded-full bg-success-50 px-3 py-1 font-medium text-success-700">{t.bento.chipComplete}</span>
-                  <span className="rounded-full bg-warning-50 px-3 py-1 font-medium text-warning-700">{t.bento.chipSnap}</span>
-                </div>
-              )}
-            </StaggerItem>
-          ))}
-        </Stagger>
+      {/* How it works — cinematic 3-scene flow: Text it → Tally captures the why → ready by tax time. */}
+      <section id="how-it-works" className="mx-auto max-w-6xl scroll-mt-24 px-6 py-24 lg:px-8">
+        <HowItWorks t={t.bento} />
       </section>
 
-      {/* Pricing */}
-      <section id="pricing" className="mx-auto max-w-page scroll-mt-24 px-6 py-20 lg:px-8">
-        <Reveal className="text-center">
-          <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">{t.pricing.title}</h2>
-          <p className="mx-auto mt-3 max-w-md text-gray-600">{t.pricing.subtitle}</p>
-        </Reveal>
-        <Reveal className="mt-10" delay={0.06}>
-          <LandingPricing t={t.pricing} trialDays={TRIAL_DAYS} ctaLabel={t.hero.ctaTrial} />
+      {/* Pricing — cinematic dark band with an accent glow. The white plan card pops against
+          it (white = credible for money); the value line adds the "why it's worth it" substance. */}
+      <section id="pricing" className="scroll-mt-24 px-6 py-20 lg:px-8">
+        <Reveal className="relative mx-auto max-w-page overflow-hidden rounded-[2rem] bg-primary px-6 py-16 text-center shadow-2xl shadow-gray-900/20 sm:py-20">
+          {/* Cinematic backdrop: warm ink with a drifting indigo glow (distinct from the flat-ink footer). */}
+          <div
+            aria-hidden
+            className="ken-burns absolute inset-0"
+            style={{ background: 'radial-gradient(60% 55% at 50% -5%, rgba(79,70,229,0.40), transparent 70%), linear-gradient(160deg, #0d1326 0%, #111827 58%, #1b1530 100%)' }}
+          />
+          <div className="relative z-10">
+            <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">{t.pricing.title}</h2>
+            <p className="mx-auto mt-3 max-w-md text-gray-300">{t.pricing.subtitle}</p>
+            <div className="mt-10">
+              <LandingPricing t={t.pricing} trialDays={TRIAL_DAYS} ctaLabel={t.hero.ctaTrial} />
+            </div>
+            <p className="mx-auto mt-8 max-w-md text-sm leading-relaxed text-gray-400">{t.pricing.value}</p>
+          </div>
         </Reveal>
       </section>
 
