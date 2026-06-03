@@ -7,6 +7,40 @@ Format: date, decision, who pushed back, resolution, rationale.
 
 ---
 
+## 2026-06-03 — Recurring expenses (subscriptions) — detect → offer → confirm
+
+### DEC-033 — Recurring expenses, built as "remind & confirm" (NOT auto-log, NOT ask-every-time)
+
+- **Trigger.** Founder: "handle recurring payments… ask me if it's one-time or recurring."
+- **Pushback that reshaped it (Sofia/Marcus + Jordan/Alex).** Two parts of the literal ask
+  were declined:
+  1. **NOT "ask one-time/recurring on every expense."** That violates the core principle
+     "ask only when required" (CLAUDE.md #2/#3) — it adds a question to the zero-friction
+     capture loop. Instead Tally **detects a repeat** (same vendor + amount seen before) and
+     **offers** ("want me to check in monthly?") only then.
+  2. **NOT auto-logging future occurrences.** Auto-creating a $49 subscription that was
+     canceled / changed price = **fabricating a tax record** (audit/liability). Instead it's
+     **remind & confirm**: a monthly "Did your $49 Figma renew? Reply Y to log it, N to skip."
+     The receipt is created by the NORMAL capture flow only on confirm.
+- **Build.** `recurring_expenses` table (`0008`, RLS-enabled per DEC-030 + dedup unique index);
+  `lib/recurring.ts` (month math, Y/N parsing, detection, template CRUD, copy) + 13 unit tests;
+  wired into `sms-handler` (offer after a complete repeat-log → `awaiting_recurring_optin`
+  pending; "YES" creates the template; a bare Y/N reply checks for an awaiting renewal and
+  logs/skips); `/api/cron/recurring-reminders` (daily; nudges due templates, auto-skips
+  unanswered ones after 72h so none get stuck, skips opted-out users). vercel.json cron added.
+- **Guardrails honored.** Numbers/records only via the real capture flow (no fabrication);
+  offer only on a *complete* log (never stacks two questions); monthly cadence only for V1;
+  one active template per (org, vendor, amount). 99 tests green, tsc + lint clean.
+- **Smart detection (same-day follow-up).** Founder: don't make me re-log Figma to learn it's
+  recurring — use the categorization. Now `maybeOfferRecurring` offers when EITHER the AI
+  category is subscription/bill-shaped (`software`, `internet_phone`, `insurance`, `rent` →
+  offer on the FIRST log, copy: "looks like a recurring subscription") OR it's a repeat
+  (same vendor+amount, any category). Variable categories (meals/travel/rides) only offer on a
+  repeat. `isRecurringLikely()` + offer-reason copy, unit-tested (102 suite green).
+- **Deferred:** weekly/annual/custom cadence, price-change handling, a dashboard to view/pause
+  templates (today pause is DB-only).
+- **Founder action:** run `0008_recurring_expenses.sql` (or `RUN_ALL.sql`) + set the Vercel cron.
+
 ## 2026-06-02 — 1099-NEC deadline added to tax-deadline reminders
 
 ### DEC-032 — Added Jan 31 `1099-NEC filing` deadline; broadcast-to-all accepted for V1

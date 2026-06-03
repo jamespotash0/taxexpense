@@ -9,6 +9,22 @@ import { handleOnboarding } from './onboarding';
 import { fetchTwilioMedia, extractReceiptFromImageData, storePhotoBuffer, parseTextExpense, type OcrResult } from './ocr';
 import { processNewExpense, processClarification, processAttachment, type ProcessResult } from './expense';
 import { routeTextMessage } from './router';
+import { getReceipt } from './receipts';
+import {
+  isAffirmative,
+  isNegative,
+  getAwaitingConfirm,
+  advanceRecurring,
+  templateToExpenseInput,
+  createRecurringFromReceipt,
+  hasRecurring,
+  priorOccurrenceCount,
+  isRecurringLikely,
+  offerRecurring,
+  recurringCreatedMsg,
+  skippedRenewalMsg,
+  type RecurringRow,
+} from './recurring';
 import type { ExpenseInput } from './categorize';
 import { sendMessage, type Channel } from './twilio';
 import { getOrgEntitlement } from './subscription';
@@ -93,6 +109,52 @@ async function handleTextAsNewExpense(user: AppUser, body: string): Promise<Proc
   return processNewExpense(user, input, null);
 }
 
+function todayStr(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/** Recurring (DEC-033): after a COMPLETE log, offer to track it monthly when it's
+ *  subscription-shaped — either the AI category implies a subscription/bill (software,
+ *  internet/phone, insurance, rent → offer on the FIRST log) OR we've seen the same
+ *  vendor+amount before (a repeat → offer in any category). Only on a clean log (no pending
+ *  receipt/context) so we never stack two questions, and never if already tracked. */
+async function maybeOfferRecurring(user: AppUser, result: ProcessResult): Promise<ProcessResult> {
+  if (result.contextState !== null || !result.receiptId) return result;
+  const receipt = await getReceipt(user.organization_id, result.receiptId);
+  if (!receipt?.vendor || receipt.amount_cents <= 0) return result;
+  if (await hasRecurring(user.organization_id, receipt.vendor, receipt.amount_cents)) return result;
+
+  const priors = await priorOccurrenceCount(user.organization_id, receipt.vendor, receipt.amount_cents, receipt.id);
+  const subscription = isRecurringLikely(receipt.category);
+  if (priors < 1 && !subscription) return result; // neither a repeat nor a subscription-type → no offer
+
+  const reason = priors >= 1 ? 'repeat' : 'subscription';
+  return {
+    smsText: `${result.smsText}\n\n${offerRecurring(receipt.vendor, receipt.amount_cents, reason)}`,
+    receiptId: result.receiptId,
+    contextState: 'awaiting_recurring_optin',
+  };
+}
+
+/** "YES" to a recurring offer → create the monthly template from the source receipt. */
+async function handleRecurringOptin(user: AppUser, receiptId: string): Promise<ProcessResult | null> {
+  const receipt = await getReceipt(user.organization_id, receiptId);
+  if (!receipt) return null;
+  await createRecurringFromReceipt(receipt, todayStr());
+  return { smsText: recurringCreatedMsg(receipt.vendor, receipt.amount_cents), receiptId, contextState: null };
+}
+
+/** Y/N to a monthly "did it renew?" nudge → log the occurrence (normal flow) or skip; roll forward. */
+async function handleRenewalConfirm(user: AppUser, tmpl: RecurringRow, body: string): Promise<ProcessResult> {
+  if (isAffirmative(body)) {
+    const result = await processNewExpense(user, templateToExpenseInput(tmpl), null);
+    await advanceRecurring(tmpl.id, todayStr(), true);
+    return result;
+  }
+  await advanceRecurring(tmpl.id, todayStr(), false);
+  return { smsText: skippedRenewalMsg(tmpl.vendor), receiptId: null, contextState: null };
+}
+
 /** Decide the reply for an onboarded user. */
 async function handleExpenseFlow(user: AppUser, msg: InboundMessage): Promise<ProcessResult> {
   const hasPhoto = msg.numMedia > 0 && msg.mediaUrls.length > 0;
@@ -109,7 +171,20 @@ async function handleExpenseFlow(user: AppUser, msg: InboundMessage): Promise<Pr
       const attached = await processAttachment(user, ocr, buffer, contentType);
       if (attached) return attached;
     }
-    return handlePhotoAsNewExpense(user, ocr, msg.body, buffer, contentType);
+    return maybeOfferRecurring(user, await handlePhotoAsNewExpense(user, ocr, msg.body, buffer, contentType));
+  }
+
+  // Y/N answer to a monthly recurring nudge (DEC-033). Only query when the reply is a bare
+  // yes/no, so normal expenses skip the lookup.
+  if (isAffirmative(msg.body) || isNegative(msg.body)) {
+    const tmpl = await getAwaitingConfirm(user.id);
+    if (tmpl) return handleRenewalConfirm(user, tmpl, msg.body);
+  }
+
+  // "YES" to a recurring-tracking offer → create the template.
+  if (pending?.contextState === 'awaiting_recurring_optin' && isAffirmative(msg.body)) {
+    const optin = await handleRecurringOptin(user, pending.receiptId);
+    if (optin) return optin;
   }
 
   // Text message answering a pending context question → clarification flow.
@@ -125,7 +200,7 @@ async function handleExpenseFlow(user: AppUser, msg: InboundMessage): Promise<Pr
   const routed = await routeTextMessage(user, msg.body);
   if (routed) return routed;
 
-  return handleTextAsNewExpense(user, msg.body);
+  return maybeOfferRecurring(user, await handleTextAsNewExpense(user, msg.body));
 }
 
 /** Top-level inbound handler. Always sends exactly one SMS reply. */

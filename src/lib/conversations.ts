@@ -7,7 +7,7 @@ import { getSupabaseAdmin } from './supabase';
 import { log } from './log';
 
 /** When an outbound message asks a question, we tag it so the next inbound is treated as the answer. */
-export type ContextState = 'awaiting_context' | 'awaiting_receipt';
+export type ContextState = 'awaiting_context' | 'awaiting_receipt' | 'awaiting_recurring_optin';
 
 const PENDING_WINDOW_HOURS = 24; // pending questions expire after this (TSNAP-023)
 
