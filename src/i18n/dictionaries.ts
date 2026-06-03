@@ -3,7 +3,7 @@
 import type { Locale } from './config';
 
 const en = {
-  nav: { login: 'Log in', getStarted: 'Get started' },
+  nav: { login: 'Log in', getStarted: 'Get started', howItWorks: 'How it works', pricing: 'Pricing' },
   hero: {
     // Two-line headline. line1: "Your bank knows what." / line2: "Tally knows why."
     line1pre: 'Your bank knows ',
@@ -12,28 +12,56 @@ const en = {
     line2pre: 'Tally knows ',
     line2em: 'why',
     line2post: '.',
+    // Kept to ~2 lines at the hero's max-w-xl measure (matches variant B below).
     subtitle:
-      'Text a photo or a quick note. Tally logs every business expense the IRS way — and only asks for a receipt when the tax code actually requires it.',
+      'Text a photo or a quick note. Tally logs it the IRS way — and only asks for a receipt when the code actually requires one.',
     ctaTrial: 'Start free trial',
-    secondary: '21 days free, no card — or just text {number} · WhatsApp too',
+    tryEyebrow: 'Try it out',
+    tryText: 'Text {number}',
+    copied: 'Copied — text it from your phone 📱',
     disclaimer: 'Recordkeeping, not tax advice. Reply STOP to opt out.',
+    // A/B variant B (experiment: hero-copy) — conversational / first-person (Tally speaks).
+    vb: {
+      line1pre: 'Hey, I’m ',
+      line1em: 'Tally',
+      line1post: '.',
+      line2: 'Text me the why.',
+      subtitle:
+        'Text an expense — a photo or a quick note — and I’ll remember why it counts, so you’re not guessing come April.',
+    },
   },
+  // Hero arm C (phone-input CTA — Tally texts you first).
+  heroForm: {
+    eyebrow: 'Try it out',
+    placeholder: 'Your phone number',
+    button: 'Text me to start',
+    sending: 'Sending…',
+    success: 'Check your phone — we just texted you.',
+    consent: 'By continuing you agree to receive texts from Tally. Msg & data rates may apply. Reply STOP to opt out.',
+    errInvalid: 'Enter a valid phone number.',
+    errRate: 'Too many tries — give it a minute.',
+    errServer: 'Something went wrong. Please try again.',
+  },
+  // "How it works" — a 3-step marketing flow (Text → capture the why → done by tax time).
   bento: {
-    heading: 'Built around the rules the IRS actually cares about.',
-    t1tag: 'Smart substantiation',
-    t1title: 'Asks only when required',
-    t1body: 'No nagging for receipts. Tally follows the real IRS substantiation rules — a photo is requested only when the tax code demands one (strict categories ≥ $75, or lodging).',
+    heading: 'Tax season, handled — by text.',
+    sub: 'No app to download, no spreadsheet, no shoebox. Text Tally as you spend, and walk into April already done.',
+    steps: [
+      {
+        title: 'Text it the second you spend',
+        body: 'Snap the receipt or fire off a note — from the same Messages app you already use all day. Two seconds and it’s captured.',
+      },
+      {
+        title: 'Tally captures the why',
+        body: 'Each expense is filed under the right tax code, and a receipt is requested only when the IRS actually requires one — so the context your bank never sees is locked in while it’s still fresh.',
+      },
+      {
+        title: 'Walk into tax time done',
+        body: 'Every expense documented the IRS way. Export a clean CSV, a QuickBooks-ready file, or email the whole year to your accountant — one tap.',
+      },
+    ],
     chipComplete: '✓ $48 lunch — documentation complete',
     chipSnap: '⚠ $340 dinner — snap a receipt',
-    t2tag: 'Tax code',
-    t2title: 'Cites the section',
-    t2body: 'Every expense gets its IRC section (§162, §274, §179…) and a deductible amount, so your records hold up.',
-    t3tag: 'Capture',
-    t3title: 'Just text or WhatsApp',
-    t3body: 'Snap a receipt or fire off a note, in the moment, from the app you already use.',
-    t4tag: 'Hand off',
-    t4title: 'Export, or email your accountant',
-    t4body: 'Review everything in the app. Download a clean CSV, a QuickBooks-ready file, or email this month straight to your accountant — one tap.',
   },
   cta: { heading: 'Say hello to easy tax time.', sub: 'Text {number} with your first expense.', subNoNumber: 'Install Tally and send your first expense.', button: 'Start free trial' },
   footer: { tagline: 'Recordkeeping, not tax advice.', privacy: 'Privacy', terms: 'Terms' },
@@ -70,7 +98,8 @@ const en = {
     subscribe: 'Subscribe',
     starting: 'Starting…',
     included: ['Unlimited capture by text & WhatsApp', 'IRS-rule substantiation + IRC citations', 'Receipt reminders & tax-deadline alerts', 'Dashboard, CSV & QuickBooks export', 'Email your accountant in one tap'],
-    trust: 'Cancel anytime · Secure checkout by Stripe · Recordkeeping, not tax advice',
+    noCommit: 'No commitment — cancel anytime',
+    trust: 'Secure checkout by Stripe',
     value: "One missed deduction usually costs more than a year of Tally. It pays for itself the first time it catches a $340 client dinner you'd have forgotten by April.",
     faqHeading: 'Questions',
     faqs: [
@@ -104,6 +133,23 @@ const en = {
       quickbooks: 'QuickBooks',
       emptyState: 'No receipts yet. Text {number} to get started.',
       unknownVendor: 'Unknown vendor',
+      cleanupLink: 'Year-end cleanup',
+    },
+    cleanup: {
+      title: 'Year-end cleanup',
+      subtitle: 'A quick pass over {year} to catch gaps before you file. Suggestions only — you have the final say.',
+      scanned: 'Scanned {count} expenses for {year}.',
+      allClear: 'Nothing to clean up — your {year} records look documentation complete. ✓',
+      deepScan: 'Run deep scan (checks memos)',
+      deepScanRunning: 'Including memo review…',
+      open: 'Open',
+      openCount: 'Open {count}',
+      back: '← Dashboard',
+      groupNeedsReceipt: 'Missing receipts',
+      groupMissingContext: 'Missing context',
+      groupDuplicate: 'Possible duplicates',
+      groupMixedAccount: 'Personal / business',
+      groupVagueMemo: 'Vague memos',
     },
     login: {
       title: 'Log in to Tally',
@@ -221,7 +267,7 @@ const en = {
 type Dict = typeof en;
 
 const es: Dict = {
-  nav: { login: 'Iniciar sesión', getStarted: 'Empezar' },
+  nav: { login: 'Iniciar sesión', getStarted: 'Empezar', howItWorks: 'Cómo funciona', pricing: 'Precios' },
   hero: {
     line1pre: 'Tu banco sabe ',
     line1em: 'qué',
@@ -229,30 +275,57 @@ const es: Dict = {
     line2pre: 'Tally sabe ',
     line2em: 'por qué',
     line2post: '.',
+    // A ~2 líneas en el ancho del hero (max-w-xl), igual que la variante B.
     subtitle:
-      'Envía una foto o una nota rápida. Tally registra cada gasto de negocio como lo pide el IRS — y solo te pide recibo cuando la ley realmente lo exige.',
-    ctaTrial: 'Comenzar prueba gratis',
-    secondary: '21 días gratis, sin tarjeta — o solo escribe a {number} · también WhatsApp',
+      'Envía una foto o una nota rápida. Tally lo registra como pide el IRS — y solo te pide recibo cuando la ley lo exige.',
+    ctaTrial: 'Empezar gratis',
+    tryEyebrow: 'Pruébalo',
+    tryText: 'Escribe a {number}',
+    copied: 'Copiado — escríbenos desde tu teléfono 📱',
     disclaimer: 'Llevar registros, no asesoría fiscal. Responde STOP para darte de baja.',
+    // Variante B del A/B (experimento: hero-copy) — conversacional / en primera persona (habla Tally).
+    vb: {
+      line1pre: 'Hola, soy ',
+      line1em: 'Tally',
+      line1post: '.',
+      line2: 'Escríbeme el porqué.',
+      subtitle:
+        'Mándame un gasto — una foto o una nota rápida — y recordaré por qué cuenta, para que no andes adivinando en abril.',
+    },
+  },
+  // Arm C del hero (CTA con campo de teléfono — Tally te escribe primero).
+  heroForm: {
+    eyebrow: 'Pruébalo',
+    placeholder: 'Tu número de teléfono',
+    button: 'Escríbeme para empezar',
+    sending: 'Enviando…',
+    success: 'Revisa tu teléfono — acabamos de escribirte.',
+    consent: 'Al continuar aceptas recibir mensajes de Tally. Pueden aplicar tarifas de mensajes y datos. Responde STOP para darte de baja.',
+    errInvalid: 'Ingresa un número de teléfono válido.',
+    errRate: 'Demasiados intentos — espera un minuto.',
+    errServer: 'Algo salió mal. Inténtalo de nuevo.',
   },
   bento: {
-    heading: 'Diseñado según las reglas que de verdad le importan al IRS.',
-    t1tag: 'Sustanciación inteligente',
-    t1title: 'Pregunta solo cuando hace falta',
-    t1body: 'Sin perseguirte por recibos. Tally sigue las reglas reales del IRS — pide foto solo cuando la ley lo exige (categorías estrictas ≥ $75, o alojamiento).',
+    heading: 'La temporada de impuestos, resuelta — por texto.',
+    sub: 'Sin app que instalar, sin hoja de cálculo, sin caja de recibos. Escríbele a Tally al gastar y llega a abril ya listo.',
+    steps: [
+      {
+        title: 'Escríbelo al instante',
+        body: 'Toma una foto del recibo o manda una nota — desde la misma app de Mensajes que ya usas todo el día. Dos segundos y queda capturado.',
+      },
+      {
+        title: 'Tally captura el porqué',
+        body: 'Cada gasto se archiva bajo el código fiscal correcto, y solo se pide recibo cuando el IRS realmente lo exige — así el contexto que tu banco nunca ve queda guardado mientras está fresco.',
+      },
+      {
+        title: 'Llega a la temporada de impuestos ya listo',
+        body: 'Cada gasto documentado como pide el IRS. Exporta un CSV limpio, un archivo listo para QuickBooks, o envía el año entero a tu contador — con un toque.',
+      },
+    ],
     chipComplete: '✓ Almuerzo $48 — documentación completa',
     chipSnap: '⚠ Cena $340 — toma una foto del recibo',
-    t2tag: 'Código fiscal',
-    t2title: 'Cita la sección',
-    t2body: 'Cada gasto recibe su sección del IRC (§162, §274, §179…) y un monto deducible, para que tus registros se sostengan.',
-    t3tag: 'Captura',
-    t3title: 'Solo texto o WhatsApp',
-    t3body: 'Toma una foto del recibo o manda una nota, al instante, desde la app que ya usas.',
-    t4tag: 'Entrega',
-    t4title: 'Exporta o envía a tu contador',
-    t4body: 'Revisa todo en la app. Descarga un CSV limpio, un archivo listo para QuickBooks, o envía el mes a tu contador — con un toque.',
   },
-  cta: { heading: 'Dile hola a una temporada de impuestos fácil.', sub: 'Escribe a {number} con tu primer gasto.', subNoNumber: 'Instala Tally y envía tu primer gasto.', button: 'Comenzar prueba gratis' },
+  cta: { heading: 'Dile hola a impuestos fáciles.', sub: 'Escribe a {number} con tu primer gasto.', subNoNumber: 'Instala Tally y envía tu primer gasto.', button: 'Empezar gratis' },
   footer: { tagline: 'Llevar registros, no asesoría fiscal.', privacy: 'Privacidad', terms: 'Términos' },
   install: { button: 'Instalar Tally', help: 'En iPhone: toca Compartir → “Agregar a inicio”. En Android: menú → “Instalar app”.', installed: 'Instalada ✓ — busca Tally en tu pantalla de inicio.' },
   onboarding: {
@@ -265,7 +338,7 @@ const es: Dict = {
     revealTitle: 'Solo envíalo. Tally captura el porqué.',
     revealBody: 'Toma una foto o manda una nota. Tally lo registra como pide el IRS y solo pide recibo cuando la ley lo exige — sin adivinanzas en abril.',
     revealButton: 'Muéstrame cómo empezar',
-    startBadge: 'Prueba gratis de 21 días · sin tarjeta',
+    startBadge: '21 días gratis · sin tarjeta',
     startTitle: 'Envía tu primer gasto',
     startSub: 'Escribe a Tally y ya empezaste — tu prueba comienza automáticamente.',
     startText: 'Escribe para empezar 👋',
@@ -274,7 +347,7 @@ const es: Dict = {
     back: '← Atrás',
   },
   pricing: {
-    badge: 'Prueba gratis de {days} días · sin tarjeta',
+    badge: '{days} días gratis · sin tarjeta',
     title: 'Menos que un almuerzo con cliente al mes.',
     subtitle: 'Un plan, todo incluido. Sigue capturando el porqué de cada gasto — y llega a la temporada de impuestos ya listo.',
     mostPopular: 'Más popular',
@@ -287,7 +360,8 @@ const es: Dict = {
     subscribe: 'Suscribirse',
     starting: 'Iniciando…',
     included: ['Captura ilimitada por texto y WhatsApp', 'Sustanciación según el IRS + citas del IRC', 'Recordatorios de recibos y fechas límite', 'Panel, exportación CSV y QuickBooks', 'Envía a tu contador con un toque'],
-    trust: 'Cancela cuando quieras · Pago seguro con Stripe · Llevar registros, no asesoría fiscal',
+    noCommit: 'Sin compromiso — cancela cuando quieras',
+    trust: 'Pago seguro con Stripe',
     value: 'Una deducción perdida suele costar más que un año de Tally. Se paga sola la primera vez que captura una cena de $340 con cliente que habrías olvidado para abril.',
     faqHeading: 'Preguntas',
     faqs: [
@@ -320,6 +394,23 @@ const es: Dict = {
       quickbooks: 'QuickBooks',
       emptyState: 'Aún no hay recibos. Escribe a {number} para empezar.',
       unknownVendor: 'Comercio desconocido',
+      cleanupLink: 'Limpieza de fin de año',
+    },
+    cleanup: {
+      title: 'Limpieza de fin de año',
+      subtitle: 'Un repaso rápido de {year} para detectar huecos antes de declarar. Solo sugerencias — tú tienes la última palabra.',
+      scanned: 'Se revisaron {count} gastos de {year}.',
+      allClear: 'Nada que limpiar — tus registros de {year} se ven con documentación completa. ✓',
+      deepScan: 'Hacer revisión profunda (revisa las notas)',
+      deepScanRunning: 'Incluyendo revisión de notas…',
+      open: 'Abrir',
+      openCount: 'Abrir {count}',
+      back: '← Panel',
+      groupNeedsReceipt: 'Recibos faltantes',
+      groupMissingContext: 'Contexto faltante',
+      groupDuplicate: 'Posibles duplicados',
+      groupMixedAccount: 'Personal / negocio',
+      groupVagueMemo: 'Notas imprecisas',
     },
     login: {
       title: 'Inicia sesión en Tally',

@@ -182,17 +182,19 @@ Load these as needed for domain-specific perspective (under `claude_files/team/`
 
 ## Brand Name
 
-**Working name:** Tally · **Beta domain:** gettallyexpense.com (see JOURNAL DEC-010, supersedes DEC-008)
+**Working name:** Tally · **Beta domain:** tallywhy.com (see JOURNAL DEC-013, supersedes DEC-010)
 **App Store / subtitle descriptor:** "Tally · expense tracking" — the tagline must carry the WHY.
 
 **Status:** Treated as a rebrandable beta name (same posture as the prior "TaxSnap" handle).
 "Tally" was chosen on sound + category fit ("a tally" = a running financial record; warm,
-verb-able — "it tallies as you go"). The WHY differentiator is carried by the tagline,
-Keeper-style, since the name itself points at the gesture, not the value. Its namespace is
-crowded — bare `tally.com` and clean `tally-*` domains are taken or parked-for-sale, and
-"Tally" is an active fintech trademark thicket (ex Tally credit-card app, Tally forms,
-tally.cash/.money). So: do NOT invest in the "Tally" mark; `gettallyexpense.com` is the beta
-handle. A distinctive-name + trademark exercise stays deferred until paid/public scale.
+verb-able — "it tallies as you go"). The WHY differentiator is now carried by the domain
+itself — **tallywhy.com** ("your bank knows WHAT, Tally knows WHY") — rather than a generic
+`get<name>expense` handle. Its namespace is crowded — bare `tally.com` and clean `tally-*`
+domains (incl. `usetally.com`) are taken or parked-for-sale, and "Tally" is an active fintech
+trademark thicket (ex Tally credit-card app, Tally forms, tally.cash/.money). So: do NOT
+invest in the "Tally" mark; `tallywhy.com` is the beta handle (with `gettallywhy.com` /
+`tallywhy.co` held defensively). A distinctive-name + trademark exercise stays deferred until
+paid/public scale.
 
 ## Critical Open Items
 

@@ -8,6 +8,7 @@ import { logConversation, getPendingContext, type ContextState } from './convers
 import { handleOnboarding } from './onboarding';
 import { fetchTwilioMedia, extractReceiptFromImageData, storePhotoBuffer, parseTextExpense, type OcrResult } from './ocr';
 import { processNewExpense, processClarification, processAttachment, type ProcessResult } from './expense';
+import { routeTextMessage } from './router';
 import type { ExpenseInput } from './categorize';
 import { sendMessage, type Channel } from './twilio';
 import { getOrgEntitlement } from './subscription';
@@ -118,6 +119,12 @@ async function handleExpenseFlow(user: AppUser, msg: InboundMessage): Promise<Pr
     // pending receipt vanished → fall through to new expense
   }
 
+  // Conversational router (DEC-029): answer read-only questions ("how much on meals
+  // this year?", "last 3 charges", "review my year") and safe commands. Returns null
+  // when the message is an expense to capture, so the workflow path below still runs.
+  const routed = await routeTextMessage(user, msg.body);
+  if (routed) return routed;
+
   return handleTextAsNewExpense(user, msg.body);
 }
 
@@ -166,7 +173,7 @@ export async function handleInboundSms(msg: InboundMessage): Promise<void> {
   // gate continued use. New users are always within trial, so onboarding is unaffected.
   const entitlement = await getOrgEntitlement(user.organization_id);
   if (!entitlement.entitled) {
-    const base = PUBLIC_ENV.appUrl || 'https://gettallyexpense.com';
+    const base = PUBLIC_ENV.appUrl || 'https://tallywhy.com';
     const paywall = `Your Tally trial has ended. Subscribe to keep logging expenses: ${base}/pricing`;
     await safeSend(phone, paywall, msg.channel);
     await logConversation({

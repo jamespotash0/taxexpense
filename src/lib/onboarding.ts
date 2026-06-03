@@ -119,5 +119,5 @@ export async function handleOnboarding(user: AppUser, messageText: string): Prom
   patch.onboarding_completed = true;
   patch.onboarding_step = ONBOARDING_QUESTIONS.length + 1;
   await updateUser(user.id, patch);
-  return onboardingComplete(PUBLIC_ENV.appUrl || 'https://gettallyexpense.com', name === 'there' ? undefined : name);
+  return onboardingComplete(PUBLIC_ENV.appUrl || 'https://tallywhy.com', name === 'there' ? undefined : name);
 }

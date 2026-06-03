@@ -297,7 +297,7 @@ STOP keyword must work. Twilio handles automatically, but verify.
 GDPR/CCPA require ability to delete user data on request. Build the process.
 
 **Acceptance Criteria:**
-- [ ] User can request deletion via email (privacy@gettallyexpense.com or similar)
+- [ ] User can request deletion via email (privacy@tallywhy.com or similar)
 - [ ] Deletion script removes:
   - User record
   - All receipts

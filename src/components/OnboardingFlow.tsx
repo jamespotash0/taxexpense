@@ -4,7 +4,6 @@
 // Strings come from the dictionary slice passed by the server /start page.
 import { useState } from 'react';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
-import { InstallButton } from './InstallButton';
 import type { Dict } from '@/i18n/dictionaries';
 
 const variants = {
@@ -30,12 +29,10 @@ export function OnboardingFlow({
   number,
   smsHref,
   t,
-  install,
 }: {
   number: string;
   smsHref?: string;
   t: Dict['onboarding'];
-  install: Dict['install'];
 }) {
   const TOTAL = 4;
   const [step, setStep] = useState(0);
@@ -102,14 +99,6 @@ export function OnboardingFlow({
                     </a>
                   )}
                   <p className="text-xs text-gray-400">{t.startWhatsapp}</p>
-                  <div className="pt-2">
-                    <InstallButton
-                      label={install.button}
-                      help={install.help}
-                      installedText={install.installed}
-                      className="[&_button]:w-full [&_button]:rounded-xl [&_button]:border [&_button]:border-gray-300 [&_button]:!bg-white [&_button]:!text-gray-900 [&_button]:hover:!bg-gray-50"
-                    />
-                  </div>
                 </div>
                 <p className="mt-6 text-xs text-gray-400">{t.startDisclaimer}</p>
               </motion.div>

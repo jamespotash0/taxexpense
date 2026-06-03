@@ -130,6 +130,43 @@ export async function getAllReceiptsForExport(orgId: string): Promise<ReceiptRow
   return (data as unknown as ReceiptRow[]) ?? [];
 }
 
+/**
+ * Tax years (calendar) the org has receipts in, newest first, for the cleanup
+ * year switcher (TSNAP-095). Always includes the current year even with no data,
+ * so the panel is never empty. Derives the range from the earliest receipt date
+ * (one-row query) rather than pulling every row.
+ */
+export async function getReceiptYears(orgId: string): Promise<number[]> {
+  const { data, error } = await orgTable('receipts', orgId)
+    .select('transaction_date')
+    .order('transaction_date', { ascending: true })
+    .limit(1);
+  if (error) throw error;
+
+  const current = new Date().getFullYear();
+  const rows = (data as unknown as { transaction_date: string | null }[] | null) ?? [];
+  const earliest = rows[0]?.transaction_date;
+  const startYear = earliest ? new Date(`${earliest}T00:00:00Z`).getUTCFullYear() : current;
+
+  const years: number[] = [];
+  for (let y = current; y >= Math.min(startYear, current); y--) years.push(y);
+  return years;
+}
+
+/**
+ * All receipts whose transaction_date falls in the given tax (calendar) year,
+ * oldest first — for the year-end cleanup scan (TSNAP-EPIC-9). Org-scoped.
+ */
+export async function getReceiptsForYear(orgId: string, year: number): Promise<ReceiptRow[]> {
+  const { data, error } = await orgTable('receipts', orgId)
+    .select()
+    .gte('transaction_date', `${year}-01-01`)
+    .lte('transaction_date', `${year}-12-31`)
+    .order('transaction_date', { ascending: true });
+  if (error) throw error;
+  return (data as unknown as ReceiptRow[]) ?? [];
+}
+
 export interface MonthlySummary {
   total_cents: number;
   count: number;

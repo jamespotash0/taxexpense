@@ -18,8 +18,9 @@ This document lists the 8 epics that make up V1, their dependencies, and the rec
 | TSNAP-EPIC-6 | Testing & Launch | Jordan + Priya | 8h | P0 | 10 |
 | TSNAP-EPIC-7 | Security (cross-cutting) | Jordan | 6h | P0 | Throughout |
 | TSNAP-EPIC-8 | Email Accountant Feature | Emma | 4h | P1 | 8 (or slip) |
+| TSNAP-EPIC-9 | Year-End Cleanup Mode | Priya + Raj + Emma | 6h | P2 | post-V1 |
 
-**Total: 72 hours of work**
+**Total: 72 hours of work** (EPIC-9 is post-V1 and excluded from the 10-day budget)
 
 ---
 
@@ -262,6 +263,27 @@ Lets users send a monthly summary (PDF + CSV) to their accountant via email. Thi
 **This epic can SLIP to week 3 if other work runs over.**
 
 **See:** `tickets/05-landing-legal.md` (bundled at end)
+
+---
+
+### TSNAP-EPIC-9 — Year-End Cleanup Mode
+**Owner:** Priya Sharma + Raj Patel (engine) + Emma Larsson (dashboard)
+**Effort:** 6 hours
+**Days:** post-V1 (after launch, once users have a year of data)
+**Priority:** P2 (NOT in the 10-day MVP budget)
+
+The "missing-proof detection" differentiator — a pre-filing scan that flags missing
+receipts, missing §274(d) context, likely duplicates, mixed personal/business spend,
+and vague memos. Moves Tally from "expense tracker" to "defensible bookkeeping." Built
+as a deterministic scan over flags V1 already stores, plus one optional Haiku pass for
+vague-memo detection. Suggest-not-advise; "documentation complete," never "audit-ready."
+
+**Key deliverables:**
+- Deterministic cleanup scan engine (4 checks) + unit tests
+- Vague-memo LLM layer (optional, fail-safe)
+- `/api/cleanup` endpoint + `/dashboard/cleanup` panel
+
+**First slice built 2026-06-02 (DEC-028).** See `specs/08-year-end-cleanup.md`.
 
 ---
 

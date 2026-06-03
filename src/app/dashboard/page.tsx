@@ -106,6 +106,7 @@ export default async function DashboardPage({
           ))}
         </div>
         <div className="flex gap-2 text-sm">
+          <Link href="/dashboard/cleanup" className="rounded-md border border-gray-300 px-3 py-1 hover:bg-gray-50">{d.cleanupLink}</Link>
           {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- file download, not navigation */}
           <a href="/api/receipts/export?format=csv" className="rounded-md border border-gray-300 px-3 py-1 hover:bg-gray-50">{d.exportCsv}</a>
           {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- file download, not navigation */}

@@ -7,6 +7,114 @@ Format: date, decision, who pushed back, resolution, rationale.
 
 ---
 
+## 2026-06-02 — First agentic surfaces: SMS query router + "review my year" (post-V1)
+
+### DEC-029 — Add bounded agentic features; capture loop stays a workflow (extends DEC-011 + AGENTS-VS-WORKFLOWS)
+
+- **Decision.** Keep the SMS *capture* pipeline a deterministic workflow (unchanged). Layer
+  two **bounded, read-mostly, user-initiated** agentic surfaces on top:
+  1. **Conversational SMS query router** — users can ask about their data (aggregates by
+     category/period, recent charges, counts, receipt status) and run safe commands (export).
+  2. **"Review my year"** — an SMS/command-triggered report reusing `lib/cleanup.ts`
+     (gap scan) + period aggregates. ("What's missing" already ships as weekly reminders +
+     the cleanup dashboard, so this is the annual summary, not a new scanner.)
+- **Guardrails (founder-approved):**
+  1. **Read-only in v1.** Queries + `export`; `email-accountant` gated behind explicit Y/N
+     confirmation (outward send). Edits/deletes via chat **deferred** (dashboard owns those);
+     "mark personal" is the one mutation to add in v1.1 behind a confirm, once the classifier
+     is proven.
+  2. **Numbers come from the DB, never the model.** The LLM only classifies intent + extracts
+     params (validated against the canonical category/period whitelist); deterministic
+     functions (`lib/queries.ts`, reusing `receipts.ts`) compute every figure; replies that
+     contain a number use **templates**, not free-form model output. Kills hallucinated totals.
+  3. **Refuse tax-owed / advice** ("how much will I owe?", "is this deductible?") → warm
+     deflection + CPA, reusing the suggest-don't-advise posture (CLAUDE.md #1/#7).
+- **Build order (Option C — de-risk inward-out):** shared read-only query layer + guardrails
+  → "review my year" (simple consumer, proves the numbers-from-DB contract) → SMS router
+  (the only piece on the capture hot path; defaults to `capture` on low classifier confidence).
+- **Team.** Raj: ~80% of the tooling already exists (`getMonthlySummary`/`getReceiptsForYear`/
+  `listReceipts` are clean org-scoped tools). Jordan: read-only + numbers-from-DB + advice
+  deflection are the non-negotiables. Priya: the classifier (capture vs query vs command vs
+  advice) is the real work — needs an eval set; mixed/correction messages are the failure mode.
+  Alex: passes his bar (real pull, low blast radius, high reuse) **but** validate with users
+  and keep the intent whitelist small — no "ask me anything." Marcus: engagement/retention
+  play; market as "ask Tally about your expenses," never "agent" (accuracy + legal risk).
+- **Cost/latency note.** Router adds one Haiku classify call to *non-photo* inbound texts only;
+  capture path unchanged. Numbers-from-DB means no extra reasoning tokens for arithmetic.
+
+## 2026-06-02 — Year-End Cleanup Mode (new post-V1 epic) — first slice built
+
+### DEC-028 — Year-End Tax Cleanup Mode added as TSNAP-EPIC-9 (post-V1, P2)
+- **Context.** A Perplexity competitive teardown (founder-supplied) largely restated our
+  existing positioning, but surfaced ONE genuinely net-new idea not anywhere in our docs:
+  a **year-end cleanup mode** that spots missing notes, vague memos, duplicate receipts, and
+  mixed personal/business items before filing. This is the "missing-proof detection"
+  differentiator — defensible because it depends on our taxonomy + substantiation logic, not
+  OCR. Founder liked it and asked to plan + start building it.
+- **Decision.** Add as **TSNAP-EPIC-9**, explicitly **post-V1 / P2** (does NOT count against
+  the 10-day MVP budget — cleanup only has value once a user has a year of data; pulling it
+  into V1 would be scope creep per Common Mistake #4). Built the first slice now.
+- **Architecture (consistent with DEC-011 + AGENTS-VS-WORKFLOWS).** Workflow, not agent. Of
+  five checks, **four are pure deterministic code** reading flags V1 already stores
+  (`needs_receipt`, `substantiation_complete`, `substantiation_missing_fields`,
+  `payment_account`, `category='personal'`) — never re-deriving tax logic. The fifth,
+  **vague-memo detection, is the only LLM call** (Haiku, batched, fail-safe → `[]` on error).
+  Deterministic scan is the unit-tested backbone; the memo pass is an additive layer.
+- **Guardrails honored.** Suggest-not-advise (CLAUDE.md #1) — every issue links to the receipt
+  and the user resolves it; Tally never auto-edits. Copy says **"documentation complete," NOT
+  "audit-ready"** (CLAUDE.md #5) — we deliberately rejected Perplexity's "audit-ready evidence"
+  framing for the same legal-liability reason. (The same teardown also pushed "force context at
+  capture" and a user-facing confidence score — both declined as conflicting with "ask only when
+  required" and our advisor-liability posture; logged here for the record, not adopted.)
+- **Built (first slice).** `lib/cleanup.ts` (engine + memo layer), `lib/cleanup.test.ts` (7
+  tests, all green), `getReceiptsForYear()` in `lib/receipts.ts`, `GET /api/cleanup`,
+  `/dashboard/cleanup` panel + dashboard entry point, EN/ES copy under `t.app.cleanup`.
+  `npm run build` + full `npm run test` (45 tests) green.
+- **Deferred (TSNAP-095).** Year-switcher UI (today `?year=` only), inline resolve actions,
+  seasonal SMS nudge (needs TCPA + DB-backed rate limit — cf. DEC-027), gift $25-cap overage
+  check, vague-memo eval/precision tests, CPA spot-check of the duplicate window + framing.
+- **Files/spec:** `claude_files/specs/08-year-end-cleanup.md`, EPIC row in `specs/00-EPICS.md`.
+
+---
+
+## 2026-06-02 — Landing hero CTA experiment + desktop measurement fix
+
+### DEC-027 — Hero "text-me-first" CTA (arm C) built but held OFF live traffic; desktop sms: dead-end fixed
+- **Context.** Design research on text-first SaaS heroes (Poke, Keeper, Community, Cleo,
+  DoNotPay, SlickText, Boardy) found that most have moved *away* from a raw textable number to
+  a button/app-store flow; the surviving phone pattern is Boardy's "Message Me → enter your
+  number, we text you first" (consent + attribution + works on desktop). Founder liked the
+  what/why copy (variant A) and the conversational "Hey, I'm Tally" copy → became **variant B**
+  (replaced the old loss-aversion B). Prototyped a Boardy-style phone-input CTA as **arm C**.
+- **Decision.** Arm C is built but **NOT auto-assigned to live traffic.** Live split reverts to
+  50/50 A/B (copy test only). Arm C is reachable via a forced `ab_hero=C` cookie for the 5-user
+  validation sessions and demos. Also fixed the desktop CTA dead-end (new `TextNumberCta`):
+  `sms:` links are a no-op on desktop, so the old `<a>` logged hollow "clicks"; it now copies the
+  number (real desktop path) + opens Messages on mobile, and all arms fire one comparable
+  `hero_cta_engaged` event.
+- **Team review (conflict surfaced).**
+  - *Jordan (compliance) — blocking for live:* "text-me-first" makes us the SMS initiator (A2P) →
+    needs explicit **consent logged with timestamp** and **DB-backed rate limiting**. The current
+    in-memory limiter is per-instance (resets on cold start) → SMS-bombing vector (enter a
+    victim's number) → carrier complaints could kill our Twilio sender for everyone.
+  - *Priya (metrics):* arms measured different events; desktop `sms:` conversion was broken → fixed
+    via unified `hero_cta_engaged`. Also: solo-founder traffic likely can't power a 3-way test.
+  - *Marcus + Alex:* optimizing a landing CTA before any user validation is premature; validate
+    with 5 real users first.
+  - **Dissent kept in view — Maya (growth):** even a *winning* arm C could weaken the demo-driven
+    growth channel, because a phone-input form isn't filmable the way a live number is ("Bank says
+    X, Tally says Y" reels need a textable number, not a lead-capture box).
+  - *Sofia (UX):* if C ships, the welcome SMS must be one short, human line (one question, max) —
+    not the current 3-sentence block.
+- **Re-enable criteria for arm C → live:** (1) consent logged w/ timestamp, (2) DB-backed rate
+  limit by IP + phone (mirror `lib/auth` requestCode), (3) abuse protection (e.g. CAPTCHA),
+  (4) shortened welcome copy, (5) ≥5 validated users. A2P 10DLC registration also applies.
+- **Files:** `lib/ab.ts` (variant C, not auto-assigned), `proxy.ts` (50/50 A/B), `HeroCopy.tsx`
+  (B = conversational), `HeroTextMeForm.tsx` + `api/hero-optin/route.ts` (prototype),
+  `TextNumberCta.tsx` (desktop fix), `dictionaries.ts` (EN/ES copy).
+
+---
+
 ## 2026-06-01 — Day 1 / EPIC-1 Foundation kickoff
 
 ### DEC-020 — Landing redesign: animated SMS hero, 3 sections, "Say hello" CTA, no pricing
@@ -300,6 +408,28 @@ Format: date, decision, who pushed back, resolution, rationale.
 - **Rationale:** A one-way hash breaks lookup-by-number and outbound send — it would
   break the core product. At-rest encryption + log masking covers the realistic
   exposure (leaked logs / casual DB browsing).
+
+### DEC-013 — Beta domain change: gettallyexpense.com → tallywhy.com (supersedes DEC-010)
+- **Context:** Founder went to lock a cleaner Tally `.com`. `usetally.com` (and effectively the
+  entire Tally `.com` space — ~33 of 35 combos checked) is taken or parked. The descriptive
+  `*expense` survivors (`gettallyexpense.com`, `jotexpense.com`, etc.) are weak brands and the
+  `get<name>expense` handle is long/clunky for a non-technical audience to type or click.
+- **Decision:** Beta domain = **`tallywhy.com`** (registered). Brand name stays **"Tally"**.
+  Defensive holds recommended: `gettallywhy.com`, `tallywhy.co` (both available at decision time;
+  `tallywhy.app` was taken).
+- **Why tallywhy.com:**
+  - **Bare `.com`, no `get/try/use` prefix** — shortest, most clickable option that exists in the
+    Tally space; far better than `gettallyexpense.com` for the target audience.
+  - **The domain now carries the WHY** instead of the tagline alone: "your bank knows WHAT you
+    spent — Tally knows WHY." Resolves the standing DEC-010 caveat that the name "Tally" points at
+    the gesture, not the differentiator.
+  - **Brand-word-first** ("tally…") matches how people recall and autocomplete the name; reads
+    unambiguously as a product name (vs. `whytally.com`, also available, which reads like a
+    rhetorical headline "Why Tally?").
+- **Caveat (unchanged from DEC-010):** "Tally" remains a crowded fintech trademark thicket. Still a
+  **rebrandable beta name** — do NOT spend on the mark. Set
+  `NEXT_PUBLIC_APP_URL=https://tallywhy.com`. Code fallback URLs + `privacy@` email updated to
+  `tallywhy.com`.
 
 ### DEC-010 — Beta name change: "TaxSnap" → "Tally"; domain gettallyexpense.com (supersedes DEC-008)
 - **Context:** Founder ran a fresh naming pass from the problem statement ("your bank knows

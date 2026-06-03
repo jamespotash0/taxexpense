@@ -29,7 +29,7 @@ export async function GET(req: Request): Promise<NextResponse> {
   const due = remindersDueOn(new Date());
   if (due.length === 0) return NextResponse.json({ ok: true, due: 0, sent: 0 });
 
-  const base = PUBLIC_ENV.appUrl || 'https://gettallyexpense.com';
+  const base = PUBLIC_ENV.appUrl || 'https://tallywhy.com';
   const messages = due.map(
     (r) =>
       `📅 Heads up — ${joinLabels(r.labels)} ${r.daysUntil === 1 ? 'is due tomorrow' : `due in ${r.daysUntil} days`} (${niceDate(r.dateISO)}). ` +
