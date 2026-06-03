@@ -29,8 +29,12 @@ export async function POST(req: Request): Promise<NextResponse> {
     return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
   }
 
-  // One short, human line + one question (Sofia: never a wall of text, one ask max).
-  const welcome = "Hey, it's Tally 👋 Snap a receipt or text me an expense whenever — what'd you spend on? (Reply STOP to opt out.)";
+  // Opt-in confirmation. Must stay aligned with the registered A2P 10DLC campaign's declared
+  // opt-in message: brand name + recurring-automated disclosure + HELP + STOP.
+  const welcome =
+    "Hey, it's Tally 👋 You're opted in to recurring automated texts — expense confirmations, " +
+    'account notifications & one-time login codes. Snap a receipt or text an expense anytime. ' +
+    'Msg & data rates may apply. Reply HELP for help, STOP to opt out.';
 
   try {
     if (optionalEnv('TWILIO_PHONE_NUMBER')) {

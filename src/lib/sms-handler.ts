@@ -316,6 +316,17 @@ export async function handleInboundSms(msg: InboundMessage): Promise<void> {
     await updateUser(user.id, { sms_opted_out_at: new Date().toISOString() });
     return; // Twilio sends the carrier opt-out confirmation; stay silent.
   }
+  // HELP/INFO → compliant program reply (brand + support + opt-out). Matches the registered
+  // A2P campaign. If Twilio Advanced Opt-Out is enabled it intercepts HELP before the webhook;
+  // this covers the case where it isn't, so HELP always works.
+  if (['HELP', 'INFO'].includes(keyword)) {
+    await safeSend(
+      phone,
+      'Tally: log business expenses by text. Help: support@tallywhy.com. Msg & data rates may apply. Reply STOP to opt out.',
+      msg.channel,
+    );
+    return;
+  }
   // "YES" only means re-subscribe when actually opted out — otherwise it's a normal reply
   // (e.g. confirming a recurring renewal/offer, DEC-033) and must flow through to processing.
   const isResubscribe = ['START', 'UNSTOP'].includes(keyword) || (keyword === 'YES' && !!user.sms_opted_out_at);
