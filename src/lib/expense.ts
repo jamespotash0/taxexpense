@@ -28,6 +28,8 @@ export interface ProcessResult {
   smsText: string;
   receiptId: string | null;
   contextState: ContextState | null;
+  /** Structured payload persisted with the outbound (e.g. flag-disambiguation candidate ids). */
+  pendingData?: import('./conversations').PendingData | null;
 }
 
 function generalFallback(category: string): SubstantiationRule {

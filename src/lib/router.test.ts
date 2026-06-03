@@ -3,7 +3,7 @@
 // Run: npm run test
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { looksLikeExpenseCapture, sanitizeIntent } from './router';
+import { looksLikeExpenseCapture, sanitizeIntent, parseFlagTarget } from './router';
 
 test('fast-path: obvious captures skip the classifier', () => {
   assert.equal(looksLikeExpenseCapture('$48 lunch with Sarah re partnership'), true);
@@ -54,6 +54,22 @@ test('sanitize: recent count clamped to 1..10', () => {
 test('sanitize: command whitelist; unknown command → help', () => {
   assert.deepEqual(sanitizeIntent({ intent: 'command', command: 'export' }), { kind: 'command', command: 'export' });
   assert.deepEqual(sanitizeIntent({ intent: 'command', command: 'delete_everything' }), { kind: 'help' });
+});
+
+test('parseFlagTarget: amount + keyword', () => {
+  assert.deepEqual(parseFlagTarget('flag the $48 lunch'), { amountCents: 4800, term: 'lunch' });
+});
+
+test('parseFlagTarget: amount only (decimal)', () => {
+  assert.deepEqual(parseFlagTarget('flag the $48.50 one'), { amountCents: 4850, term: undefined });
+});
+
+test('parseFlagTarget: vendor keyword only', () => {
+  assert.deepEqual(parseFlagTarget('flag the Morton’s dinner'), { amountCents: undefined, term: 'Mortons dinner' });
+});
+
+test('parseFlagTarget: bare flag → no target (caller flags latest)', () => {
+  assert.deepEqual(parseFlagTarget('flag this for my cpa'), { amountCents: undefined, term: undefined });
 });
 
 test('sanitize: advice / help / capture / unknown', () => {

@@ -4,13 +4,13 @@
 
 import { normalizeToE164 } from './phone';
 import { getOrCreateUserByPhone, touchLastActive, updateUser, type AppUser } from './users';
-import { logConversation, getPendingContext, countRecentInbound, type ContextState, type PendingContext } from './conversations';
+import { logConversation, getPendingContext, countRecentInbound, getPendingFlagChoice, type ContextState, type PendingContext } from './conversations';
 import { getSubstantiationRule } from './substantiation';
 import { categoryLabel } from './categories';
 import { handleOnboarding } from './onboarding';
 import { fetchTwilioMedia, extractReceiptFromImageData, storePhotoBuffer, parseTextExpense, type OcrResult } from './ocr';
 import { processNewExpense, processClarification, processAttachment, type ProcessResult } from './expense';
-import { routeTextMessage } from './router';
+import { routeTextMessage, resolveFlagChoice } from './router';
 import { getReceipt } from './receipts';
 import {
   isAffirmative,
@@ -252,6 +252,13 @@ async function handleExpenseFlow(user: AppUser, msg: InboundMessage): Promise<Pr
     if (optin) return optin;
   }
 
+  // Numbered reply to a "which one to flag?" disambiguation (DEC-039). Only query when the
+  // message is a bare number, so normal messages skip the lookup.
+  if (/^\s*[1-9]\s*$/.test(msg.body)) {
+    const candidateIds = await getPendingFlagChoice(user.id);
+    if (candidateIds) return resolveFlagChoice(user, candidateIds, parseInt(msg.body.trim(), 10));
+  }
+
   // "Why / what's the purpose" → explain deterministically (no LLM), keeping any open
   // question intact. Checked before clarification so a "why?" isn't taken as the answer.
   if (EXPLAIN_RE.test(msg.body)) {
@@ -372,6 +379,7 @@ export async function handleInboundSms(msg: InboundMessage): Promise<void> {
     messageText: reply.smsText,
     receiptId: reply.receiptId,
     contextState: reply.contextState,
+    pendingData: reply.pendingData,
   });
 }
 

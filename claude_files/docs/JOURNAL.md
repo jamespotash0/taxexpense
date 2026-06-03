@@ -7,6 +7,31 @@ Format: date, decision, who pushed back, resolution, rationale.
 
 ---
 
+## 2026-06-03 — Targeted flag-by-text (Tier 1) + reusable pending-data
+
+### DEC-039 — "Flag the $48 lunch" — amount/vendor targeting + numbered disambiguation
+
+- **Extends DEC-038** (which flagged the latest receipt) to target a specific one by text,
+  deterministically (no LLM).
+- **Flow.** `flagForCpa(user, text)`: `parseFlagTarget` (pure) pulls an amount and/or
+  vendor/keyword → `findFlagCandidates` searches (amount exact AND term ILIKE vendor/purpose/
+  attendees) → **1 match flags it; 0 → "couldn't find, try the amount/vendor"; 2+ → a numbered
+  "which one? reply 1-N"**. Bare "flag this" still flags the latest. Still regex-gated in the
+  router (no classifier), still the router's only mutation.
+- **New reusable infra: `conversations.pending_data` JSONB (`0012`).** Holds the candidate ids
+  between the "which?" prompt and the user's "2" reply. `getPendingFlagChoice(userId)` reads the
+  recent `awaiting_flag_choice` outbound; the number reply is handled in `sms-handler` (gated on
+  a bare-number regex so normal messages skip the lookup) → `resolveFlagChoice`. `ProcessResult`
+  + `logConversation` now carry `pendingData`. This is a general mechanism for any future
+  multi-value pending interaction.
+- **Safety.** The ILIKE term is sanitized to `[a-z0-9 ]` before going into the PostgREST `.or`
+  filter (no filter-injection); amount is numeric. Apostrophes stripped so "Morton's" → "Mortons"
+  rather than splitting the vendor.
+- **Known Tier-1 limits (deferred to Tier 2):** date phrases ("Tuesday", "last week") and pure
+  category words ("the dinner") aren't resolved — amount + vendor/keyword are the reliable keys.
+- **Verify.** RUN_ALL 0001..0012; tsc + lint clean, 108 tests (+4 parseFlagTarget). Founder
+  action: run `0012`.
+
 ## 2026-06-03 — "Flag for my CPA" marker (capture → dashboard → export)
 
 ### DEC-038 — Per-receipt CPA-review flag that rides along to export

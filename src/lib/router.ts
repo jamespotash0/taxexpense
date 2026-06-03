@@ -15,7 +15,8 @@ import { claudeJSON } from './llm';
 import { HAIKU_MODEL } from './claude';
 import { PUBLIC_ENV } from './env';
 import { log } from './log';
-import { listReceipts, updateReceipt } from './receipts';
+import { getSupabaseAdmin } from './supabase';
+import { listReceipts, updateReceipt, getReceipt, type ReceiptRow } from './receipts';
 import { formatMoney } from './format';
 import type { AppUser } from './users';
 import type { ProcessResult } from './expense';
@@ -202,19 +203,99 @@ async function runQuery(orgId: string, intent: Extract<Intent, { kind: 'query' }
 // Entry point
 // ---------------------------------------------------------------------------
 
-// "Flag this for my CPA" — the only mutation the router does (low-risk boolean on the most
-// recent receipt; DEC-038). Regex-gated so it never needs the classifier.
+// "Flag for my CPA" — the router's only mutation (low-risk boolean; DEC-038/039). Regex-gated,
+// no classifier. Targets by amount/vendor; asks "which one?" when ambiguous.
 const FLAG_CPA_RE = /\bflag\b|\bcpa\b/i;
 
-/** Mark the user's most recent expense for CPA review; it then shows on the export. */
-async function flagLatestForCpa(user: AppUser): Promise<ProcessResult> {
-  const { rows } = await listReceipts(user.organization_id, { limit: 1 });
-  const r = rows[0];
-  if (!r) return reply("I don't see an expense to flag yet — text me one first.");
-  const name = `${r.vendor ?? 'your last expense'} ${formatMoney(r.amount_cents)}`;
+export interface FlagTarget {
+  amountCents?: number;
+  term?: string;
+}
+
+/** Pull an amount and/or a vendor/keyword out of a "flag the $48 lunch" message (pure). */
+export function parseFlagTarget(text: string): FlagTarget {
+  // Strip command/filler words so the leftover reads as a vendor/keyword.
+  const stripped = text
+    .replace(/['’]/g, '') // keep "Morton's" → "Mortons" (don't split the vendor)
+    .replace(/\b(flag|flagged|please|the|this|that|it|for|my|to|review|cpa|accountant|ask|have|look|at|one|expense)\b/gi, ' ')
+    .replace(/[^\w$.\s]/g, ' ');
+  const amountMatch = stripped.match(/\$?\s*(\d+(?:\.\d{1,2})?)/);
+  const amountCents = amountMatch ? Math.round(parseFloat(amountMatch[1]) * 100) : undefined;
+  const term = stripped
+    .replace(/\$?\s*\d+(?:\.\d{1,2})?/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return { amountCents, term: term.length >= 2 ? term : undefined };
+}
+
+function shortDate(date: string | null): string {
+  if (!date) return '';
+  const d = new Date(`${date}T00:00:00`);
+  return Number.isNaN(d.getTime()) ? '' : ` (${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`;
+}
+
+/** Find receipts matching a flag target (amount exact, term ILIKE vendor/purpose/attendees). */
+async function findFlagCandidates(orgId: string, target: FlagTarget): Promise<ReceiptRow[]> {
+  let q = getSupabaseAdmin()
+    .from('receipts')
+    .select('*')
+    .eq('organization_id', orgId)
+    .order('created_at', { ascending: false })
+    .limit(8);
+  if (target.amountCents != null) q = q.eq('amount_cents', target.amountCents);
+  if (target.term) {
+    const safe = target.term.replace(/[^a-z0-9 ]/gi, '').trim(); // keep the PostgREST .or filter safe
+    if (safe) q = q.or(`vendor.ilike.%${safe}%,business_purpose.ilike.%${safe}%,attendees.ilike.%${safe}%`);
+  }
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data as ReceiptRow[]) ?? [];
+}
+
+async function flagOne(user: AppUser, r: ReceiptRow): Promise<ProcessResult> {
+  const name = `${r.vendor ?? 'your expense'} ${formatMoney(r.amount_cents)}`;
   if (r.flagged_for_cpa) return reply(`${name} is already flagged for your CPA — it'll show on the export.`);
   await updateReceipt(user.organization_id, r.id, { flagged_for_cpa: true });
   return reply(`✓ Flagged ${name} for your CPA. It'll be marked on your export so they can weigh in.`);
+}
+
+async function flagLatest(user: AppUser): Promise<ProcessResult> {
+  const { rows } = await listReceipts(user.organization_id, { limit: 1 });
+  if (!rows[0]) return reply("I don't see an expense to flag yet — text me one first.");
+  return flagOne(user, rows[0]);
+}
+
+/** Flag for CPA: target by amount/vendor → flag if unique, ask to pick if ambiguous, else latest. */
+async function flagForCpa(user: AppUser, text: string): Promise<ProcessResult> {
+  const target = parseFlagTarget(text);
+  if (target.amountCents == null && !target.term) return flagLatest(user);
+
+  const candidates = await findFlagCandidates(user.organization_id, target);
+  if (candidates.length === 0) {
+    return reply(
+      'I couldn’t find that one. Try the amount ("flag the $48 one") or the vendor — or flag specific expenses in your dashboard.',
+    );
+  }
+  if (candidates.length === 1) return flagOne(user, candidates[0]);
+
+  const list = candidates.slice(0, 5);
+  const lines = list.map((r, i) => `${i + 1}) ${r.vendor ?? 'Unknown'} ${formatMoney(r.amount_cents)}${shortDate(r.transaction_date)}`);
+  return {
+    smsText: `I found a few — which should I flag for your CPA?\n${lines.join('\n')}\nReply with a number.`,
+    receiptId: null,
+    contextState: 'awaiting_flag_choice',
+    pendingData: { candidateIds: list.map((r) => r.id) },
+  };
+}
+
+/** Resolve a "1/2/3" reply to a flag-disambiguation prompt → flag the chosen candidate. */
+export async function resolveFlagChoice(user: AppUser, candidateIds: string[], choice: number): Promise<ProcessResult> {
+  if (!Number.isInteger(choice) || choice < 1 || choice > candidateIds.length) {
+    return reply(`Reply with a number 1-${candidateIds.length} to flag one for your CPA.`);
+  }
+  const r = await getReceipt(user.organization_id, candidateIds[choice - 1]);
+  if (!r) return reply("That one's no longer available — try again or use the dashboard.");
+  return flagOne(user, r);
 }
 
 /**
@@ -226,8 +307,8 @@ export async function routeTextMessage(user: AppUser, text: string): Promise<Pro
   // Obvious expense → straight to capture, no classifier call.
   if (looksLikeExpenseCapture(text)) return null;
 
-  // "Flag for my CPA" → mark the latest expense (deterministic, no classifier).
-  if (FLAG_CPA_RE.test(text)) return flagLatestForCpa(user);
+  // "Flag for my CPA" → target by amount/vendor, ask to pick if ambiguous (no classifier).
+  if (FLAG_CPA_RE.test(text)) return flagForCpa(user, text);
 
   const intent = await classifyIntent(text);
   switch (intent.kind) {

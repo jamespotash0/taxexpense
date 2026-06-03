@@ -1,6 +1,6 @@
 -- =============================================================
 -- TaxSnap/Tally — RUN ALL (paste into Supabase SQL editor, run once).
--- Regenerated from supabase/migrations/0001..0011. Idempotent / re-runnable.
+-- Regenerated from supabase/migrations/0001..0012. Idempotent / re-runnable.
 -- =============================================================
 
 -- =============================================================
@@ -707,3 +707,15 @@ ALTER TABLE receipts ADD COLUMN IF NOT EXISTS flagged_for_cpa BOOLEAN NOT NULL D
 
 -- Speeds up "show me what's flagged" on the dashboard/export.
 CREATE INDEX IF NOT EXISTS idx_receipts_cpa_flag ON receipts(organization_id) WHERE flagged_for_cpa = TRUE;
+
+-- =============================================================
+-- 0012_conversation_pending_data.sql
+-- =============================================================
+
+-- Tally — Structured pending-state payload on conversations (DEC-039).
+-- Holds the candidate list for "flag the $48 lunch" disambiguation (and any future multi-value
+-- pending interaction) so a follow-up "reply 1/2/3" can resolve to the right receipt. Generic
+-- JSONB so we don't add a column per feature.
+-- Run in the Supabase SQL editor. Idempotent.
+
+ALTER TABLE conversations ADD COLUMN IF NOT EXISTS pending_data JSONB;
