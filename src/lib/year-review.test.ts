@@ -17,7 +17,7 @@ function review(over: Partial<YearReview> = {}): YearReview {
       { label: 'Software', total_cents: 240000, count: 12 },
     ],
     issueCount: 0,
-    counts: { needs_receipt: 0, missing_context: 0, duplicate: 0, mixed_account: 0, vague_memo: 0 },
+    counts: { needs_receipt: 0, missing_context: 0, gift_cap: 0, duplicate: 0, mixed_account: 0, vague_memo: 0 },
     ...over,
   };
 }
@@ -44,7 +44,7 @@ test('formatYearReview: gaps list pluralized phrases + cleanup link', () => {
   const out = formatYearReview(
     review({
       issueCount: 3,
-      counts: { needs_receipt: 2, missing_context: 1, duplicate: 0, mixed_account: 0, vague_memo: 0 },
+      counts: { needs_receipt: 2, missing_context: 1, gift_cap: 0, duplicate: 0, mixed_account: 0, vague_memo: 0 },
     }),
     URL,
   );
@@ -56,7 +56,7 @@ test('formatYearReview: singular gap noun', () => {
   const out = formatYearReview(
     review({
       issueCount: 1,
-      counts: { needs_receipt: 1, missing_context: 0, duplicate: 0, mixed_account: 0, vague_memo: 0 },
+      counts: { needs_receipt: 1, missing_context: 0, gift_cap: 0, duplicate: 0, mixed_account: 0, vague_memo: 0 },
     }),
     URL,
   );

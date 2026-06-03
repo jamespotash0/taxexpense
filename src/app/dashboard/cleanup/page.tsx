@@ -13,6 +13,7 @@ import { fmt } from '@/i18n/config';
 const GROUP_LABEL = {
   needs_receipt: 'groupNeedsReceipt',
   missing_context: 'groupMissingContext',
+  gift_cap: 'groupGiftCap',
   duplicate: 'groupDuplicate',
   mixed_account: 'groupMixedAccount',
   vague_memo: 'groupVagueMemo',
@@ -21,6 +22,7 @@ const GROUP_LABEL = {
 const GROUP_ORDER: CleanupIssueType[] = [
   'needs_receipt',
   'missing_context',
+  'gift_cap',
   'duplicate',
   'mixed_account',
   'vague_memo',

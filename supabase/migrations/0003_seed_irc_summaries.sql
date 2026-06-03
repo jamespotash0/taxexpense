@@ -1,4 +1,4 @@
--- TaxSnap — Seed: irc_summaries (TSNAP-006)
+-- Tally — Seed: irc_summaries (TSNAP-006)
 -- Source of truth: THIS FILE (the IRC-SUMMARIES.md doc holds the human-readable copy).
 -- Sourcing / subsection detail / annual-review flags: claude_files/docs/IRC-RESEARCH.md.
 --
@@ -59,17 +59,21 @@ VALUES
   1
 ),
 
--- §274(b) Business Gifts
+-- §274(b) Business Gifts. Content checked against the §274(b)(1) statutory text
+-- (Cornell LII) on 2026-06-02 — v2: corrected the $4 exception (was "branded items
+-- $4 or less"; the statute also requires the name be clearly/permanently imprinted AND
+-- the item be one of many identical items distributed generally) and added the
+-- promotional-materials exclusion (B), which was missing. See JOURNAL DEC-031.
 (
   '274b',
   'Business Gifts',
-  'You can deduct business gifts, but only up to $25 per recipient per year. Anything you spend above $25 on the same person isn''t deductible.',
+  'You can deduct business gifts, but only up to $25 per recipient per year — that counts everything you give one person during the year, directly or indirectly. Spend more than $25 on the same person and the extra isn''t deductible.',
   100,
-  'Client and referral gifts are deductible up to $25 per person, per year. Incidental branded items costing $4 or less (and shipping) don''t count toward the $25. Keep a record of who received the gift, the date, a short description, the amount, and the business reason.',
-  'The $25 cap is per recipient for the whole year, so track a running total per person. Gifts follow the strict-substantiation rules (who, what, when, why). The $25 figure has been fixed since 1962 — it is not inflation-adjusted.',
+  'Client and referral gifts are deductible up to $25 per person for the whole year, so keep a running total per recipient. Two things don''t count as a "gift" against the $25: (1) cheap promotional items that cost $4 or less, have your name clearly and permanently printed on them, and are handed out widely as identical items (think logo pens or magnets); and (2) signs, display racks, or other promotional material meant for use at the recipient''s place of business. Incidental costs like engraving, packaging, insurance, and mailing also don''t count toward the $25, as long as they don''t add real value to the gift. Keep a record of who received the gift, the date, a short description, the amount, and the business reason.',
+  'The $25 cap is per recipient for the whole year, so track a running total per person. A married couple is treated as one recipient. Gifts follow the strict-substantiation rules (who, what, when, why). The $25 figure has been fixed since 1962 — it is not inflation-adjusted. For how this applies to your situation, check with a tax professional.',
   'https://www.law.cornell.edu/uscode/text/26/274',
-  DATE '2026-06-01',
-  1
+  DATE '2026-06-02',
+  2
 ),
 
 -- §280A Home Office Deduction

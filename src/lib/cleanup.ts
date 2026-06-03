@@ -21,6 +21,7 @@ export type CleanupIssueType =
   | 'missing_context' // strict category missing required §274(d) context fields
   | 'duplicate' // same vendor + amount + near date — possible double-log
   | 'mixed_account' // business expense on a personal card, or a personal item logged
+  | 'gift_cap' // gifts to one recipient exceed the $25/recipient/year deduction cap
   | 'vague_memo'; // note/purpose present but too vague to substantiate
 
 export interface CleanupIssue {
@@ -43,6 +44,13 @@ export interface CleanupReport {
 
 /** Window (days) within which two same-vendor, same-amount receipts look like a dupe. */
 const DUPLICATE_WINDOW_DAYS = 3;
+
+/**
+ * IRS business-gift deduction cap: $25 per recipient per year (IRC §274(b)(1)).
+ * substantiation.ts applies this PER-RECEIPT; the cleanup scan catches the
+ * per-recipient/year AGGREGATE that the per-receipt cap structurally can't.
+ */
+const GIFT_CAP_CENTS = 2500;
 
 // ---------------------------------------------------------------------------
 // Individual checks — each pure: ReceiptRow[] -> CleanupIssue[]
@@ -151,6 +159,50 @@ export function checkMixedAccount(receipts: ReceiptRow[]): CleanupIssue[] {
   return issues;
 }
 
+/**
+ * Gift-cap overage: business_gifts grouped by recipient (the `attendees` field,
+ * exact-match per TSNAP-030) whose TOTAL spend for the year exceeds $25 — the
+ * cumulative direct+indirect $25/recipient/year limit (IRC §274(b)(1)). This is the
+ * aggregate the per-receipt cap in substantiation.ts structurally can't catch. One
+ * issue per over-cap recipient, listing every gift receipt to that recipient. Gifts
+ * with no named recipient are skipped (already surfaced as missing_context).
+ *
+ * KNOWN CARVE-OUTS WE CANNOT DETECT from {amount, date, recipient}, so we SUGGEST
+ * (review this), never assert "not deductible" (CLAUDE.md #1):
+ *   - $4 de-minimis: imprinted items ≤$4 distributed generally are exempt from the cap.
+ *   - Promotional materials (signs, display racks) for the recipient's premises aren't gifts.
+ *   - Spouses count as one recipient; we group by the exact name supplied, so two names
+ *     for a couple won't merge.
+ *   - Partnerships apply the cap at the entity AND partner level — out of V1 scope
+ *     (target is sole props / SMLLCs). See claude_files/docs/CPA-REVIEW-CLEANUP.md.
+ */
+export function checkGiftCapByRecipient(receipts: ReceiptRow[]): CleanupIssue[] {
+  const byRecipient = new Map<string, ReceiptRow[]>();
+  for (const r of receipts) {
+    if (r.category !== 'business_gifts') continue;
+    const recipient = r.attendees?.trim();
+    if (!recipient) continue; // no name to group on — missing_context owns this
+    const key = recipient.toLowerCase();
+    const g = byRecipient.get(key);
+    if (g) g.push(r);
+    else byRecipient.set(key, [r]);
+  }
+
+  const issues: CleanupIssue[] = [];
+  for (const group of byRecipient.values()) {
+    const totalSpend = group.reduce((sum, r) => sum + (r.amount_cents ?? 0), 0);
+    if (totalSpend <= GIFT_CAP_CENTS) continue;
+    const name = group[0].attendees?.trim() ?? 'this recipient';
+    const dollars = (totalSpend / 100).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    issues.push({
+      type: 'gift_cap',
+      receipt_ids: group.map((r) => r.id),
+      message: `$${dollars} in gifts to ${name} this year — the business-gift deduction is generally capped at $25 per recipient, so some of this may not count. (Imprinted items under $4 and promotional materials can be exempt — worth a quick check.)`,
+    });
+  }
+  return issues;
+}
+
 // ---------------------------------------------------------------------------
 // Orchestrator (deterministic only)
 // ---------------------------------------------------------------------------
@@ -158,13 +210,14 @@ export function checkMixedAccount(receipts: ReceiptRow[]): CleanupIssue[] {
 const ISSUE_ORDER: CleanupIssueType[] = [
   'needs_receipt',
   'missing_context',
+  'gift_cap',
   'duplicate',
   'mixed_account',
   'vague_memo',
 ];
 
 function emptyCounts(): Record<CleanupIssueType, number> {
-  return { needs_receipt: 0, missing_context: 0, duplicate: 0, mixed_account: 0, vague_memo: 0 };
+  return { needs_receipt: 0, missing_context: 0, gift_cap: 0, duplicate: 0, mixed_account: 0, vague_memo: 0 };
 }
 
 /** Sort issues by resolve-priority, then tally per-type counts. */
@@ -185,6 +238,7 @@ export function scanReceipts(receipts: ReceiptRow[], taxYear: number): CleanupRe
   const issues = [
     ...checkNeedsReceipt(receipts),
     ...checkMissingContext(receipts),
+    ...checkGiftCapByRecipient(receipts),
     ...checkDuplicates(receipts),
     ...checkMixedAccount(receipts),
   ];

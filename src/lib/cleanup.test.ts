@@ -4,10 +4,14 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   scanReceipts,
+  mergeIssues,
   checkNeedsReceipt,
   checkMissingContext,
   checkDuplicates,
   checkMixedAccount,
+  checkGiftCapByRecipient,
+  reviewVagueMemos,
+  type CleanupIssue,
 } from './cleanup';
 import type { ReceiptRow } from './receipts';
 
@@ -117,4 +121,76 @@ test('scanReceipts: assembles ordered issues with per-type counts', () => {
 test('scanReceipts: clean books produce no issues', () => {
   const report = scanReceipts([row({ id: 'ok' })], 2026);
   assert.equal(report.issues.length, 0);
+});
+
+const gift = (over: Partial<ReceiptRow>): ReceiptRow =>
+  row({ category: 'business_gifts', irc_section: '274', ...over });
+
+test('gift_cap: aggregate spend to one recipient over $25 is flagged with all ids', () => {
+  // Two $20 gifts each pass the per-receipt cap, but $40 to one person busts the $25/yr cap.
+  const issues = checkGiftCapByRecipient([
+    gift({ id: 'g1', attendees: 'Dana Lee', amount_cents: 2000 }),
+    gift({ id: 'g2', attendees: 'dana lee', amount_cents: 2000 }), // case-insensitive match
+  ]);
+  assert.equal(issues.length, 1);
+  assert.equal(issues[0].type, 'gift_cap');
+  assert.deepEqual(issues[0].receipt_ids.sort(), ['g1', 'g2']);
+  assert.match(issues[0].message, /Dana Lee/);
+  assert.match(issues[0].message, /\$25/);
+});
+
+test('gift_cap: spend at or under $25 per recipient is not flagged', () => {
+  const issues = checkGiftCapByRecipient([
+    gift({ id: 'a', attendees: 'Sam', amount_cents: 2500 }), // exactly $25 — OK
+    gift({ id: 'b', attendees: 'Pat', amount_cents: 1000 }),
+  ]);
+  assert.equal(issues.length, 0);
+});
+
+test('gift_cap: separate recipients each under cap are not flagged', () => {
+  const issues = checkGiftCapByRecipient([
+    gift({ id: 'a', attendees: 'Sam', amount_cents: 2000 }),
+    gift({ id: 'b', attendees: 'Pat', amount_cents: 2000 }),
+  ]);
+  assert.equal(issues.length, 0);
+});
+
+test('gift_cap: gifts without a named recipient are skipped (missing_context owns those)', () => {
+  const issues = checkGiftCapByRecipient([
+    gift({ id: 'a', attendees: null, amount_cents: 9000 }),
+    gift({ id: 'b', attendees: '   ', amount_cents: 9000 }),
+  ]);
+  assert.equal(issues.length, 0);
+});
+
+test('gift_cap: only business_gifts category is considered', () => {
+  const issues = checkGiftCapByRecipient([
+    row({ id: 'meal', category: 'meals_business', attendees: 'Dana', amount_cents: 9000 }),
+  ]);
+  assert.equal(issues.length, 0);
+});
+
+test('reviewVagueMemos: no receipts with a memo → returns [] without calling the LLM', async () => {
+  // None of these have business_purpose or notes, so there are no candidates and
+  // no Claude call is made (getClaude is lazy — this runs with no API key).
+  const issues = await reviewVagueMemos([
+    row({ id: 'a', business_purpose: null, notes: null }),
+    row({ id: 'b', business_purpose: '   ', notes: '' }),
+  ]);
+  assert.deepEqual(issues, []);
+});
+
+test('mergeIssues: folds extra issues in and re-tallies counts in priority order', () => {
+  const base = scanReceipts([row({ id: 'a', needs_receipt: true, receipt_reason: 'x' })], 2026);
+  const extra: CleanupIssue[] = [
+    { type: 'vague_memo', receipt_ids: ['v'], message: 'vague' },
+  ];
+  const merged = mergeIssues(base, extra);
+  assert.equal(merged.counts.needs_receipt, 1);
+  assert.equal(merged.counts.vague_memo, 1);
+  // needs_receipt sorts before vague_memo
+  assert.equal(merged.issues[0].type, 'needs_receipt');
+  assert.equal(merged.issues[merged.issues.length - 1].type, 'vague_memo');
+  // scanned_count is preserved from the base report
+  assert.equal(merged.scanned_count, base.scanned_count);
 });

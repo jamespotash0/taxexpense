@@ -71,15 +71,15 @@ These are the 9 IRC sections seeded into the `irc_summaries` table — the origi
 
 **title:** Business Gifts
 
-**short_summary:** You can deduct business gifts, but only up to $25 per recipient per year. Anything you spend above $25 on the same person isn't deductible.
+**short_summary:** You can deduct business gifts, but only up to $25 per recipient per year — that counts everything you give one person during the year, directly or indirectly. Spend more than $25 on the same person and the extra isn't deductible.
 
 **deduction_percentage:** 100
 
-**common_practice:** Client and referral gifts are deductible up to $25 per person, per year. Incidental branded items costing $4 or less (and shipping) don't count toward the $25. Keep a record of who received the gift, the date, a short description, the amount, and the business reason.
+**common_practice:** Client and referral gifts are deductible up to $25 per person for the whole year, so keep a running total per recipient. Two things don't count as a "gift" against the $25: (1) cheap promotional items that cost $4 or less, have your name clearly and permanently printed on them, and are handed out widely as identical items (think logo pens or magnets); and (2) signs, display racks, or other promotional material meant for use at the recipient's place of business. Incidental costs like engraving, packaging, insurance, and mailing also don't count toward the $25, as long as they don't add real value to the gift. Keep a record of who received the gift, the date, a short description, the amount, and the business reason.
 
-**worth_noting:** The $25 cap is per recipient for the whole year, so track a running total per person. Gifts follow the strict-substantiation rules (who, what, when, why). The $25 figure has been fixed since 1962 — it is not inflation-adjusted.
+**worth_noting:** The $25 cap is per recipient for the whole year, so track a running total per person. A married couple is treated as one recipient. Gifts follow the strict-substantiation rules (who, what, when, why). The $25 figure has been fixed since 1962 — it is not inflation-adjusted. For how this applies to your situation, check with a tax professional.
 
-**source_url:** https://www.law.cornell.edu/uscode/text/26/274
+**source_url:** https://www.law.cornell.edu/uscode/text/26/274 (§274(b)(1); v2, checked 2026-06-02 — see JOURNAL DEC-031)
 
 ---
 

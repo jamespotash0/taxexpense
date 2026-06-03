@@ -82,6 +82,7 @@ export async function reviewYear(orgId: string, year: number): Promise<YearRevie
 const ISSUE_NOUN: Record<CleanupIssueType, [one: string, many: string]> = {
   needs_receipt: ['missing receipt', 'missing receipts'],
   missing_context: ['missing context', 'missing context'],
+  gift_cap: ['gift over the $25 cap', 'gifts over the $25 cap'],
   duplicate: ['possible duplicate', 'possible duplicates'],
   mixed_account: ['to confirm', 'to confirm'],
   vague_memo: ['vague memo', 'vague memos'],

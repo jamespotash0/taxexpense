@@ -1,4 +1,4 @@
--- TaxSnap — Seed: substantiation_rules (TSNAP-007)
+-- Tally — Seed: substantiation_rules (TSNAP-007)
 -- Source of truth: claude_files/docs/SPEC.md "Seeded data for v1".
 --
 -- This table is THE single source of truth for how the AI behaves (SPEC.md

@@ -4,11 +4,12 @@
 // Security posture (Jordan / EPIC-7):
 //  - Codes: crypto.randomInt, 10-min expiry, max 5 attempts, constant-time compare.
 //  - Request rate limit: 3 per phone per 15 min.
-//  - Sessions: 256-bit opaque random token (not a guessable id), stored server-side,
-//    validated against the DB; delivered in an HTTP-only/secure/sameSite=lax cookie.
+//  - Sessions: 256-bit opaque random token (not a guessable id). Only the SHA-256 HASH
+//    of the token is stored server-side (DEC-030) — a DB read can't replay live sessions.
+//    The raw token lives only in an HTTP-only/secure/sameSite=lax cookie.
 //  - Login requires an EXISTING user (SMS-first) — we never create accounts here.
 
-import { randomInt, randomBytes, timingSafeEqual } from 'crypto';
+import { randomInt, randomBytes, timingSafeEqual, createHash } from 'crypto';
 import { getSupabaseAdmin } from './supabase';
 import { getUserByPhone, type AppUser } from './users';
 
@@ -96,11 +97,19 @@ export async function verifyCode(phoneE164: string, submitted: string): Promise<
   return { ok: true, token, user };
 }
 
-/** Create a session row, return the opaque token to set as a cookie. */
+/** SHA-256 of a session token (base64url). The token is 256-bit random, so an unsalted
+ *  fast hash is appropriate — it's a high-entropy secret, not a password. */
+function hashToken(token: string): string {
+  return createHash('sha256').update(token).digest('base64url');
+}
+
+/** Create a session row, return the opaque RAW token to set as a cookie (only its hash is stored). */
 export async function createSession(userId: string): Promise<string> {
   const token = randomBytes(32).toString('base64url');
   const expires_at = new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000).toISOString();
-  const { error } = await getSupabaseAdmin().from('sessions').insert({ user_id: userId, token, expires_at });
+  const { error } = await getSupabaseAdmin()
+    .from('sessions')
+    .insert({ user_id: userId, token_hash: hashToken(token), expires_at });
   if (error) throw error;
   return token;
 }
@@ -112,7 +121,7 @@ export async function getSessionUser(token: string | undefined | null): Promise<
   const { data: session, error } = await admin
     .from('sessions')
     .select('user_id, expires_at')
-    .eq('token', token)
+    .eq('token_hash', hashToken(token))
     .maybeSingle();
   if (error) throw error;
   if (!session) return null;
@@ -130,5 +139,5 @@ export async function getSessionUser(token: string | undefined | null): Promise<
 /** Invalidate a session (logout). */
 export async function destroySession(token: string | undefined | null): Promise<void> {
   if (!token) return;
-  await getSupabaseAdmin().from('sessions').delete().eq('token', token);
+  await getSupabaseAdmin().from('sessions').delete().eq('token_hash', hashToken(token));
 }

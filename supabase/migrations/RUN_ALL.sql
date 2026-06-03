@@ -1,9 +1,13 @@
 -- =============================================================
--- TaxSnap/Tally — RUN ALL (paste into Supabase SQL editor, run once).
--- From supabase/migrations/0001..0004. Idempotent / re-runnable.
+-- Tally — RUN ALL (paste into Supabase SQL editor, run once).
+-- Regenerated from supabase/migrations/0001..0007. Idempotent / re-runnable.
 -- =============================================================
 
--- TaxSnap — Database Schema (TSNAP-005)
+-- =============================================================
+-- 0001_schema.sql
+-- =============================================================
+
+-- Tally — Database Schema (TSNAP-005)
 -- Source of truth: claude_files/docs/SPEC.md "Database Schema"
 -- Multi-tenant from day 1 (organizations table, 1:1 user:org in V1).
 --
@@ -200,8 +204,10 @@ ALTER TABLE auth_codes           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sessions             ENABLE ROW LEVEL SECURITY;
 
 -- =============================================================
+-- 0002_seed_substantiation_rules.sql
+-- =============================================================
 
--- TaxSnap — Seed: substantiation_rules (TSNAP-007)
+-- Tally — Seed: substantiation_rules (TSNAP-007)
 -- Source of truth: claude_files/docs/SPEC.md "Seeded data for v1".
 --
 -- This table is THE single source of truth for how the AI behaves (SPEC.md
@@ -257,8 +263,10 @@ ON CONFLICT (category) DO UPDATE SET
 --   SELECT count(*) FROM substantiation_rules WHERE substantiation_level='strict'; -- 6
 
 -- =============================================================
+-- 0003_seed_irc_summaries.sql
+-- =============================================================
 
--- TaxSnap — Seed: irc_summaries (TSNAP-006)
+-- Tally — Seed: irc_summaries (TSNAP-006)
 -- Source of truth: THIS FILE (the IRC-SUMMARIES.md doc holds the human-readable copy).
 -- Sourcing / subsection detail / annual-review flags: claude_files/docs/IRC-RESEARCH.md.
 --
@@ -319,17 +327,21 @@ VALUES
   1
 ),
 
--- §274(b) Business Gifts
+-- §274(b) Business Gifts. Content checked against the §274(b)(1) statutory text
+-- (Cornell LII) on 2026-06-02 — v2: corrected the $4 exception (was "branded items
+-- $4 or less"; the statute also requires the name be clearly/permanently imprinted AND
+-- the item be one of many identical items distributed generally) and added the
+-- promotional-materials exclusion (B), which was missing. See JOURNAL DEC-031.
 (
   '274b',
   'Business Gifts',
-  'You can deduct business gifts, but only up to $25 per recipient per year. Anything you spend above $25 on the same person isn''t deductible.',
+  'You can deduct business gifts, but only up to $25 per recipient per year — that counts everything you give one person during the year, directly or indirectly. Spend more than $25 on the same person and the extra isn''t deductible.',
   100,
-  'Client and referral gifts are deductible up to $25 per person, per year. Incidental branded items costing $4 or less (and shipping) don''t count toward the $25. Keep a record of who received the gift, the date, a short description, the amount, and the business reason.',
-  'The $25 cap is per recipient for the whole year, so track a running total per person. Gifts follow the strict-substantiation rules (who, what, when, why). The $25 figure has been fixed since 1962 — it is not inflation-adjusted.',
+  'Client and referral gifts are deductible up to $25 per person for the whole year, so keep a running total per recipient. Two things don''t count as a "gift" against the $25: (1) cheap promotional items that cost $4 or less, have your name clearly and permanently printed on them, and are handed out widely as identical items (think logo pens or magnets); and (2) signs, display racks, or other promotional material meant for use at the recipient''s place of business. Incidental costs like engraving, packaging, insurance, and mailing also don''t count toward the $25, as long as they don''t add real value to the gift. Keep a record of who received the gift, the date, a short description, the amount, and the business reason.',
+  'The $25 cap is per recipient for the whole year, so track a running total per person. A married couple is treated as one recipient. Gifts follow the strict-substantiation rules (who, what, when, why). The $25 figure has been fixed since 1962 — it is not inflation-adjusted. For how this applies to your situation, check with a tax professional.',
   'https://www.law.cornell.edu/uscode/text/26/274',
-  DATE '2026-06-01',
-  1
+  DATE '2026-06-02',
+  2
 ),
 
 -- §280A Home Office Deduction
@@ -415,8 +427,10 @@ ON CONFLICT (section_id) DO UPDATE SET
 --     AND NOT EXISTS (SELECT 1 FROM irc_summaries i WHERE i.section_id = s.irc_section);
 
 -- =============================================================
+-- 0004_user_profile_fields.sql
+-- =============================================================
 
--- TaxSnap/Tally — Add user profile fields (DEC-014).
+-- Tally — Add user profile fields (DEC-014).
 -- full_name: captured during SMS onboarding (warm personalization + export/accountant headers).
 -- email:     captured later at the dashboard (NOT over SMS — typo-prone; not needed for
 --            phone-OTP login). Optional. organizations.name already exists (used for org name).
@@ -430,4 +444,134 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS email VARCHAR(255);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email IS NOT NULL;
 
 -- =============================================================
+-- 0005_subscriptions.sql
+-- =============================================================
 
+-- Tally — Monetization (EPIC-9 / DEC-021). Subscription state on the organization
+-- (the billing entity; 1:1 with user in V1). Hybrid paywall: 21-day app-managed trial,
+-- then Stripe-backed subscription required to keep logging.
+--
+-- Run in the Supabase SQL editor. Idempotent.
+
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMPTZ;
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS subscription_status VARCHAR(20)
+  DEFAULT 'trialing'
+  CHECK (subscription_status IN ('trialing', 'active', 'past_due', 'canceled', 'expired'));
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS plan VARCHAR(20)
+  CHECK (plan IN ('monthly', 'annual'));
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS stripe_customer_id VARCHAR(255);
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS stripe_subscription_id VARCHAR(255);
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS current_period_end TIMESTAMPTZ;
+
+CREATE INDEX IF NOT EXISTS idx_orgs_stripe_customer ON organizations(stripe_customer_id)
+  WHERE stripe_customer_id IS NOT NULL;
+
+-- Backfill existing orgs onto a fresh 21-day trial so nobody is locked out by the migration.
+UPDATE organizations
+  SET trial_ends_at = COALESCE(trial_ends_at, NOW() + INTERVAL '21 days'),
+      subscription_status = COALESCE(subscription_status, 'trialing')
+  WHERE trial_ends_at IS NULL;
+
+-- =============================================================
+-- 0006_security_hardening.sql
+-- =============================================================
+
+-- Tally — Database access hardening (DEC-030). Defense-in-depth for the public/anon path.
+--
+-- CONTEXT: 100% of app data access is server-side via the SERVICE ROLE (bypasses RLS);
+-- the anon key is defined but never used for data (verified in code). RLS is already
+-- ENABLED on every table with NO policies (= default-deny), so the anon/public REST API
+-- already returns nothing. This migration makes that guarantee belt-and-suspenders and
+-- self-enforcing:
+--   1. Re-assert RLS on every app table (centralizes + documents the invariant).
+--   2. REVOKE all privileges from the public `anon`/`authenticated` roles so the anon key
+--      cannot even reference the tables — and so a future *accidental* permissive policy
+--      can't expose data on its own.
+--   3. Make those revokes apply to FUTURE objects too (ALTER DEFAULT PRIVILEGES).
+--   4. Self-check: fail loudly if any table in `public` ships without RLS (regression guard).
+--
+-- NON-BREAKING: `service_role` (used by the server) has BYPASSRLS + retains its grants, so
+-- the app is unaffected. This does NOT add per-tenant RLS policies — because every request
+-- runs as service_role (which bypasses RLS), cross-tenant isolation is enforced in app code
+-- (lib/db.orgTable); see JOURNAL DEC-030 for that trade-off.
+--
+-- Run in the Supabase SQL editor. Idempotent.
+
+-- 1) Re-assert RLS on every application table (idempotent).
+ALTER TABLE organizations        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE users                ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_roles           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE receipts             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE substantiation_rules ENABLE ROW LEVEL SECURITY;
+ALTER TABLE irc_summaries        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE conversations        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE auth_codes           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sessions             ENABLE ROW LEVEL SECURITY;
+
+-- 2) Strip ALL privileges from the public roles. RLS default-deny already blocks row
+--    access; this removes the table-level GRANTs Supabase hands `anon`/`authenticated`
+--    by default, so the anon key gets "permission denied" before RLS is even consulted.
+REVOKE ALL ON ALL TABLES    IN SCHEMA public FROM anon, authenticated;
+REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM anon, authenticated;
+REVOKE ALL ON ALL FUNCTIONS IN SCHEMA public FROM anon, authenticated;
+
+-- 3) Apply the same denial to objects CREATED LATER by the migration role (so a new table
+--    can't be born with anon grants). The self-check in step 4 is the catch-all regardless
+--    of which role creates a table.
+ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES    FROM anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON SEQUENCES FROM anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON FUNCTIONS FROM anon, authenticated;
+
+-- NOTE (intentionally NOT enabled): `FORCE ROW LEVEL SECURITY`. With no policies it would
+-- also block the table-OWNER role used by the Supabase dashboard's data viewer / manual
+-- maintenance, with no security gain here (service_role already bypasses RLS, and anon is
+-- fully revoked above). Enable per-table only if you add real policies and want the owner
+-- subject to them, e.g.:  ALTER TABLE receipts FORCE ROW LEVEL SECURITY;
+
+-- 4) Regression guard: refuse to leave any base table in `public` without RLS. A future
+--    migration that adds a table and forgets RLS will FAIL here until it's fixed.
+DO $$
+DECLARE
+  missing text;
+BEGIN
+  SELECT string_agg(c.relname, ', ' ORDER BY c.relname)
+    INTO missing
+  FROM pg_class c
+  JOIN pg_namespace n ON n.oid = c.relnamespace
+  WHERE n.nspname = 'public'
+    AND c.relkind = 'r'            -- ordinary tables only
+    AND c.relrowsecurity = false;  -- RLS not enabled
+  IF missing IS NOT NULL THEN
+    RAISE EXCEPTION 'Security guard: these public tables have no RLS enabled: %', missing;
+  END IF;
+END $$;
+
+-- =============================================================
+-- 0007_hash_session_tokens.sql
+-- =============================================================
+
+-- Tally — Hash session tokens at rest (DEC-030, residual item #1).
+--
+-- Previously `sessions.token` held the RAW 256-bit session token. Now the app stores only
+-- SHA-256(token) (see lib/auth.ts: createSession/getSessionUser/destroySession), so a DB
+-- read (leak, backup, or over-broad query) can't be replayed to hijack a live session.
+--
+-- This migration renames the column to `token_hash` and clears any pre-existing rows
+-- (their PLAINTEXT values can never match a hashed lookup, so they're dead — and we don't
+-- want plaintext lingering in a column named *_hash). The UNIQUE constraint + index on the
+-- column follow the rename automatically.
+--
+-- Run in the Supabase SQL editor. Idempotent: guarded so re-runs are non-destructive.
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'sessions' AND column_name = 'token'
+  ) THEN
+    ALTER TABLE sessions RENAME COLUMN token TO token_hash;
+    -- Old rows hold plaintext tokens in the renamed column; purge them (pre-launch — worst
+    -- case is a re-login). Guarded by the rename above, so a second run won't wipe sessions.
+    DELETE FROM sessions;
+  END IF;
+END $$;

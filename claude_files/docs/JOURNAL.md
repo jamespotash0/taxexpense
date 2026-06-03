@@ -1,4 +1,4 @@
-# TaxSnap — Decisions Journal
+# Tally — Decisions Journal
 
 Append-only log of decisions made during the build, especially where team members
 disagreed. CLAUDE.md references this file as the home for decisions and deferred ideas.
@@ -6,6 +6,90 @@ disagreed. CLAUDE.md references this file as the home for decisions and deferred
 Format: date, decision, who pushed back, resolution, rationale.
 
 ---
+
+## 2026-06-02 — §274(b) gift summary corrected against statute
+
+### DEC-031 — `irc_summaries` §274b content fixed to match §274(b)(1) (v1 → v2)
+- **Trigger.** Founder pasted the Cornell LII statutory text of §274(b)(1) and asked to make
+  sure the gift rule is summarized correctly in the DB.
+- **Two correctness bugs found in the existing `274b` row:**
+  1. **$4 exception was incomplete/misleading.** Old copy: "Incidental branded items costing
+     $4 or less (and shipping) don't count toward the $25." The statute's exclusion (A) is
+     narrower: the item must cost ≤$4, have the taxpayer's name **clearly and permanently
+     imprinted**, AND be **one of a number of identical items distributed generally** (e.g.
+     logo pens handed out broadly) — not any cheap branded gift. The old phrasing also
+     conflated this with the incidental-cost rule (engraving/packing/mailing, from Reg
+     §1.274-3), which is a separate point.
+  2. **Promotional-materials exclusion (B) was missing entirely** — signs, display racks, and
+     other promo material for use on the recipient's business premises are not "gifts" at all.
+- **Fix (v2).** Rewrote `short_summary` (added "directly or indirectly", cumulative), rewrote
+  `common_practice` (correct $4 test + added the promo-materials carve-out + incidental-costs
+  worded as "as long as they don't add real value"), and `worth_noting` (added "a married
+  couple is treated as one recipient" + CPA deferral). Bumped `version` 1→2, `last_reviewed`
+  2026-06-01→2026-06-02. Source pinned to §274(b)(1).
+- **Kept scoped to (b)(1).** The partnership entity/partner rule was deliberately left out of
+  the user-facing summary (out of V1 scope — sole props / SMLLCs); it stays in the CPA memo.
+- **Synced all three sources** so they don't drift: `supabase/migrations/0003_seed_irc_summaries.sql`,
+  the regenerated `RUN_ALL.sql`, and the content doc `claude_files/docs/IRC-SUMMARIES.md`. The
+  seed upsert (`ON CONFLICT … DO UPDATE`) refreshes every field incl. `version`, so re-running
+  0003 corrects any already-seeded DB. **Founder action:** re-run 0003 (or `RUN_ALL.sql`) to
+  push v2 to the live DB.
+- **Relation to DEC-028 gift-cap check.** The cleanup `gift_cap` flag's softened wording and
+  this summary now tell the same story (suggest-don't-assert; $4-imprinted + promo carve-outs).
+
+---
+
+## 2026-06-02 — DB access hardening (RLS / anon path)
+
+### DEC-030 — Harden the anon/public DB path; per-tenant RLS deliberately NOT added
+
+- **Trigger.** Founder asked for "robust RLS so people can't access the tables."
+- **Audit finding — posture was already sound, not open.** All 9 tables (0001) have RLS
+  **ENABLED with zero policies = default-deny**, so the public anon key already reads/writes
+  nothing. 0004/0005 only add columns (no RLS-less tables). 100% of data access is server-side
+  via the **service role** (bypasses RLS); the anon client (`getSupabase()`) is defined but
+  **never called**. So "people can access the tables" was not actually true.
+- **Decision — add belt-and-suspenders hardening (0006), NOT per-tenant RLS.**
+  - `0006_security_hardening.sql`: re-assert RLS on all tables; **REVOKE ALL** on public
+    tables/sequences/functions from `anon`/`authenticated` + `ALTER DEFAULT PRIVILEGES` so
+    future objects inherit the denial; and a **self-check `DO` block that RAISES if any
+    `public` base table ships without RLS** (regression guard — a future table can't forget it).
+  - Deliberately **did NOT** set `FORCE ROW LEVEL SECURITY` (with no policies it would also
+    lock out the dashboard's owner-role data viewer, for zero gain since service_role bypasses
+    and anon is fully revoked). Left as a commented per-table option.
+  - Non-breaking: `service_role` keeps `BYPASSRLS` + its grants; the app is unaffected.
+  - Regenerated `RUN_ALL.sql` (was stale — missing 0005) from 0001..0006.
+- **Why NOT per-tenant RLS (Raj + Alex).** Because every request runs as `service_role`
+  (bypasses RLS), classic per-tenant policies (`auth.uid()`-style) do **nothing** for the real
+  cross-tenant risk (T3: an app bug querying the wrong org). That isolation is enforced in app
+  code (`lib/db.orgTable`). True per-tenant RLS would require dropping the service role for
+  requests + a non-bypass DB role + a per-request org claim — a large change for a custom-auth
+  (phone-OTP, not Supabase Auth) solo-founder V1. **Alex:** over-engineering now; **Raj:** the
+  app-layer scope + the RLS-on-all-tables guard is the right V1 line. Revisit only if we ever
+  add client-side Supabase access or move off the service role.
+- **Team (Jordan, security).** The anon/public REST path is the actual RLS attack surface, and
+  it's now closed two ways (default-deny + revoked grants) and guarded against regression.
+- **Residual items flagged (NOT in this change):**
+  1. **Session tokens stored plaintext** in `sessions` (256-bit opaque). Recommend storing a
+     `sha256(token)` and looking up by hash, so a DB read can't reuse live sessions. (Separate
+     from RLS; high-value, low-effort follow-up.)
+  2. **Verify the Storage receipt bucket is private** with no public-read policy (app uses
+     signed URLs + service role; confirm in the Supabase Storage dashboard — not in SQL here).
+  3. **service-role key hygiene** (rotation, never in client bundles) — out of scope of RLS.
+
+**Follow-up (same day) — token hashing DONE + cross-tenant (IDOR) audit.**
+- **Residual #1 shipped.** `sessions.token` → `token_hash`; the app now stores only
+  `sha256(token)` (`lib/auth.ts`), the raw token lives only in the cookie. `0007_hash_session_tokens.sql`
+  (guarded rename + purge of stale plaintext rows; idempotent). RUN_ALL regenerated to 0001..0007.
+- **"Data that isn't yours" audit — clean.** Reviewed every API route + dashboard loader.
+  Consistent, correct pattern: auth via `getCurrentUser()` (401 otherwise); authorization derived from
+  the SESSION's org/user, **never** from request body/params; every receipt access goes through
+  `getReceipt(user.organization_id, id)` → 404 on cross-org id (no IDOR); deletes/updates double-scoped
+  by `organization_id`; zod validation; file type/size caps. Billing/checkout, settings, and
+  email-accountant refuse body-supplied identities (email only ever sends to the saved
+  `accountant_email`). Webhooks verify signatures (Stripe + Twilio); cron requires `CRON_SECRET`
+  (fails closed); `test-claude` is 404 in production. No cross-tenant vector found.
+- **Still open:** storage-bucket-private confirmation (dashboard, not SQL) + service-role key rotation.
 
 ## 2026-06-02 — First agentic surfaces: SMS query router + "review my year" (post-V1)
 
@@ -74,6 +158,32 @@ Format: date, decision, who pushed back, resolution, rationale.
   seasonal SMS nudge (needs TCPA + DB-backed rate limit — cf. DEC-027), gift $25-cap overage
   check, vague-memo eval/precision tests, CPA spot-check of the duplicate window + framing.
 - **Files/spec:** `claude_files/specs/08-year-end-cleanup.md`, EPIC row in `specs/00-EPICS.md`.
+
+**Follow-up (2026-06-02, same day): most of TSNAP-095 landed.**
+- **Year-switcher UI** — `getReceiptYears()` drives a pill row on `/dashboard/cleanup`.
+- **Gift $25-cap-per-recipient/year overage check** — new `gift_cap` issue type. Sums
+  `business_gifts` by recipient (exact-match) and flags totals > $25 — the per-recipient/year
+  AGGREGATE the per-receipt cap in `substantiation.ts` structurally cannot catch (cross-ref
+  DEC-011 note + TSNAP-030). Wired through the report, dashboard group, EN/ES copy, AND the
+  DEC-029 "review my year" SMS (`year-review.ts` ISSUE_NOUN) so both surfaces stay in sync.
+- **Vague-memo scaffolding tests** — no-candidate short-circuit (proves no LLM call without an
+  API key) + `mergeIssues` ordering/counts. Real-data precision eval still deferred (LLM judgment).
+- **CPA spot-check PREP** — `claude_files/docs/CPA-REVIEW-CLEANUP.md` front-loads the questions
+  (gift-cap aggregate unit + incidental-cost exclusion, 3-day duplicate window, mixed-account
+  framing). The review itself stays deferred per CLAUDE.md Open Item #4 (post-launch).
+- Cleanup tests 7→13; full suite 86 green; `npm run build` type-checks clean.
+- **Gift-cap §274(b)(1) refinement** (founder supplied the full rule text). The cumulative
+  direct+indirect per-recipient/year unit matches our sum. But the rule has carve-outs we
+  **cannot detect** from {amount, date, recipient}: the **$4 de-minimis** (imprinted items
+  distributed generally), **promotional materials** (signs/racks aren't gifts), **spouses =
+  one recipient**, and the **partnership entity/partner** rule (out of V1 scope — sole
+  props/SMLLCs). So we **softened the message from an assertion to a suggestion** ("only $25
+  is deductible, the rest won't count" → "generally capped at $25… some may not count;
+  imprinted <$4 and promo materials can be exempt — worth a check"). Keeps suggest-don't-advise
+  (CLAUDE.md #1). We still sum **gross** and flag-for-review rather than silently excluding ≤$4
+  items (avoids under-flagging). Carve-outs documented in the code + CPA memo (Q1a–Q1e).
+- **Still open:** inline resolve actions, seasonal SMS nudge, vague-memo precision eval, the
+  CPA review itself (now incl. the gross-vs-net-of-$4 question, Q1b).
 
 ---
 

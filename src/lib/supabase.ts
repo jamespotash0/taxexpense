@@ -1,8 +1,8 @@
 // Supabase clients (TSNAP-004).
 //
-// - `supabase`      : anon-key client. Subject to RLS (DEC-001 = default-deny),
-//                     so it can read/write nothing until per-table policies exist.
-//                     Kept for future client-side / RLS-scoped use.
+// - `supabase`      : anon-key client. Subject to RLS (DEC-001 = default-deny; DEC-030
+//                     also REVOKEs all grants from anon/authenticated), so it reads/writes
+//                     nothing. Currently UNUSED — kept for possible future RLS-scoped use.
 // - `supabaseAdmin` : service-role client. Bypasses RLS. SERVER-ONLY — importing
 //                     it into a client component would leak the service role key.
 //                     All server data access goes through this + lib/db.orgScoped().

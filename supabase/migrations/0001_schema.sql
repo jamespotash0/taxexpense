@@ -1,4 +1,4 @@
--- TaxSnap — Database Schema (TSNAP-005)
+-- Tally — Database Schema (TSNAP-005)
 -- Source of truth: claude_files/docs/SPEC.md "Database Schema"
 -- Multi-tenant from day 1 (organizations table, 1:1 user:org in V1).
 --

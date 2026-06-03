@@ -97,11 +97,20 @@ CleanupReport { tax_year, scanned_count, issues[], counts{} }
 ### TSNAP-095 — Follow-ups
 - [x] Year switcher UI — `getReceiptYears()` drives a pill row on `/dashboard/cleanup`
       (years the org has receipts in, newest first, always incl. current; preserves `memo`)
+- [x] Gift $25-cap-per-recipient/year overage check — `checkGiftCapByRecipient()` sums
+      `business_gifts` by recipient (exact-match, case-insensitive) and flags totals > $25.
+      Catches the cumulative aggregate the per-receipt cap (substantiation.ts) structurally
+      can't. New `gift_cap` issue type wired through report + dashboard group + EN/ES + year-
+      review SMS. §274(b)(1) carve-outs we can't detect ($4 de-minimis, promo materials,
+      spouses-as-one, partnership entity) → message SUGGESTS review, doesn't assert; sums gross.
+- [x] Vague-memo scaffolding tests — no-candidate short-circuit (no LLM call) + `mergeIssues`
+      ordering/counts. (True precision still needs a real-data eval set — see below.)
+- [x] CPA spot-check **prep** — `claude_files/docs/CPA-REVIEW-CLEANUP.md` front-loads the
+      questions (gift-cap aggregate unit, duplicate window, mixed-account framing). Review
+      itself stays deferred per CLAUDE.md Open Item #4 (post-launch, when revenue justifies).
 - [ ] "Resolve" affordances inline (e.g. one-tap "not a duplicate / delete dupe")
 - [ ] Seasonal SMS nudge (Jan/Feb) — deferred; needs TCPA + DB-backed rate limit (cf. DEC-027)
-- [ ] Gift $25-cap-per-recipient overage as a cleanup check (cross-ref TSNAP-030)
-- [ ] Unit tests / eval for vague-memo precision (LLM layer currently untested)
-- [ ] CPA spot-check of the duplicate window + mixed-account framing
+- [ ] Vague-memo **precision eval** against real beta-user memos (LLM judgment, not unit-testable)
 
 ## Acceptance criteria (epic)
 

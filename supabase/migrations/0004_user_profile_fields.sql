@@ -1,4 +1,4 @@
--- TaxSnap/Tally — Add user profile fields (DEC-014).
+-- Tally — Add user profile fields (DEC-014).
 -- full_name: captured during SMS onboarding (warm personalization + export/accountant headers).
 -- email:     captured later at the dashboard (NOT over SMS — typo-prone; not needed for
 --            phone-OTP login). Optional. organizations.name already exists (used for org name).
