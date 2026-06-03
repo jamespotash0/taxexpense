@@ -12,6 +12,7 @@
 import { randomInt, randomBytes, timingSafeEqual, createHash } from 'crypto';
 import { getSupabaseAdmin } from './supabase';
 import { getUserByPhone, type AppUser } from './users';
+import { log } from './log';
 
 export const SESSION_COOKIE = 'session';
 const OTP_TTL_MIN = 10;
@@ -21,9 +22,16 @@ const OTP_MAX_ATTEMPTS = 5;
 const SESSION_DAYS = 30;
 export const SESSION_MAX_AGE_SECONDS = SESSION_DAYS * 24 * 60 * 60;
 
+// Global (all-phones) daily backstop against SMS-pumping that rotates phone numbers to slip
+// past the per-phone limit (Jordan). DB-backed so it holds across serverless lanes. Beta-sized:
+// raise these as legitimate login volume grows. ALERT is a Sentry tripwire; MAX halts sending.
+const OTP_GLOBAL_WINDOW_MIN = 24 * 60;
+const OTP_GLOBAL_DAILY_ALERT = 100;
+const OTP_GLOBAL_DAILY_MAX = 300;
+
 export type RequestCodeResult =
   | { ok: true; code: string } // code returned ONLY to the route, to send via SMS — never to the client
-  | { ok: false; reason: 'rate_limited' };
+  | { ok: false; reason: 'rate_limited' | 'global_limit' };
 
 /** Generate + store a 6-digit code for a phone, enforcing the request rate limit. */
 export async function requestCode(phoneE164: string): Promise<RequestCodeResult> {
@@ -37,6 +45,23 @@ export async function requestCode(phoneE164: string): Promise<RequestCodeResult>
     .gte('created_at', windowStart);
   if (countErr) throw countErr;
   if ((count ?? 0) >= OTP_MAX_PER_WINDOW) return { ok: false, reason: 'rate_limited' };
+
+  // Global daily backstop (all phones) — catches number-rotation attacks the per-phone
+  // limit can't. One extra COUNT; cheap relative to sending an SMS to a premium-rate number.
+  const dayStart = new Date(Date.now() - OTP_GLOBAL_WINDOW_MIN * 60 * 1000).toISOString();
+  const { count: globalCount, error: globalErr } = await admin
+    .from('auth_codes')
+    .select('id', { count: 'exact', head: true })
+    .gte('created_at', dayStart);
+  if (globalErr) throw globalErr;
+  const sentToday = globalCount ?? 0;
+  if (sentToday >= OTP_GLOBAL_DAILY_ALERT) {
+    log.warn('otp_global_volume_high', { sentToday }); // tripwire — investigate possible pumping
+  }
+  if (sentToday >= OTP_GLOBAL_DAILY_MAX) {
+    log.error('otp_global_cap_hit', { sentToday });
+    return { ok: false, reason: 'global_limit' };
+  }
 
   const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
   const expires_at = new Date(Date.now() + OTP_TTL_MIN * 60 * 1000).toISOString();

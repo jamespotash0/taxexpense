@@ -7,6 +7,48 @@ Format: date, decision, who pushed back, resolution, rationale.
 
 ---
 
+## 2026-06-03 — Reusing the existing Twilio number: A2P compliance + OTP toll-fraud hardening
+
+### DEC-040 — Homegrown OTP retained (Verify deferred); US-only phone + global SMS-pumping caps
+
+- **Context.** Repurposing an existing Twilio number/account (from an abandoned app) for Tally.
+  Inbound routes through the leftover "Sole Proprietor A2P" **Messaging Service** (`MG37ff…`);
+  the old Verify service ("Sohde", `VA8e90…`) is unused — Tally rolls its own OTP, so it was
+  left/ignored, not migrated. The old A2P **campaign was rejected** (samples described the old
+  app), so it was resubmitted with Tally-accurate content.
+- **Question raised:** switch login codes to **Twilio Verify** instead of self-generated?
+- **Decision: keep homegrown OTP for V1; keep Verify as a documented fallback.**
+  - **Raj:** build-vs-buy → build, it's already built and correct (`crypto.randomInt`, expiry,
+    attempt cap, constant-time compare). Verify ~$0.05/verification ≈ doubles login unit cost.
+  - **Jordan:** acceptable *only* with a second defense layer — the per-phone limit doesn't stop
+    number-rotation SMS pumping. Wanted global/IP cap + a volume tripwire.
+  - **Alex/Marcus:** don't let a Verify migration become a time-sink pre-validation; ship the bug
+    fix, defer the rest.
+  - **Verify trigger conditions (when to revisit):** 10DLC campaign stalls/rejected, or login-code
+    deliverability degrades, or we outgrow Sole-Proprietor throughput. Pattern then: Verify for the
+    login path only (bypasses 10DLC + Fraud Guard), keep the A2P number for expense messaging.
+- **Toll-fraud fix (the real defect).** `normalizeToE164` accepted **any** country's E.164, so the
+  public/unauthenticated `request-code` and `hero-optin` endpoints would send SMS to international
+  premium-rate numbers (SMS-pumping; per-phone limit can't stop number rotation). Now **US `+1`
+  only** (Tally is US-only V1), with regression tests for UK/BD/FR rejection.
+- **Defense-in-depth added (Jordan's ask):**
+  - **Global daily OTP cap (DB-backed, all phones):** COUNT `auth_codes` in last 24h; `log.warn`
+    tripwire at 100/day, hard halt (`global_limit`) at 300/day. Beta-sized — raise as login volume
+    grows. Holds across serverless lanes (the in-memory limiter doesn't).
+  - **Per-IP courtesy throttle** (10/15min) on `request-code` + `hero-optin` via new
+    `getClientIp` (x-forwarded-for) — stops single-source fan-out. Spoofable → layer, not guarantee.
+  - Route still returns a generic 429 for any `!ok`, so the global cap isn't disclosed to attackers.
+- **A2P compliance hardening (same session, for campaign approval):** `/terms` SMS block now has
+  program name + description + frequency + support email + bold HELP/STOP; `/privacy` adds explicit
+  "no sharing mobile/opt-in data with third parties for marketing"; landing welcome message aligned
+  to the declared opt-in message (brand + recurring-automated + HELP + STOP); `sms-handler` now has
+  an explicit compliant HELP/INFO reply (backup to Twilio Advanced Opt-Out). Inbound webhook →
+  `https://tallywhy.com/api/sms/inbound` (POST) on the Messaging Service.
+- **Deferred:** WhatsApp (Meta verification + per-feature templates for OTP/reminders — out of V1);
+  DB-backed global cap for `hero-optin` (lower-value target; per-IP + per-phone deemed enough for beta).
+
+---
+
 ## 2026-06-03 — Targeted flag-by-text (Tier 1) + reusable pending-data
 
 ### DEC-039 — "Flag the $48 lunch" — amount/vendor targeting + numbered disambiguation

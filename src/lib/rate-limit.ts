@@ -17,3 +17,14 @@ export function createRateLimiter({ windowMs, max }: { windowMs: number; max: nu
     return false;
   };
 }
+
+/**
+ * Best-effort client IP from proxy headers (Vercel sets `x-forwarded-for`). Used to throttle
+ * SMS-sending endpoints per-source. Spoofable, so it's a courtesy layer, not a guarantee —
+ * pair it with the per-phone + global caps for real abuse protection.
+ */
+export function getClientIp(req: Request): string {
+  const xff = req.headers.get('x-forwarded-for');
+  if (xff) return xff.split(',')[0].trim();
+  return req.headers.get('x-real-ip') ?? 'unknown';
+}

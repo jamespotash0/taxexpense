@@ -15,3 +15,10 @@ test('normalizeToE164 rejects junk', () => {
   assert.equal(normalizeToE164('hello'), null);
   assert.equal(normalizeToE164('12345'), null);
 });
+
+test('normalizeToE164 rejects non-US numbers (toll-fraud guard)', () => {
+  assert.equal(normalizeToE164('+447911123456'), null); // UK
+  assert.equal(normalizeToE164('+8801712345678'), null); // Bangladesh
+  assert.equal(normalizeToE164('+33123456789'), null); // France
+  assert.equal(normalizeToE164('447911123456'), null); // UK without +
+});

@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { normalizeToE164 } from '@/lib/phone';
 import { sendSms } from '@/lib/twilio';
 import { optionalEnv } from '@/lib/env';
-import { createRateLimiter } from '@/lib/rate-limit';
+import { createRateLimiter, getClientIp } from '@/lib/rate-limit';
 import { log, maskPhone } from '@/lib/log';
 
 const Body = z.object({ phone_number: z.string().min(7).max(20) });
@@ -16,8 +16,14 @@ const Body = z.object({ phone_number: z.string().min(7).max(20) });
 // start) — fine for a marketing opt-in; a DB-backed limit is a re-enable gate before arm C
 // goes to live traffic (JOURNAL DEC-027). See lib/rate-limit.ts (unit-tested).
 const isRateLimited = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 3 });
+// Per-source throttle so one host can't fan opt-in SMS across rotated phone numbers (toll-fraud).
+const ipLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 10 });
 
 export async function POST(req: Request): Promise<NextResponse> {
+  if (ipLimiter(getClientIp(req), Date.now())) {
+    return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
+  }
+
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: 'invalid_request' }, { status: 400 });
 

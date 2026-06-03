@@ -6,11 +6,20 @@ import { z } from 'zod';
 import { normalizeToE164 } from '@/lib/phone';
 import { requestCode } from '@/lib/auth';
 import { sendSms } from '@/lib/twilio';
+import { createRateLimiter, getClientIp } from '@/lib/rate-limit';
 import { log, maskPhone } from '@/lib/log';
 
 const Body = z.object({ phone_number: z.string().min(7).max(20) });
 
+// Per-source courtesy throttle (in front of the per-phone + global DB caps in lib/auth) so a
+// single host can't fan out OTP sends across many phone numbers. Spoofable → defense-in-depth.
+const ipLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 10 });
+
 export async function POST(req: Request): Promise<NextResponse> {
+  if (ipLimiter(getClientIp(req), Date.now())) {
+    return NextResponse.json({ error: 'rate_limited', message: 'Too many requests. Try again shortly.' }, { status: 429 });
+  }
+
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: 'invalid_request' }, { status: 400 });
 
