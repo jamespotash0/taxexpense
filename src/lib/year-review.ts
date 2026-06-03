@@ -85,6 +85,7 @@ const ISSUE_NOUN: Record<CleanupIssueType, [one: string, many: string]> = {
   gift_cap: ['gift over the $25 cap', 'gifts over the $25 cap'],
   duplicate: ['possible duplicate', 'possible duplicates'],
   mixed_account: ['to confirm', 'to confirm'],
+  vehicle_method: ['vehicle method to confirm', 'vehicle method to confirm'],
   vague_memo: ['vague memo', 'vague memos'],
 };
 

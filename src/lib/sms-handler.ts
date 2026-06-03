@@ -172,10 +172,19 @@ function appBase(): string {
   return PUBLIC_ENV.appUrl || 'https://tallywhy.com';
 }
 
+// Closing line on any tax-guidance reply (suggest-not-advise + CPA deferral).
+const CPA_NOTE = 'Suggestion, not advice — for your situation, check with a CPA.';
+
 /** Explain WHY Tally is asking / how it works — deterministic, from the substantiation rule +
- *  IRC summary (no LLM). Keeps any pending question open so the user can still answer it. */
+ *  IRC summary (no LLM). Keeps any pending question open so the user can still answer it.
+ *  Always closes with the CPA deferral. */
 async function explainWhy(user: AppUser, pending: PendingContext | null): Promise<ProcessResult> {
   const base = appBase();
+  const reply = (body: string, p: PendingContext | null): ProcessResult => ({
+    smsText: `${body}\n\n${CPA_NOTE}`,
+    receiptId: p?.receiptId ?? null,
+    contextState: p?.contextState ?? null, // keep any open question intact
+  });
 
   if (pending?.contextState === 'awaiting_context') {
     const receipt = await getReceipt(user.organization_id, pending.receiptId);
@@ -184,35 +193,31 @@ async function explainWhy(user: AppUser, pending: PendingContext | null): Promis
       const section = rule?.irc_section ?? receipt.irc_section ?? '274';
       const missing = (receipt.substantiation_missing_fields ?? []).join(', ');
       const need = missing ? ` notes on ${missing}` : ' a little more detail';
-      return {
-        smsText: `${categoryLabel(receipt.category)} is a strict category — to deduct it the IRS (§${section}) needs${need}. That's the only reason I asked; everything else I just log.\n\n§${section} in plain English → ${base}/irc/${section}`,
-        receiptId: pending.receiptId,
-        contextState: pending.contextState, // keep the question open
-      };
+      return reply(
+        `${categoryLabel(receipt.category)} is a strict category — to deduct it the IRS (§${section}) needs${need}. That's the only reason I asked; everything else I just log.\n\n§${section} in plain English → ${base}/irc/${section}`,
+        pending,
+      );
     }
   }
 
   if (pending?.contextState === 'awaiting_receipt') {
-    return {
-      smsText: `For strict categories (meals, travel, gifts) the IRS asks for a receipt photo once an expense is $75+ (lodging at any amount). Under $75 your text is the record — so I only ask when the code requires it.`,
-      receiptId: pending.receiptId,
-      contextState: pending.contextState,
-    };
+    return reply(
+      `For strict categories (meals, travel, gifts) the IRS asks for a receipt photo once an expense is $75+ (lodging at any amount). Under $75 your text is the record — so I only ask when the code requires it.`,
+      pending,
+    );
   }
 
   if (pending?.contextState === 'awaiting_recurring_optin') {
-    return {
-      smsText: `I noticed this one repeats — tracking it means I'll check in each month so you don't have to re-text it. Nothing gets logged until you confirm. Reply YES to track it.`,
-      receiptId: pending.receiptId,
-      contextState: pending.contextState,
-    };
+    return reply(
+      `I noticed this one repeats — tracking it means I'll check in each month so you don't have to re-text it. Nothing gets logged until you confirm. Reply YES to track it.`,
+      pending,
+    );
   }
 
-  return {
-    smsText: `I capture the WHY behind each expense so your deductions hold up — and I only ask for details when the IRS actually requires them (like who was at a meal, per §274). Everything else I just log.\n\n§162 in plain English → ${base}/irc/162`,
-    receiptId: null,
-    contextState: null,
-  };
+  return reply(
+    `I capture the WHY behind each expense so your deductions hold up — and I only ask for details when the IRS actually requires them (like who was at a meal, per §274). Everything else I just log.\n\n§162 in plain English → ${base}/irc/162`,
+    null,
+  );
 }
 
 /** Decide the reply for an onboarded user. */

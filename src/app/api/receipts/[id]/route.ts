@@ -22,6 +22,7 @@ const Patch = z
     location_city: z.string().max(100).nullable(),
     business_miles: z.number().int().nullable(),
     notes: z.string().nullable(),
+    flagged_for_cpa: z.boolean(),
   })
   .partial();
 

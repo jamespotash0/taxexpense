@@ -1,6 +1,6 @@
 -- =============================================================
 -- TaxSnap/Tally — RUN ALL (paste into Supabase SQL editor, run once).
--- Regenerated from supabase/migrations/0001..0010. Idempotent / re-runnable.
+-- Regenerated from supabase/migrations/0001..0011. Idempotent / re-runnable.
 -- =============================================================
 
 -- =============================================================
@@ -694,3 +694,16 @@ ON CONFLICT (section_id) DO UPDATE SET
 ALTER TABLE users DROP CONSTRAINT IF EXISTS users_entity_type_check;
 ALTER TABLE users ADD CONSTRAINT users_entity_type_check
   CHECK (entity_type IN ('sole_prop', 'smllc', 's_corp', 'c_corp', 'unknown'));
+
+-- =============================================================
+-- 0011_flag_for_cpa.sql
+-- =============================================================
+
+-- Tally — "Flag for my CPA" marker on a receipt (DEC-038). Lets a user mark an expense for
+-- their accountant to weigh in on later; the flag rides along to CSV/accountant export.
+-- Run in the Supabase SQL editor. Idempotent.
+
+ALTER TABLE receipts ADD COLUMN IF NOT EXISTS flagged_for_cpa BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- Speeds up "show me what's flagged" on the dashboard/export.
+CREATE INDEX IF NOT EXISTS idx_receipts_cpa_flag ON receipts(organization_id) WHERE flagged_for_cpa = TRUE;

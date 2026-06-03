@@ -7,6 +7,49 @@ Format: date, decision, who pushed back, resolution, rationale.
 
 ---
 
+## 2026-06-03 — "Flag for my CPA" marker (capture → dashboard → export)
+
+### DEC-038 — Per-receipt CPA-review flag that rides along to export
+
+- **Ask.** Founder wants to mark an expense for their CPA to weigh in on later, surfaced at export.
+- **Built end-to-end.** `0011`: `receipts.flagged_for_cpa BOOLEAN DEFAULT FALSE` (+ partial index).
+  Three ways it gets set, and one place it shows:
+  - **SMS:** "flag this for my CPA" / "ask my CPA" → router regex (`/\bflag\b|\bcpa\b/i`,
+    deterministic, no classifier) flags the **most recent** receipt and confirms. This is the
+    router's ONLY mutation (low-risk boolean) — consistent with DEC-029's read-only posture
+    otherwise.
+  - **Dashboard:** a "Flag for my CPA to review" checkbox in `ReceiptEditor` (PATCH schema accepts
+    `flagged_for_cpa`; EN/ES label) — precise per-receipt control.
+  - **Export:** new **"Flagged for CPA"** column in the standard CSV (QBO CSV unchanged — keeps
+    import compatibility), and the accountant email calls out "N item(s) flagged for your review."
+- **Posture.** The flag is exactly the suggest-don't-advise hand-off — the user/CPA decide; Tally
+  just routes the question. No tax judgment added.
+- **Verify.** RUN_ALL 0001..0011; tsc + lint clean, 104 tests (CSV test updated for the new column).
+  Founder action: run `0011`.
+
+## 2026-06-03 — Vehicle method-mixing guardrail + always-on CPA deferral
+
+### DEC-037 — Gas-vs-mileage double-count guard; CPA deferral guaranteed on tax replies
+
+- **Context.** Founder Q: driving to a business meal — is gas deductible or mileage? Answer:
+  it's one OR the other per car/year (the standard mileage rate already bundles gas). Asked for
+  a small guardrail against logging both, and to ALWAYS close with a suggest-not-advise + CPA line.
+- **Vehicle method guardrail (deterministic, no LLM).** New `checkVehicleMethod` in `cleanup.ts`
+  (+ `vehicle_method` issue type): if `vehicle_business` has BOTH mileage entries (business_miles
+  set) AND actual-cost entries (a dollar amount, no miles), it flags one issue — "mileage rate
+  already includes gas, pick one method, confirm with your CPA." Wired through ISSUE_ORDER/counts,
+  the year-review SMS (ISSUE_NOUN), and the dashboard cleanup page + EN/ES labels
+  ("Mileage vs. gas"). 2 unit tests. So it surfaces in BOTH the cleanup scan and "review my year."
+- **CPA deferral, always-on.** Every categorization reply now closes with a code-appended line
+  "§<section> in plain English (suggestion, not advice — confirm with your CPA): <link>"
+  (folded with the DEC-036 link so it's one line, guaranteed, not LLM-dependent). The prompt is
+  told NOT to write its own CPA line/URL (no duplication). The deterministic explain-why replies
+  also always close with the CPA note. (The /irc page already carries the full disclaimer.)
+- **Posture.** Suggest-don't-advise (CLAUDE.md #1/#7) reinforced everywhere tax treatment is
+  surfaced. Did NOT add a real-time per-message nudge (every vehicle log → extra query); the
+  cleanup/year-review surfacing is the "small" guardrail asked for.
+- **Verify.** tsc + lint clean, 104 tests. No migration (pure code + dict).
+
 ## 2026-06-03 — IRC links, S/C-corp onboarding, explain-why, and cost guards
 
 ### DEC-036 — Tap-through IRC links, S/C-corp, deterministic "why", daily LLM cap

@@ -32,6 +32,7 @@ export interface ReceiptRow {
   substantiation_missing_fields: string[] | null;
   raw_extracted_data: unknown;
   notes: string | null;
+  flagged_for_cpa: boolean;
   created_at: string;
 }
 

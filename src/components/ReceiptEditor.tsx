@@ -21,6 +21,7 @@ interface Receipt {
   notes: string | null;
   photo_url: string | null;
   needs_receipt: boolean;
+  flagged_for_cpa: boolean;
 }
 
 interface ReceiptCopy {
@@ -38,6 +39,7 @@ interface ReceiptCopy {
   attendees: string;
   businessRelationship: string;
   notes: string;
+  flagForCpa: string;
   save: string;
   saved: string;
   saveFailed: string;
@@ -74,6 +76,7 @@ export function ReceiptEditor({
     business_miles: receipt.business_miles?.toString() ?? '',
     notes: receipt.notes ?? '',
   });
+  const [flagged, setFlagged] = useState(receipt.flagged_for_cpa);
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -100,6 +103,7 @@ export function ReceiptEditor({
           location_city: form.location_city || null,
           business_miles: form.business_miles ? parseInt(form.business_miles, 10) : null,
           notes: form.notes || null,
+          flagged_for_cpa: flagged,
         }),
       });
       if (!res.ok) throw new Error('Save failed');
@@ -185,6 +189,11 @@ export function ReceiptEditor({
         <div><label className={labelCls}>{t.businessRelationship}</label><input className={field} value={form.business_relationship} onChange={(e) => set('business_relationship', e.target.value)} /></div>
         <div className="sm:col-span-2"><label className={labelCls}>{t.notes}</label><textarea className={field} rows={2} value={form.notes} onChange={(e) => set('notes', e.target.value)} /></div>
       </div>
+
+      <label className="flex cursor-pointer items-center gap-2 rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-700">
+        <input type="checkbox" checked={flagged} onChange={(e) => setFlagged(e.target.checked)} className="h-4 w-4 accent-accent" />
+        {t.flagForCpa}
+      </label>
 
       <div className="flex items-center justify-between">
         <button onClick={save} disabled={busy} className="rounded-md bg-primary hover:bg-primary-hover px-4 py-2 text-white disabled:opacity-50">{t.save}</button>

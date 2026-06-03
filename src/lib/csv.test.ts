@@ -17,13 +17,14 @@ function receipt(partial: Partial<ReceiptRow>): ReceiptRow {
 }
 
 test('standard CSV: header + escaped fields + dollar formatting', () => {
-  const csv = toStandardCsv([receipt({})]);
+  const csv = toStandardCsv([receipt({ flagged_for_cpa: true })]);
   const [header, row] = csv.split('\n');
   assert.match(header, /^Date,Vendor,Amount,Category,IRC Section,Deductible Amount/);
+  assert.match(header, /Documentation Complete,Flagged for CPA$/);
   assert.match(row, /340\.00/);
   assert.match(row, /170\.00/);
   assert.match(row, /"Q3, with ""the team"""/); // comma + quotes escaped
-  assert.match(row, /Yes$/); // documentation complete
+  assert.match(row, /Yes,Yes$/); // documentation complete + flagged for CPA
 });
 
 test('QuickBooks CSV: maps category to QBO account', () => {

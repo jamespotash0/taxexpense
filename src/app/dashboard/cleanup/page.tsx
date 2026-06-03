@@ -16,6 +16,7 @@ const GROUP_LABEL = {
   gift_cap: 'groupGiftCap',
   duplicate: 'groupDuplicate',
   mixed_account: 'groupMixedAccount',
+  vehicle_method: 'groupVehicleMethod',
   vague_memo: 'groupVagueMemo',
 } as const satisfies Record<CleanupIssueType, string>;
 
@@ -25,6 +26,7 @@ const GROUP_ORDER: CleanupIssueType[] = [
   'gift_cap',
   'duplicate',
   'mixed_account',
+  'vehicle_method',
   'vague_memo',
 ];
 

@@ -27,6 +27,7 @@ export async function POST(): Promise<NextResponse> {
     const monthLabel = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     const who = user.full_name ?? 'A Tally user';
     const csv = toStandardCsv(receipts);
+    const flaggedCount = receipts.filter((r) => r.flagged_for_cpa).length;
 
     const html = `
       <div style="font-family:system-ui,sans-serif;max-width:560px">
@@ -38,7 +39,11 @@ export async function POST(): Promise<NextResponse> {
           <tr><td style="padding:4px 12px 4px 0;color:#555">Receipts</td><td>${summary.count}</td></tr>
           <tr><td style="padding:4px 12px 4px 0;color:#555">Documentation complete</td><td>${summary.complete_count} of ${summary.count}</td></tr>
         </table>
-        <p style="color:#555;font-size:14px;margin-top:16px">A full CSV of all expenses is attached.</p>
+        <p style="color:#555;font-size:14px;margin-top:16px">A full CSV of all expenses is attached.${
+          flaggedCount > 0
+            ? ` <b>${flaggedCount} item${flaggedCount === 1 ? '' : 's'} flagged for your review</b> — see the "Flagged for CPA" column.`
+            : ''
+        }</p>
         <p style="color:#999;font-size:12px;margin-top:16px">This is a recordkeeping export, not tax advice.</p>
       </div>`;
 

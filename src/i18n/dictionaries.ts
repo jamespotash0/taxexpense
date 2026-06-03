@@ -151,6 +151,7 @@ const en = {
       groupGiftCap: 'Gift cap exceeded',
       groupDuplicate: 'Possible duplicates',
       groupMixedAccount: 'Personal / business',
+      groupVehicleMethod: 'Mileage vs. gas',
       groupVagueMemo: 'Vague memos',
     },
     login: {
@@ -208,6 +209,7 @@ const en = {
       attendees: 'Attendees',
       businessRelationship: 'Business relationship',
       notes: 'Notes',
+      flagForCpa: 'Flag for my CPA to review',
       save: 'Save',
       saved: 'Saved ✓',
       saveFailed: 'Save failed — try again.',
@@ -416,6 +418,7 @@ const es: Dict = {
       groupGiftCap: 'Límite de regalos superado',
       groupDuplicate: 'Posibles duplicados',
       groupMixedAccount: 'Personal / negocio',
+      groupVehicleMethod: 'Millaje vs. gasolina',
       groupVagueMemo: 'Notas imprecisas',
     },
     login: {
@@ -473,6 +476,7 @@ const es: Dict = {
       attendees: 'Asistentes',
       businessRelationship: 'Relación de negocio',
       notes: 'Notas',
+      flagForCpa: 'Marcar para que lo revise mi contador',
       save: 'Guardar',
       saved: 'Guardado ✓',
       saveFailed: 'No se pudo guardar — inténtalo de nuevo.',

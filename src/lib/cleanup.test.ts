@@ -10,6 +10,7 @@ import {
   checkDuplicates,
   checkMixedAccount,
   checkGiftCapByRecipient,
+  checkVehicleMethod,
   reviewVagueMemos,
   type CleanupIssue,
 } from './cleanup';
@@ -41,10 +42,31 @@ function row(over: Partial<ReceiptRow> = {}): ReceiptRow {
     substantiation_missing_fields: null,
     raw_extracted_data: null,
     notes: null,
+    flagged_for_cpa: false,
     created_at: '2026-03-10T00:00:00Z',
     ...over,
   };
 }
+
+test('vehicle_method: flags mixing mileage + actual gas costs (same car/year)', () => {
+  const issues = checkVehicleMethod([
+    row({ id: 'm', category: 'vehicle_business', business_miles: 40, amount_cents: 2900 }),
+    row({ id: 'g', category: 'vehicle_business', business_miles: null, amount_cents: 1500 }), // gas
+    row({ id: 's', category: 'software' }), // ignored
+  ]);
+  assert.equal(issues.length, 1);
+  assert.equal(issues[0].type, 'vehicle_method');
+  assert.deepEqual(new Set(issues[0].receipt_ids), new Set(['m', 'g']));
+  assert.match(issues[0].message, /CPA/);
+});
+
+test('vehicle_method: no flag when only one method is used', () => {
+  assert.equal(checkVehicleMethod([row({ category: 'vehicle_business', business_miles: 40 })]).length, 0);
+  assert.equal(
+    checkVehicleMethod([row({ category: 'vehicle_business', business_miles: null, amount_cents: 1500 })]).length,
+    0,
+  );
+});
 
 test('needs_receipt: flags rows awaiting a receipt and uses their reason', () => {
   const issues = checkNeedsReceipt([

@@ -22,6 +22,7 @@ export type CleanupIssueType =
   | 'duplicate' // same vendor + amount + near date — possible double-log
   | 'mixed_account' // business expense on a personal card, or a personal item logged
   | 'gift_cap' // gifts to one recipient exceed the $25/recipient/year deduction cap
+  | 'vehicle_method' // both mileage AND actual vehicle costs (gas) logged — likely double-count
   | 'vague_memo'; // note/purpose present but too vague to substantiate
 
 export interface CleanupIssue {
@@ -203,6 +204,28 @@ export function checkGiftCapByRecipient(receipts: ReceiptRow[]): CleanupIssue[] 
   return issues;
 }
 
+/**
+ * Vehicle method mixing: you generally can't deduct BOTH the standard mileage rate AND actual
+ * vehicle costs (gas, etc.) for the same car in a year — the per-mile rate already bundles gas
+ * in. If vehicle_business has BOTH mileage entries (business_miles set) AND cost entries (a
+ * dollar amount with no miles), flag one issue. Suggest-don't-advise — the method election is
+ * the user's / their CPA's call; we just surface the likely double-count.
+ */
+export function checkVehicleMethod(receipts: ReceiptRow[]): CleanupIssue[] {
+  const vehicle = receipts.filter((r) => r.category === 'vehicle_business');
+  const mileage = vehicle.filter((r) => r.business_miles != null);
+  const costs = vehicle.filter((r) => r.business_miles == null && (r.amount_cents ?? 0) > 0);
+  if (mileage.length === 0 || costs.length === 0) return [];
+  return [
+    {
+      type: 'vehicle_method',
+      receipt_ids: [...mileage, ...costs].map((r) => r.id),
+      message:
+        'You logged both mileage and actual vehicle costs (like gas). The standard mileage rate already includes gas, so you generally pick one method per car for the year — not both. Worth confirming which one with your CPA.',
+    },
+  ];
+}
+
 // ---------------------------------------------------------------------------
 // Orchestrator (deterministic only)
 // ---------------------------------------------------------------------------
@@ -213,11 +236,12 @@ const ISSUE_ORDER: CleanupIssueType[] = [
   'gift_cap',
   'duplicate',
   'mixed_account',
+  'vehicle_method',
   'vague_memo',
 ];
 
 function emptyCounts(): Record<CleanupIssueType, number> {
-  return { needs_receipt: 0, missing_context: 0, gift_cap: 0, duplicate: 0, mixed_account: 0, vague_memo: 0 };
+  return { needs_receipt: 0, missing_context: 0, gift_cap: 0, duplicate: 0, mixed_account: 0, vehicle_method: 0, vague_memo: 0 };
 }
 
 /** Sort issues by resolve-priority, then tally per-type counts. */
@@ -241,6 +265,7 @@ export function scanReceipts(receipts: ReceiptRow[], taxYear: number): CleanupRe
     ...checkGiftCapByRecipient(receipts),
     ...checkDuplicates(receipts),
     ...checkMixedAccount(receipts),
+    ...checkVehicleMethod(receipts),
   ];
   return assemble(taxYear, receipts.length, issues);
 }

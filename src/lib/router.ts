@@ -15,6 +15,8 @@ import { claudeJSON } from './llm';
 import { HAIKU_MODEL } from './claude';
 import { PUBLIC_ENV } from './env';
 import { log } from './log';
+import { listReceipts, updateReceipt } from './receipts';
+import { formatMoney } from './format';
 import type { AppUser } from './users';
 import type { ProcessResult } from './expense';
 import {
@@ -200,13 +202,32 @@ async function runQuery(orgId: string, intent: Extract<Intent, { kind: 'query' }
 // Entry point
 // ---------------------------------------------------------------------------
 
+// "Flag this for my CPA" — the only mutation the router does (low-risk boolean on the most
+// recent receipt; DEC-038). Regex-gated so it never needs the classifier.
+const FLAG_CPA_RE = /\bflag\b|\bcpa\b/i;
+
+/** Mark the user's most recent expense for CPA review; it then shows on the export. */
+async function flagLatestForCpa(user: AppUser): Promise<ProcessResult> {
+  const { rows } = await listReceipts(user.organization_id, { limit: 1 });
+  const r = rows[0];
+  if (!r) return reply("I don't see an expense to flag yet — text me one first.");
+  const name = `${r.vendor ?? 'your last expense'} ${formatMoney(r.amount_cents)}`;
+  if (r.flagged_for_cpa) return reply(`${name} is already flagged for your CPA — it'll show on the export.`);
+  await updateReceipt(user.organization_id, r.id, { flagged_for_cpa: true });
+  return reply(`✓ Flagged ${name} for your CPA. It'll be marked on your export so they can weigh in.`);
+}
+
 /**
  * Try to handle a text message conversationally. Returns a ProcessResult to send, or
- * null to let the caller run the normal expense-capture flow. Read-only throughout.
+ * null to let the caller run the normal expense-capture flow. Read-only except the
+ * explicit "flag for CPA" marker.
  */
 export async function routeTextMessage(user: AppUser, text: string): Promise<ProcessResult | null> {
   // Obvious expense → straight to capture, no classifier call.
   if (looksLikeExpenseCapture(text)) return null;
+
+  // "Flag for my CPA" → mark the latest expense (deterministic, no classifier).
+  if (FLAG_CPA_RE.test(text)) return flagLatestForCpa(user);
 
   const intent = await classifyIntent(text);
   switch (intent.kind) {

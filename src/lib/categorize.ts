@@ -128,7 +128,9 @@ export async function composeResponse(args: {
   // Append a "view the code in plain English" link for the cited section. Deterministic —
   // no extra LLM call, and the URL always matches the section actually applied.
   const sectionId = irc?.section_id ?? rule.irc_section;
-  if (!sectionId) return message;
   const base = PUBLIC_ENV.appUrl || 'https://tallywhy.com';
-  return `${message}\n\n§${sectionId} in plain English → ${base}/irc/${sectionId}`;
+  // Always close with the suggest-not-advise + CPA deferral, plus the tap-through link.
+  // Folded into one line so it's guaranteed on every reply without ballooning the SMS.
+  if (!sectionId) return `${message}\n\nSuggestion, not tax advice — confirm specifics with your CPA.`;
+  return `${message}\n\n§${sectionId} in plain English (suggestion, not advice — confirm with your CPA): ${base}/irc/${sectionId}`;
 }
