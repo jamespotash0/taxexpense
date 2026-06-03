@@ -19,8 +19,8 @@ export const ONBOARDING_Q_WORK =
   `What kind of work do you do? (e.g., freelance designer, consultant, photographer)`;
 
 export const ONBOARDING_Q_ENTITY =
-  `Got it. Are you operating as a sole proprietor or do you have a single-member LLC?\n\n` +
-  `Reply: "sole prop", "LLC", or "not sure"`;
+  `Got it. How's your business set up?\n\n` +
+  `Reply: "sole prop", "LLC", "S-corp", "C-corp", or "not sure"`;
 
 export const ONBOARDING_Q_PAYMENT =
   `Last one: when you pay for business expenses, do you usually use a dedicated ` +
@@ -114,7 +114,31 @@ GENERAL SUBSTANTIATION (IRC §162):
 - repairs — maintenance of business equipment
 - education — courses, books, training for skills
 - home_office — utilities/portion of home used for business (IRC §280A)
+- venue_rental — renting a room, hall, or venue for a business meeting or event (IRC §162)
+- team_event — a meal or recreational event primarily for your own EMPLOYEES/staff: team lunch, holiday party, company picnic (IRC §274(e), 100% deductible)
 - personal — NOT a business expense (IRC §262)
+
+## Guidelines (categorize, don't OVER-categorize)
+
+- Pick the SINGLE best-fit category from the list above. Never invent a category or split one
+  expense across several. When unsure between two GENERAL categories, choose the broader/more
+  common one — false precision isn't worth it.
+- Only choose a STRICT category (meals_*, travel_*, business_gifts, vehicle_business) when there
+  is a CLEAR business context. A solo coffee or lunch with no business contact is "personal",
+  not "meals_business" — don't force a strict category, since it triggers documentation requests
+  the law doesn't require here.
+- Everyday mappings:
+  - Gas, fuel, parking, tolls, EV charging for business driving → vehicle_business.
+  - Coworking day passes, or renting a room/venue for a client meeting or business event → rent.
+  - Home internet or phone used for business → internet_phone. A portion of home utilities/rent
+    for a dedicated home-office space, and home services (cleaning, repairs) for that space →
+    home_office (the business-use portion only).
+  - Event tickets / entertainment are generally NOT deductible (IRC §274(a)) — if a "party" or
+    outing is really a meal with a business contact, use meals_business; otherwise "personal".
+  - team_event is ONLY for events primarily for your own employees/staff. A meal with a CLIENT
+    is meals_business (50%), not team_event. For a solo business with no employees, a "party" is
+    almost always meals_business or personal — do NOT default to team_event.
+- If it clearly isn't a business expense, use "personal". Don't stretch to make something fit.
 
 ## Return Format
 
@@ -160,6 +184,12 @@ NEVER use these phrases:
 - "You'll save..."
 - "Definitely..."
 - "Audit-proof" or "guaranteed"
+
+## Links
+
+Do NOT write any URLs. Cite the section in text (e.g. "Per IRC §274"); a "§<section> in plain
+English → <link>" line is appended to your message automatically, so the user can always tap
+through to read why that code applies. Never invent a URL.
 
 ## Authoritative Decision (already computed in code — DO NOT recompute)
 

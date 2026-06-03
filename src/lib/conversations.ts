@@ -35,6 +35,18 @@ export async function logConversation(p: LogConversationParams): Promise<void> {
   if (error) log.warn('log_conversation_failed', { direction: p.direction, user: p.userId });
 }
 
+/** Count a user's inbound messages since `sinceIso` — for inbound rate limiting (cost/abuse). */
+export async function countRecentInbound(userId: string, sinceIso: string): Promise<number> {
+  const { count, error } = await getSupabaseAdmin()
+    .from('conversations')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('direction', 'inbound')
+    .gte('created_at', sinceIso);
+  if (error) throw error;
+  return count ?? 0;
+}
+
 export interface PendingContext {
   receiptId: string;
   contextState: ContextState;

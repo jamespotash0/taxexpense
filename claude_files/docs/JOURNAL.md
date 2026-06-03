@@ -7,6 +7,114 @@ Format: date, decision, who pushed back, resolution, rationale.
 
 ---
 
+## 2026-06-03 — IRC links, S/C-corp onboarding, explain-why, and cost guards
+
+### DEC-036 — Tap-through IRC links, S/C-corp, deterministic "why", daily LLM cap
+
+Theme: more robustness WITHOUT more LLM cost — links + explanations come from data we already
+have (the `irc_summaries` + substantiation rule), so nothing here adds a model call.
+
+- **IRC code + tap-through link.** Every categorization SMS now ends with a code-appended
+  `§<section> in plain English → <appUrl>/irc/<section>` line (appended in `composeResponse` —
+  no extra LLM call; URL always matches the section applied). Built a public reference page
+  `/irc/[section]` that renders the same `irc_summaries` row the AI cited (plain-English
+  summary + how-it-works + worth-noting + statute link + disclaimer). Prompt updated to forbid
+  model-written URLs; SYSTEM-PROMPTS examples show the appended line. `irc.ts` now also selects
+  `source_url`.
+- **S-corp / C-corp onboarding.** `entity_type` CHECK widened to include `s_corp`/`c_corp`
+  (`0010`), `parseEntityType` detects them (S/C-corp checked BEFORE "LLC" — an LLC taxed as an
+  S-corp is an S-corp), AppUser type + onboarding Q + EN/ES handled. V1 stays sole-prop/SMLLC-
+  centric; this just captures the data (entity-specific treatment — payroll/reasonable comp —
+  is still out of V1 scope).
+- **Explain "why" — deterministic (no LLM).** A `why? / what's the purpose?` reply is answered
+  from the pending question's category → substantiation rule → IRC section ("Meals is a strict
+  category — the IRS (§274) needs notes on attendees…"), keeping the question open. Falls back to
+  a general "I capture the why, and only ask when the code requires it." Regex-gated BEFORE the
+  router, so it never even hits the Haiku classifier.
+- **Cost guards (LLM overcharges).** (1) Explain is deterministic. (2) Added a per-user **daily
+  inbound cap** (200/day) backstopping the existing 10-min burst cap (25/10min, DEC-034). (3)
+  Fixed a latent bug surfaced here: bare "YES" no longer mis-routes (DEC-034) — unrelated but
+  adjacent.
+- **Verify.** RUN_ALL 0001..0010; tsc + lint clean, 102 tests (incl. new S/C-corp parse cases);
+  `/irc/162` renders 200. Founder action: run `0010`.
+
+## 2026-06-03 — Mileage verified, receipt-link security confirmed, venue + team-event categories
+
+### DEC-035 — 72.5¢ verified vs IRS; added venue_rental + team_event categories
+
+- **Mileage rate VERIFIED.** Founder confirmed 72.5¢ and pointed to irs.gov; checked it —
+  **IRS Notice 2026-10 sets the 2026 business standard mileage rate at 72.5¢/mile** (up 2.5¢
+  from 70¢ in 2025). Updated the code comment to cite the Notice and **removed the "pending
+  verification" caveat** from DEC-034 — the figure is now primary-sourced.
+  (Note: the irs.gov "Standard mileage rates" landing table still showed only up to 2025 when
+  fetched; the rate is confirmed via the IRS newsroom release + Notice 2026-10.)
+- **Receipt security — already correct (clarified founder intent).** Founder meant "pass the
+  link, not the actual receipt." Confirmed the architecture already does exactly this:
+  `receipts.photo_url` stores the Storage PATH (re-signed to a short-lived URL on read,
+  SEC-001); the dashboard shows receipts via signed URLs; the **accountant email sends a CSV of
+  DATA only** (columns: Date/Description/Amount/Account — no image, no path, no URL) — receipt
+  images are never transmitted. No change needed.
+- **Everyday + gas summaries — already covered.** Every category maps to an existing summary:
+  everyday/general → §162, vehicle+gas → §280F (its common_practice already names "gas,
+  insurance, repairs"). Coverage-integrity holds; no new everyday/gas summary required.
+- **Added categories A + B (founder: "can't hurt to do A and/or B").** `0009_venue_and_team_event.sql`:
+  - **B) `venue_rental`** → §162, general, 100% (renting a room/hall/venue for a meeting/event).
+    Reuses the §162 summary.
+  - **A) `team_event`** → **§274(e)(4)**, general, **100%** (staff lunch, holiday party, company
+    picnic — the employee-event exception to the 50% meal limit). New **§274e** summary.
+  - Wired labels/QBO (`categories.ts`), dashboard dict EN+ES, and the categorize prompt — with
+    explicit scoping so it ISN'T confused with client meals (50%, meals_business) or entertainment
+    (not deductible), and a "solo/no-employees → almost never team_event" guardrail.
+- **CPA flag (Jordan/Alex).** The §274e statute is primary-sourced, but whether a given event
+  qualifies — especially for a solo owner with no employees — is a **judgment call**. Summary copy
+  is conservative + defers to a CPA; **flagged for the CPA spot-check** (CLAUDE.md Open Item #4).
+  Don't treat §274e application as CPA-cleared.
+- **Verify.** RUN_ALL regenerated 0001..0009; tsc + lint clean, 102 tests green. Founder action:
+  run `0009` (or `RUN_ALL.sql`); include §274e + mileage in the CPA spot-check.
+
+## 2026-06-03 — SMS security, IRC accuracy, and categorize-don't-overcategorize
+
+### DEC-034 — Inbound rate limit, 2026 mileage rate fix, categorization guidelines
+
+- **Trigger.** Founder asked the team to weigh in on (a) SMS security, (b) IRC guidance for
+  everyday expenses (mileage rate, client meetings, parties, renting, home services), and
+  (c) "categorize but not over-categorize."
+
+- **Security around SMS (Jordan).** Existing posture is solid — inbound Twilio signature is
+  validated (403 on mismatch), structured/validated LLM outputs, code (not the model) owns the
+  substantiation math (DEC-011), logs mask PII. **The one real gap was no inbound rate limit** —
+  a runaway/looping sender could amplify cost (every text → Haiku/Sonnet calls). **Added** a
+  per-user limit (`countRecentInbound`, 25 msgs / 10 min): STOP/START still processed first
+  (opt-out always works), then over-limit messages skip the LLM path; we warn once near the
+  threshold then go silent to avoid SMS amplification.
+  - **Bug found + fixed:** the keyword handler treated bare **"YES" as re-subscribe**, which
+    would have swallowed "YES" replies to recurring offers/renewals (DEC-033). Now "YES" only
+    re-subscribes when the user is actually opted out; otherwise it flows to processing.
+  - Prompt-injection: low risk (model can't change deductibility — code computes it, user can
+    override). Sender-spoofing: a carrier/Twilio concern, low attacker value; noted, not fixed.
+
+- **IRC accuracy (Priya + CPA caution).**
+  - **Mileage rate 70¢ → 72.5¢ for 2026** in `MILEAGE_RATE_CENTS_PER_MILE` (+ SYSTEM-PROMPTS
+    Example 7). The §280F summary says "IRS standard mileage rate" generically (no hardcoded
+    number), so no DB change. **Flagged for CPA / IRS-Notice verification** per the annual-review
+    process — do not treat the figure as CPA-cleared yet.
+  - Client meetings → already covered (`meals_business`, §274, 50%). Gas/parking/tolls →
+    `vehicle_business`. Renting a room/venue for a meeting/event → `rent` (§162). Home services
+    for a home office → `home_office` (§280A, business-use portion). All handled via the
+    categorize-prompt guidance below — no new categories.
+  - **Deferred (out of V1 scope / CPA-sensitive):** the §274(e)(4) employee-party **100%**
+    exception (V1 target is solo / no employees), and a dedicated venue/event-rental category.
+    Kept the existing "entertainment is not deductible (§274(a))" stance.
+
+- **Categorize, don't over-categorize (Sofia/Marcus).** Added a Guidelines block to
+  `CATEGORIZATION_HELPER_PROMPT`: pick the single best-fit category, never invent/split; prefer
+  the broader general category when unsure; only use a STRICT category when business context is
+  clear (a solo coffee is `personal`, not `meals_business` — avoids triggering documentation the
+  law doesn't require); the everyday mappings above; fall back to `personal` rather than stretch.
+
+- **Verify.** tsc + lint clean, 102 tests green. Founder action: confirm the 72.5¢ figure against
+  the 2026 IRS Notice; `INBOUND_MAX`/window are tunable.
+
 ## 2026-06-03 — Recurring expenses (subscriptions) — detect → offer → confirm
 
 ### DEC-033 — Recurring expenses, built as "remind & confirm" (NOT auto-log, NOT ask-every-time)

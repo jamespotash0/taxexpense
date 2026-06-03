@@ -8,9 +8,10 @@
 
 import { getSupabaseAdmin } from './supabase';
 
-// 2026 IRS standard mileage rate, in cents per mile (SYSTEM-PROMPTS Example 7: $0.70/mi).
-// Single source of truth for vehicle_business dollar derivation; bump yearly.
-export const MILEAGE_RATE_CENTS_PER_MILE = 70;
+// IRS standard business mileage rate, in cents per mile. 2026 = 72.5¢ (up 2.5¢ from 70¢ in
+// 2025) — verified against IRS Notice 2026-10 (irs.gov, DEC-034). Single source of truth for
+// vehicle_business dollar derivation; bump yearly against the new IRS Notice each January.
+export const MILEAGE_RATE_CENTS_PER_MILE = 72.5;
 
 export interface SubstantiationRule {
   category: string;

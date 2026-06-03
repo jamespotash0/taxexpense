@@ -6,6 +6,7 @@
 import { claudeJSON, claudeText } from './llm';
 import { HAIKU_MODEL, SONNET_MODEL } from './claude';
 import { CATEGORIZATION_HELPER_PROMPT, CATEGORIZATION_RESPONSE_PROMPT } from './prompts';
+import { PUBLIC_ENV } from './env';
 import type { AppUser } from './users';
 import type { SubstantiationRule, SubstantiationResult } from './substantiation';
 import type { IrcSummary } from './irc';
@@ -116,11 +117,18 @@ export async function composeResponse(args: {
     `Write the SMS now.`,
   ].join('\n');
 
-  return claudeText({
+  const message = await claudeText({
     model: SONNET_MODEL,
     system: CATEGORIZATION_RESPONSE_PROMPT,
     userText,
     cacheSystem: true,
     maxTokens: 512,
   });
+
+  // Append a "view the code in plain English" link for the cited section. Deterministic —
+  // no extra LLM call, and the URL always matches the section actually applied.
+  const sectionId = irc?.section_id ?? rule.irc_section;
+  if (!sectionId) return message;
+  const base = PUBLIC_ENV.appUrl || 'https://tallywhy.com';
+  return `${message}\n\n§${sectionId} in plain English → ${base}/irc/${sectionId}`;
 }

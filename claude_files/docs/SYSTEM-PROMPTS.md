@@ -147,12 +147,19 @@ Generate a concise SMS response (max 320 characters when possible, max 3 short p
 
 ## Examples
 
+> **IRC link (DEC-036):** the model never writes URLs. After the message, code appends a
+> `§<section> in plain English → <appUrl>/irc/<section>` line so the user can tap through to
+> the plain-English code summary (the same `irc_summaries` row the AI cited). The examples
+> below show that appended line in *italics* — it is added in code, not generated.
+
 ### Example 1: Software (general substantiation, no questions)
 
 Input: Vendor=Figma, Amount=$49, Date=2026-04-15, Category=software
 
 Response:
-"✓ Logged. $49 Figma under IRC §162. Fully deductible as software."
+"✓ Logged. $49 Figma under IRC §162. Fully deductible as software.
+
+*§162 in plain English → https://tallywhy.com/irc/162*"
 
 (No follow-up. General substantiation. Bank statement covers it.)
 
@@ -168,7 +175,9 @@ Response:
 
 $340 is over $75 so the IRS asks for a receipt photo for this one. Snap and send it when you can — I'll log it now and flag it as 'receipt needed' so it doesn't slip.
 
-Per IRC §274 = $170 deductible when receipt's attached."
+Per IRC §274 = $170 deductible when receipt's attached.
+
+*§274 in plain English → https://tallywhy.com/irc/274*"
 
 ### Example 3: Meal under $75 with full context
 
@@ -181,7 +190,9 @@ Response:
 
 $48 meal with Sarah re partnership. Under $75 so no receipt needed — your written record covers it per IRS rules.
 
-IRC §274 = $24 deductible."
+IRC §274 = $24 deductible.
+
+*§274 in plain English → https://tallywhy.com/irc/274*"
 
 ### Example 4: Lodging (always needs receipt)
 
@@ -244,7 +255,7 @@ Required: business_miles, business_purpose
 Response:
 "Got it. 47 miles business travel.
 
-Using 2026 standard mileage rate of $0.70/mile: 47 × $0.70 = $32.90 deductible.
+Using 2026 standard mileage rate of $0.725/mile: 47 × $0.725 = $34.08 deductible.
 
 Was this a round trip or one-way?"
 

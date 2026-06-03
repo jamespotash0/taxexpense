@@ -15,6 +15,12 @@ test('parseEntityType maps keywords; "not sure" → unknown', () => {
   assert.equal(parseEntityType('I think a sole proprietor'), 'sole_prop');
   assert.equal(parseEntityType('LLC'), 'smllc');
   assert.equal(parseEntityType('single-member llc'), 'smllc');
+  assert.equal(parseEntityType('S-corp'), 's_corp');
+  assert.equal(parseEntityType('s corp'), 's_corp');
+  assert.equal(parseEntityType('C corp'), 'c_corp');
+  assert.equal(parseEntityType('c-corporation'), 'c_corp');
+  // An LLC taxed as an S-corp is an S-corp for tax purposes (check S/C-corp before LLC).
+  assert.equal(parseEntityType('LLC taxed as an s-corp'), 's_corp');
   assert.equal(parseEntityType('not sure'), 'unknown');
   assert.equal(parseEntityType('🤷'), 'unknown');
 });

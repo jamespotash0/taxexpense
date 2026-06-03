@@ -4,7 +4,9 @@
 
 import { normalizeToE164 } from './phone';
 import { getOrCreateUserByPhone, touchLastActive, updateUser, type AppUser } from './users';
-import { logConversation, getPendingContext, type ContextState } from './conversations';
+import { logConversation, getPendingContext, countRecentInbound, type ContextState, type PendingContext } from './conversations';
+import { getSubstantiationRule } from './substantiation';
+import { categoryLabel } from './categories';
 import { handleOnboarding } from './onboarding';
 import { fetchTwilioMedia, extractReceiptFromImageData, storePhotoBuffer, parseTextExpense, type OcrResult } from './ocr';
 import { processNewExpense, processClarification, processAttachment, type ProcessResult } from './expense';
@@ -38,6 +40,17 @@ export interface InboundMessage {
   mediaUrls: string[];
   channel: Channel;
 }
+
+// Inbound rate limits (DEC-034/036): cap LLM-heavy processing per user to blunt cost/abuse.
+// A 10-min burst cap stops floods; a daily cap backstops sustained low-rate abuse. Generous
+// enough for a real burst of receipts.
+const INBOUND_WINDOW_MIN = 10;
+const INBOUND_MAX = 25;
+const INBOUND_MAX_PER_DAY = 200;
+
+// "Why / what's the purpose" questions → answered DETERMINISTICALLY from the substantiation
+// rule + IRC summary (no LLM call, so explaining can't drive up charges — DEC-036).
+const EXPLAIN_RE = /\b(why|what for|what'?s (the )?(point|reason|purpose)|how come|explain|what do you (need|mean)|why (do|are|would) you|the purpose)\b/i;
 
 // User-facing error/help copy (TSNAP-026 / Sofia — human, not technical).
 const MSG = {
@@ -155,6 +168,53 @@ async function handleRenewalConfirm(user: AppUser, tmpl: RecurringRow, body: str
   return { smsText: skippedRenewalMsg(tmpl.vendor), receiptId: null, contextState: null };
 }
 
+function appBase(): string {
+  return PUBLIC_ENV.appUrl || 'https://tallywhy.com';
+}
+
+/** Explain WHY Tally is asking / how it works — deterministic, from the substantiation rule +
+ *  IRC summary (no LLM). Keeps any pending question open so the user can still answer it. */
+async function explainWhy(user: AppUser, pending: PendingContext | null): Promise<ProcessResult> {
+  const base = appBase();
+
+  if (pending?.contextState === 'awaiting_context') {
+    const receipt = await getReceipt(user.organization_id, pending.receiptId);
+    if (receipt?.category) {
+      const rule = await getSubstantiationRule(receipt.category);
+      const section = rule?.irc_section ?? receipt.irc_section ?? '274';
+      const missing = (receipt.substantiation_missing_fields ?? []).join(', ');
+      const need = missing ? ` notes on ${missing}` : ' a little more detail';
+      return {
+        smsText: `${categoryLabel(receipt.category)} is a strict category — to deduct it the IRS (§${section}) needs${need}. That's the only reason I asked; everything else I just log.\n\n§${section} in plain English → ${base}/irc/${section}`,
+        receiptId: pending.receiptId,
+        contextState: pending.contextState, // keep the question open
+      };
+    }
+  }
+
+  if (pending?.contextState === 'awaiting_receipt') {
+    return {
+      smsText: `For strict categories (meals, travel, gifts) the IRS asks for a receipt photo once an expense is $75+ (lodging at any amount). Under $75 your text is the record — so I only ask when the code requires it.`,
+      receiptId: pending.receiptId,
+      contextState: pending.contextState,
+    };
+  }
+
+  if (pending?.contextState === 'awaiting_recurring_optin') {
+    return {
+      smsText: `I noticed this one repeats — tracking it means I'll check in each month so you don't have to re-text it. Nothing gets logged until you confirm. Reply YES to track it.`,
+      receiptId: pending.receiptId,
+      contextState: pending.contextState,
+    };
+  }
+
+  return {
+    smsText: `I capture the WHY behind each expense so your deductions hold up — and I only ask for details when the IRS actually requires them (like who was at a meal, per §274). Everything else I just log.\n\n§162 in plain English → ${base}/irc/162`,
+    receiptId: null,
+    contextState: null,
+  };
+}
+
 /** Decide the reply for an onboarded user. */
 async function handleExpenseFlow(user: AppUser, msg: InboundMessage): Promise<ProcessResult> {
   const hasPhoto = msg.numMedia > 0 && msg.mediaUrls.length > 0;
@@ -185,6 +245,12 @@ async function handleExpenseFlow(user: AppUser, msg: InboundMessage): Promise<Pr
   if (pending?.contextState === 'awaiting_recurring_optin' && isAffirmative(msg.body)) {
     const optin = await handleRecurringOptin(user, pending.receiptId);
     if (optin) return optin;
+  }
+
+  // "Why / what's the purpose" → explain deterministically (no LLM), keeping any open
+  // question intact. Checked before clarification so a "why?" isn't taken as the answer.
+  if (EXPLAIN_RE.test(msg.body)) {
+    return explainWhy(user, pending);
   }
 
   // Text message answering a pending context question → clarification flow.
@@ -238,9 +304,32 @@ export async function handleInboundSms(msg: InboundMessage): Promise<void> {
     await updateUser(user.id, { sms_opted_out_at: new Date().toISOString() });
     return; // Twilio sends the carrier opt-out confirmation; stay silent.
   }
-  if (['START', 'UNSTOP', 'YES'].includes(keyword)) {
+  // "YES" only means re-subscribe when actually opted out — otherwise it's a normal reply
+  // (e.g. confirming a recurring renewal/offer, DEC-033) and must flow through to processing.
+  const isResubscribe = ['START', 'UNSTOP'].includes(keyword) || (keyword === 'YES' && !!user.sms_opted_out_at);
+  if (isResubscribe) {
     await updateUser(user.id, { sms_opted_out_at: null });
     await safeSend(phone, "You're re-subscribed to Tally. Send an expense any time.", msg.channel);
+    return;
+  }
+
+  // Inbound rate limit (DEC-034): STOP/START already handled above so opt-out always works.
+  // On a flood, skip the LLM-heavy processing to cap cost/abuse — tell them once near the
+  // threshold, then go silent to avoid amplifying an SMS loop.
+  const since = new Date(Date.now() - INBOUND_WINDOW_MIN * 60 * 1000).toISOString();
+  const recentInbound = await countRecentInbound(user.id, since);
+  if (recentInbound > INBOUND_MAX) {
+    if (recentInbound <= INBOUND_MAX + 5) {
+      await safeSend(phone, "You're sending a lot at once — I'll catch up. Give it a few minutes and resend anything I missed.", msg.channel);
+    }
+    log.warn('inbound_rate_limited', { user: user.id, recent: recentInbound });
+    return;
+  }
+  // Daily backstop: well above any real day's usage; catches sustained low-rate abuse the
+  // 10-min cap would miss. Stay silent (already warned in-burst) to avoid amplification.
+  const dayAgo = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+  if ((await countRecentInbound(user.id, dayAgo)) > INBOUND_MAX_PER_DAY) {
+    log.warn('inbound_daily_capped', { user: user.id });
     return;
   }
 

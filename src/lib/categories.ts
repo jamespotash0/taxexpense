@@ -19,6 +19,8 @@ export const CATEGORY_LABELS: Record<string, string> = {
   repairs: 'Repairs',
   education: 'Education',
   home_office: 'Home Office',
+  venue_rental: 'Venue / Event Rental',
+  team_event: 'Team / Company Event',
   personal: 'Personal (non-deductible)',
 };
 
@@ -46,6 +48,8 @@ export const QBO_ACCOUNTS: Record<string, string> = {
   repairs: 'Repairs & Maintenance',
   education: 'Continuing Education',
   home_office: 'Home Office',
+  venue_rental: 'Rent or Lease',
+  team_event: 'Meals and Entertainment',
   personal: 'Owner Draw',
 };
 

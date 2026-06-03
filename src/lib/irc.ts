@@ -9,13 +9,16 @@ export interface IrcSummary {
   deduction_percentage: number | null;
   common_practice: string | null;
   worth_noting: string | null;
+  source_url: string | null;
 }
+
+const IRC_COLUMNS = 'section_id, title, short_summary, deduction_percentage, common_practice, worth_noting, source_url';
 
 export async function getIrcSummary(sectionId: string | null): Promise<IrcSummary | null> {
   if (!sectionId) return null;
   const { data, error } = await getSupabaseAdmin()
     .from('irc_summaries')
-    .select('section_id, title, short_summary, deduction_percentage, common_practice, worth_noting')
+    .select(IRC_COLUMNS)
     .eq('section_id', sectionId)
     .maybeSingle();
   if (error) throw error;

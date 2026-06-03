@@ -39,8 +39,11 @@ export function parseName(text: string): string {
 }
 
 /** Map free text to an entity_type enum value (TSNAP-017 keyword rules). */
-export function parseEntityType(text: string): 'sole_prop' | 'smllc' | 'unknown' {
+export function parseEntityType(text: string): 'sole_prop' | 'smllc' | 's_corp' | 'c_corp' | 'unknown' {
   const t = text.toLowerCase();
+  // Check S/C-corp first — an "LLC taxed as an S-corp" is an S-corp for tax purposes.
+  if (/\bs[-\s]?corp/.test(t) || t.includes('s corporation')) return 's_corp';
+  if (/\bc[-\s]?corp/.test(t) || t.includes('c corporation')) return 'c_corp';
   if (t.includes('llc') || t.includes('single-member') || t.includes('single member')) return 'smllc';
   if (t.includes('sole') || t.includes('prop')) return 'sole_prop';
   return 'unknown'; // "not sure" is a valid answer, not an error

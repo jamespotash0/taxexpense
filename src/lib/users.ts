@@ -14,7 +14,7 @@ export interface AppUser {
   full_name: string | null;
   email: string | null; // collected at the dashboard, not over SMS (DEC-014)
   business_type: string | null;
-  entity_type: 'sole_prop' | 'smllc' | 'unknown' | null;
+  entity_type: 'sole_prop' | 'smllc' | 's_corp' | 'c_corp' | 'unknown' | null;
   default_payment_account: 'business' | 'personal' | 'unknown' | null;
   accountant_email: string | null;
   onboarding_completed: boolean;
