@@ -20,17 +20,17 @@ export const PLANS: Record<PlanId, Plan> = {
   monthly: {
     id: 'monthly',
     label: 'Monthly',
-    priceCents: 1799, // $17.99/mo
+    priceCents: 1199, // $11.99/mo
     interval: 'month',
-    perMonthCents: 1799,
+    perMonthCents: 1199,
     stripePriceEnv: 'STRIPE_PRICE_MONTHLY',
   },
   annual: {
     id: 'annual',
     label: 'Annual',
-    priceCents: 14388, // $143.88/yr
+    priceCents: 9588, // $95.88/yr
     interval: 'year',
-    perMonthCents: 1199, // $11.99/mo billed yearly
+    perMonthCents: 799, // $7.99/mo billed yearly
     stripePriceEnv: 'STRIPE_PRICE_ANNUAL',
     badge: 'Save 33%',
   },
