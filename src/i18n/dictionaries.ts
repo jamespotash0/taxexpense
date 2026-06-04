@@ -21,7 +21,7 @@ const en = {
     ctaOr: 'or text',
     // Who it's for — answers the audience question up front (V1: self-employed, per CLAUDE.md).
     audienceEyebrow: 'Built for the self-employed',
-    audience: 'Freelancers, contractors & the self-employed — sole proprietors and single-member LLCs.',
+    audienceChips: ['Freelancers', 'Contractors', 'Sole proprietors', 'Single-member LLCs'],
     copied: 'Copied — text it from your phone 📱',
     disclaimer: 'Recordkeeping, not tax advice. Reply STOP to opt out.',
     // A/B variant B (experiment: hero-copy) — conversational / first-person (Tally speaks).
@@ -113,7 +113,7 @@ const en = {
   },
   // Landing FAQ — spec-accurate, compliance-checked (DEC-043).
   faq: {
-    heading: 'Questions',
+    heading: 'Frequently Asked Questions',
     items: [
       { q: 'Do I need to connect my bank?', a: 'No. Tally works entirely by text — you send expenses as they happen. No bank linking, no logins to hand over.' },
       { q: 'Does Tally replace QuickBooks?', a: 'No — it feeds it. Tally captures the why and exports a clean CSV or QuickBooks-ready file. Keep your books and your accountant; Tally fills the context gap.' },
@@ -161,7 +161,7 @@ const en = {
     mostPopular: 'Most popular',
     planWeekly: 'Weekly',
     planAnnual: 'Annual',
-    save: 'Save 69%',
+    save: 'Save 61%',
     perWk: '/wk',
     perMo: '/mo',
     billedYearly: '{price} billed yearly',
@@ -382,7 +382,7 @@ const es: Dict = {
     tryText: 'Escribe a {number}',
     ctaOr: 'o escribe a',
     audienceEyebrow: 'Hecho para trabajadores independientes',
-    audience: 'Freelancers, contratistas y trabajadores por cuenta propia — propietarios únicos y LLC de un solo miembro.',
+    audienceChips: ['Freelancers', 'Contratistas', 'Propietarios únicos', 'LLC de un solo miembro'],
     copied: 'Copiado — escríbenos desde tu teléfono 📱',
     disclaimer: 'Llevar registros, no asesoría fiscal. Responde STOP para darte de baja.',
     // Variante B del A/B (experimento: hero-copy) — conversacional / en primera persona (habla Tally).
@@ -467,7 +467,7 @@ const es: Dict = {
     attribution: 'El problema que Tally resuelve.',
   },
   faq: {
-    heading: 'Preguntas',
+    heading: 'Preguntas frecuentes',
     items: [
       { q: '¿Necesito conectar mi banco?', a: 'No. Tally funciona por completo por texto — envías los gastos cuando ocurren. Sin conectar el banco, sin entregar contraseñas.' },
       { q: '¿Tally reemplaza a QuickBooks?', a: 'No — lo alimenta. Tally captura el porqué y exporta un CSV limpio o un archivo listo para QuickBooks. Conserva tus libros y tu contador; Tally llena el vacío de contexto.' },
@@ -515,7 +515,7 @@ const es: Dict = {
     mostPopular: 'Más popular',
     planWeekly: 'Semanal',
     planAnnual: 'Anual',
-    save: 'Ahorra 69%',
+    save: 'Ahorra 61%',
     perWk: '/sem',
     perMo: '/mes',
     billedYearly: '{price} facturado al año',

@@ -1,6 +1,6 @@
 // Pricing config (DEC-021, weekly-decoy update DEC-044). Single source of truth.
 // Strategy: a deliberately steep WEEKLY price ($4.99/wk ≈ $259/yr) makes the ANNUAL
-// plan ($79.99/yr ≈ $6.67/mo) the obvious choice — a decoy, not a real option people keep.
+// plan ($99.99/yr ≈ $8.33/mo) the obvious choice — a decoy, not a real option people keep.
 // Stripe Price IDs come from env so the same code works across test/live.
 
 export const TRIAL_DAYS = 21;
@@ -35,12 +35,12 @@ export const PLANS: Record<PlanId, Plan> = {
   annual: {
     id: 'annual',
     label: 'Annual',
-    priceCents: 7999, // $79.99/yr
+    priceCents: 9999, // $99.99/yr
     interval: 'year',
-    displayCents: 667, // $6.67/mo billed yearly
+    displayCents: 833, // $8.33/mo billed yearly
     unit: 'mo',
     stripePriceEnv: 'STRIPE_PRICE_ANNUAL',
-    badge: 'Save 69%', // vs paying $4.99/wk for a year ($259.48)
+    badge: 'Save 61%', // vs paying $4.99/wk for a year ($259.48)
   },
 };
 

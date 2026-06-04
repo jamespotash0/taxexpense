@@ -1,6 +1,7 @@
 // Landing page (EPIC-5) — localized (DEC-025), trendy skin, cinematic scroll-reveal.
 // Server Component: resolves locale + dictionary, reads the Tally number.
 import Link from 'next/link';
+import Image from 'next/image';
 import { cookies } from 'next/headers';
 import { HeroVideo } from '@/components/HeroVideo';
 import { MissingPiece } from '@/components/MissingPiece';
@@ -92,6 +93,7 @@ export default async function Home() {
                     smsHref={smsHref!}
                     variant={heroVariant}
                     hideIcon
+                    inline
                     label={number}
                     copiedLabel={t.hero.copied}
                     className="font-semibold text-accent underline-offset-4 hover:underline"
@@ -100,8 +102,18 @@ export default async function Home() {
               </div>
             )}
 
-            <p className="reveal-3 mt-5 text-sm text-gray-500">{t.hero.audience}</p>
-            <p className="reveal-3 mt-2 text-xs text-gray-400">{t.hero.disclaimer}</p>
+            {/* Who it's for — entity chips read as "designed" rather than a run-on gray line. */}
+            <div className="reveal-3 mt-6 flex flex-wrap items-center justify-center gap-2 lg:justify-start">
+              {t.hero.audienceChips.map((chip) => (
+                <span
+                  key={chip}
+                  className="rounded-full border border-gray-200 bg-white/70 px-3 py-1 text-xs font-medium text-gray-600 backdrop-blur-sm"
+                >
+                  {chip}
+                </span>
+              ))}
+            </div>
+            <p className="reveal-3 mt-4 text-xs text-gray-400">{t.hero.disclaimer}</p>
           </div>
 
           {/* Right — the interactive video centerpiece: a cinematic moment of spending with
@@ -132,23 +144,13 @@ export default async function Home() {
         <TaxSeason t={t.taxSeason} />
       </section>
 
-      {/* Pricing — cinematic dark band with an accent glow. The white plan card pops against
-          it (white = credible for money); the value line adds the "why it's worth it" substance. */}
-      <section id="pricing" className="scroll-mt-24 px-6 py-20 lg:px-8">
-        <Reveal className="relative mx-auto max-w-page overflow-hidden rounded-[2rem] bg-primary px-6 py-16 text-center shadow-2xl shadow-gray-900/20 sm:py-20">
-          {/* Cinematic backdrop: warm ink with a drifting indigo glow (distinct from the flat-ink footer). */}
-          <div
-            aria-hidden
-            className="ken-burns absolute inset-0"
-            style={{ background: 'radial-gradient(60% 55% at 50% -5%, rgba(79,70,229,0.40), transparent 70%), linear-gradient(160deg, #0d1326 0%, #111827 58%, #1b1530 100%)' }}
-          />
-          <div className="relative z-10">
-            <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">{t.pricing.title}</h2>
-            <p className="mx-auto mt-3 max-w-md text-gray-300">{t.pricing.subtitle}</p>
-            <div className="mt-10">
-              <LandingPricing t={t.pricing} trialDays={TRIAL_DAYS} ctaLabel={t.hero.ctaTrial} />
-            </div>
-            <p className="mx-auto mt-8 max-w-md text-sm leading-relaxed text-gray-400">{t.pricing.value}</p>
+      {/* Pricing — just the plan card on the page (no dark band, no value line underneath). */}
+      <section id="pricing" className="mx-auto max-w-6xl scroll-mt-24 px-6 py-20 lg:px-8">
+        <Reveal className="text-center">
+          <h2 className="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">{t.pricing.title}</h2>
+          <p className="mx-auto mt-3 max-w-md text-gray-600">{t.pricing.subtitle}</p>
+          <div className="mt-10">
+            <LandingPricing t={t.pricing} trialDays={TRIAL_DAYS} ctaLabel={t.hero.ctaTrial} />
           </div>
         </Reveal>
       </section>
@@ -163,42 +165,51 @@ export default async function Home() {
         <LandingFaq t={t.faq} />
       </section>
 
-      {/* Footer — one closing card: the text-to-test CTA up top, the footer nav folded in below. */}
-      <footer id="install" className="px-6 pb-10 pt-16 lg:px-8">
-        <Reveal className="mx-auto max-w-page overflow-hidden rounded-3xl bg-primary text-white">
-          {/* Closing CTA — text the number to try it for real */}
-          <div className="px-8 py-16 text-center sm:py-20">
-            <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">{t.cta.heading}</h2>
-            <p className="mx-auto mt-3 max-w-md text-gray-300">
+      {/* Footer — one compact closing band. Same ink + indigo glow as the pricing band (one
+          consistent dark treatment, not a second bright color), with the logo and the footer
+          nav folded in below a tightened CTA. */}
+      <footer id="install" className="px-6 pb-10 pt-12 lg:px-8">
+        <Reveal className="relative mx-auto max-w-page overflow-hidden rounded-3xl text-white">
+          <div
+            aria-hidden
+            className="absolute inset-0"
+            style={{ background: 'radial-gradient(60% 65% at 50% 0%, rgba(79,70,229,0.38), transparent 70%), linear-gradient(160deg, #0d1326 0%, #111827 60%, #1b1530 100%)' }}
+          />
+          {/* Closing CTA — tightened so the dark area stays compact */}
+          <div className="relative z-10 px-8 py-12 text-center">
+            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t.cta.heading}</h2>
+            <p className="mx-auto mt-2 max-w-md text-sm text-gray-300">
               {number ? fmt(t.cta.sub, { number }) : t.cta.subNoNumber}
             </p>
-            <div className="mt-8 flex flex-col items-center justify-center gap-3">
-              {number ? (
-                <>
-                  <TextNumberCta
-                    number={number}
-                    smsHref={smsHref}
-                    label={fmt(t.hero.tryText, { number })}
-                    copiedLabel={t.hero.copied}
-                    experiment="footer-cta"
-                    className="press inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-6 py-3.5 text-base font-medium text-white hover:bg-accent-hover"
-                  />
-                  <Link href="/start" className="inline-flex items-center py-2 text-sm font-medium text-gray-300 underline-offset-4 hover:text-white hover:underline">
-                    {t.cta.button}
-                  </Link>
-                </>
-              ) : (
-                <Link href="/start" className="rounded-xl bg-accent px-6 py-3.5 text-base font-medium text-white transition-colors hover:bg-accent-hover">
-                  {t.cta.button}
-                </Link>
-              )}
+            <div className="mt-6 flex flex-col items-center justify-center gap-2.5">
+              <Link
+                href="/start"
+                className="press inline-flex items-center justify-center rounded-xl bg-accent px-7 py-3.5 text-base font-medium text-white shadow-lg shadow-black/20 transition-colors hover:bg-accent-hover"
+              >
+                {t.cta.button}
+              </Link>
+              <p className="text-sm text-gray-400">
+                {t.hero.ctaOr}{' '}
+                <TextNumberCta
+                  number={number}
+                  smsHref={smsHref}
+                  hideIcon
+                  inline
+                  label={number}
+                  copiedLabel={t.hero.copied}
+                  experiment="footer-cta"
+                  className="font-semibold text-indigo-300 underline-offset-4 hover:text-white hover:underline"
+                />
+              </p>
             </div>
-            <p className="mt-5 text-xs text-gray-400">{t.hero.disclaimer}</p>
           </div>
 
-          {/* Footer nav — now lives inside the card */}
-          <div className="flex flex-col gap-3 border-t border-white/10 px-8 py-6 text-sm text-gray-400 sm:flex-row sm:items-center sm:justify-between">
-            <span className="font-semibold text-white">Tally</span>
+          {/* Footer nav — logo + links on a hairline divider */}
+          <div className="relative z-10 flex flex-col gap-3 border-t border-white/10 px-8 py-5 text-sm text-gray-400 sm:flex-row sm:items-center sm:justify-between">
+            <Link href="/" className="flex items-center gap-2">
+              <Image src="/brand/tally-logo.svg" alt="Tally logo" width={24} height={24} className="rounded-md" />
+              <span className="font-semibold text-white">Tally</span>
+            </Link>
             <div className="flex items-center gap-5">
               <Link href="/privacy" className="inline-flex items-center py-2 hover:text-white">{t.footer.privacy}</Link>
               <Link href="/terms" className="inline-flex items-center py-2 hover:text-white">{t.footer.terms}</Link>
