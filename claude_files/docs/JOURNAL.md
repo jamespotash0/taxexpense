@@ -7,6 +7,32 @@ Format: date, decision, who pushed back, resolution, rationale.
 
 ---
 
+## 2026-06-04 — One-tap subscribe magic link + RUN_ALL refresh
+
+### DEC-062 — Signed magic link drops an SMS user straight into Stripe Checkout (no login)
+
+- **Problem it solves.** An SMS user who taps the paywall/reminder link had to log in via phone OTP
+  before they could pay (PlanPicker 401 → /login → back → pick again). For someone we've ALREADY
+  verified (we're texting their number), that's needless friction at the conversion moment.
+- **Design (Jordan-reviewed).** `src/lib/subscribe-link.ts` mints an HMAC-SHA256 token over
+  `orgId.exp` (`SUBSCRIBE_LINK_SECRET`), 14-day TTL. `GET /api/billing/subscribe-link?t=…` verifies
+  it (constant-time), pulls the org id ONLY from the token (never the URL), opens a Checkout for the
+  default **annual** plan, and 302s to Stripe — no session. Any failure (bad/expired/tampered token,
+  missing secret, Stripe error) degrades gracefully to `/pricing`.
+- **Threat model.** A leaked link lets someone open Checkout for that org and pay with their own
+  card — i.e. they'd subscribe the owner. Negligible harm; bounded TTL anyway. The token grants no
+  data access, only a checkout start.
+- **Wired in.** The trial-reminder cron (DEC-061) and the reactive paywall (sms-handler) now use
+  `subscribeUrl(orgId)`. If `SUBSCRIBE_LINK_SECRET` is unset, `subscribeUrl` falls back to
+  `/pricing`, so nothing breaks before the env is configured.
+- **⚠️ New env:** set `SUBSCRIBE_LINK_SECRET` (any long random string) to enable magic links.
+- **Verified.** 7 token tests (round-trip, tamper, wrong-org, expiry, garbage, no-secret fallback);
+  159/159 total; tsc + eslint clean.
+
+### Housekeeping — `RUN_ALL.sql` refreshed to include migrations 0017–0019 (was stale at 0016).
+
+---
+
 ## 2026-06-04 — Proactive trial-expiry reminders (the #1 conversion moment)
 
 ### DEC-061 — Daily cron nudges trials before they lapse; reactive paywall stays; one-tap pay deferred

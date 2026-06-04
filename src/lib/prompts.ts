@@ -94,20 +94,20 @@ export function onboardingComplete(appUrl: string, name?: string): string {
  * one "ended" per trial — to reach people BEFORE they hit the reactive paywall (or who drift away
  * and never text again). Factual + records-are-safe framing (Sofia/Jordan). name = first name.
  */
-export function trialEndingSoonSms(appUrl: string, daysLeft: number, name?: string): string {
+export function trialEndingSoonSms(subscribeUrl: string, daysLeft: number, name?: string): string {
   const lead = name ? `Heads up, ${name} — ` : 'Heads up — ';
   const when = daysLeft <= 1 ? 'tomorrow' : `in ${daysLeft} days`;
   return (
     `${lead}your Tally trial ends ${when}. Keep your expenses — and the why behind each one — ` +
-    `flowing into tax time: ${appUrl}/pricing`
+    `flowing into tax time: ${subscribeUrl}`
   );
 }
 
-export function trialEndedSms(appUrl: string, name?: string): string {
+export function trialEndedSms(subscribeUrl: string, name?: string): string {
   const lead = name ? `${name}, your Tally trial has ended.` : 'Your Tally trial has ended.';
   return (
     `${lead} Everything you've logged is safe. Subscribe to pick right back up — capture the why, ` +
-    `cited to the tax code: ${appUrl}/pricing`
+    `cited to the tax code: ${subscribeUrl}`
   );
 }
 

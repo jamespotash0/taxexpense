@@ -821,3 +821,44 @@ CREATE TABLE IF NOT EXISTS funnel_events (
 CREATE INDEX IF NOT EXISTS idx_funnel_events_session ON funnel_events(session_id);
 CREATE INDEX IF NOT EXISTS idx_funnel_events_created_at ON funnel_events(created_at);
 ALTER TABLE funnel_events ENABLE ROW LEVEL SECURITY;
+
+
+-- =============================================================
+-- 0017_needs_review.sql
+-- =============================================================
+
+-- Tally — category-review floor (DEC-055). Flags a categorized expense for a quick human
+-- glance when the LLM's category was low-confidence OR the note looked instruction-shaped
+-- (an injection-defense + accuracy backstop; see claude_files/docs/REDTEAM-FINDINGS.md).
+-- The flag rides along to the dashboard + CSV/accountant export. Never blocks logging.
+
+ALTER TABLE receipts ADD COLUMN IF NOT EXISTS needs_review BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE receipts ADD COLUMN IF NOT EXISTS review_reason TEXT;
+ALTER TABLE receipts ADD COLUMN IF NOT EXISTS category_confidence REAL;
+CREATE INDEX IF NOT EXISTS idx_receipts_needs_review ON receipts(organization_id) WHERE needs_review = TRUE;
+
+
+-- =============================================================
+-- 0018_subscription_welcomed.sql
+-- =============================================================
+
+-- Tally — race-safe subscribe-welcome idempotency (DEC-060). Stamped the first time we send the
+-- "you're subscribed" welcome, via an atomic conditional UPDATE ... WHERE subscription_welcomed_at
+-- IS NULL — so the welcome goes out at most once even under concurrent webhook deliveries.
+
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS subscription_welcomed_at TIMESTAMPTZ;
+
+
+-- =============================================================
+-- 0019_trial_reminders.sql
+-- =============================================================
+
+-- Tally — proactive trial-expiry reminders (DEC-061). Two idempotency stamps so the daily cron
+-- texts each trial at most once before expiry ("ending soon") and once at/after expiry ("ended").
+-- (subscription_status exists by here — added in the 0005 section above.)
+
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS trial_ending_reminder_at TIMESTAMPTZ;
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS trial_ended_reminder_at TIMESTAMPTZ;
+CREATE INDEX IF NOT EXISTS idx_orgs_trialing_ends
+  ON organizations(trial_ends_at)
+  WHERE subscription_status = 'trialing';

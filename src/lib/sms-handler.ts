@@ -11,6 +11,7 @@ import { handleOnboarding } from './onboarding';
 import { fetchTwilioMedia, extractReceiptFromImageData, storePhotoBuffer, parseTextExpense, type OcrResult } from './ocr';
 import { processNewExpense, processClarification, processAttachment, type ProcessResult } from './expense';
 import { routeTextMessage, resolveFlagChoice } from './router';
+import { subscribeUrl } from './subscribe-link';
 import { getReceipt } from './receipts';
 import { todayISO } from './format';
 import {
@@ -403,8 +404,8 @@ export async function handleInboundSms(msg: InboundMessage): Promise<void> {
   // gate continued use. New users are always within trial, so onboarding is unaffected.
   const entitlement = await getOrgEntitlement(user.organization_id);
   if (!entitlement.entitled) {
-    const base = PUBLIC_ENV.appUrl || 'https://tallywhy.com';
-    const paywall = `Your Tally trial has ended. Subscribe to keep logging expenses: ${base}/pricing`;
+    // One-tap magic link (falls back to /pricing if SUBSCRIBE_LINK_SECRET isn't set) — DEC-062.
+    const paywall = `Your Tally trial has ended. Subscribe to keep logging expenses: ${subscribeUrl(user.organization_id)}`;
     await safeSend(phone, paywall, msg.channel);
     await logConversation({
       userId: user.id,

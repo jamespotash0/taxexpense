@@ -10,8 +10,8 @@ import { requireCron, jsonError } from '@/lib/api';
 import { listTrialingForReminder, stampTrialReminder, trialReminderDue } from '@/lib/subscription';
 import { getOrgOwnerContact } from '@/lib/users';
 import { trialEndingSoonSms, trialEndedSms } from '@/lib/prompts';
+import { subscribeUrl } from '@/lib/subscribe-link';
 import { sendSms } from '@/lib/twilio';
-import { PUBLIC_ENV } from '@/lib/env';
 import { log, maskPhone } from '@/lib/log';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -21,7 +21,6 @@ export async function GET(req: Request): Promise<NextResponse> {
   if (denied) return denied;
 
   const now = new Date();
-  const base = PUBLIC_ENV.appUrl || 'https://tallywhy.com';
 
   let orgs;
   try {
@@ -48,10 +47,11 @@ export async function GET(req: Request): Promise<NextResponse> {
     }
 
     const firstName = owner.full_name?.trim().split(/\s+/)[0] || undefined;
+    const link = subscribeUrl(org.id); // one-tap magic link (falls back to /pricing if unconfigured)
     const body =
       kind === 'ending'
-        ? trialEndingSoonSms(base, Math.max(1, Math.ceil((new Date(org.trial_ends_at!).getTime() - now.getTime()) / DAY_MS)), firstName)
-        : trialEndedSms(base, firstName);
+        ? trialEndingSoonSms(link, Math.max(1, Math.ceil((new Date(org.trial_ends_at!).getTime() - now.getTime()) / DAY_MS)), firstName)
+        : trialEndedSms(link, firstName);
 
     try {
       await sendSms(owner.phone_number, body);
