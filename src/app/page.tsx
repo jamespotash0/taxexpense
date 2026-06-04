@@ -78,30 +78,34 @@ export default async function Home() {
               // One primary action (start the trial); texting the number is offered as a
               // lighter, tappable line beneath — same intent, no competing buttons.
               <div className="reveal-3 mt-8 flex flex-col items-center gap-3 lg:items-start">
-                <TrackedLink
-                  href="/start"
-                  event="hero_cta_click"
-                  data={{ experiment: 'hero-copy', variant: heroVariant }}
-                  className="press inline-flex items-center justify-center rounded-xl bg-accent px-7 py-3.5 text-base font-medium text-white shadow-lg shadow-accent/20 transition-colors hover:bg-accent-hover"
-                >
-                  {t.nav.getStarted}
-                </TrackedLink>
+                {/* Button + "or text …" share one row (wraps on narrow screens). Button uses
+                    rounded-full to match the nav pill's CTA. */}
+                <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 lg:justify-start">
+                  <TrackedLink
+                    href="/start"
+                    event="hero_cta_click"
+                    data={{ experiment: 'hero-copy', variant: heroVariant }}
+                    className="press inline-flex items-center justify-center rounded-full bg-accent px-7 py-3.5 text-base font-medium text-white shadow-lg shadow-accent/20 transition-colors hover:bg-accent-hover"
+                  >
+                    {t.nav.getStarted}
+                  </TrackedLink>
+                  <p className="text-sm text-gray-500">
+                    {t.hero.ctaOr}{' '}
+                    <TextNumberCta
+                      number={number}
+                      smsHref={smsHref!}
+                      variant={heroVariant}
+                      hideIcon
+                      inline
+                      label={number}
+                      copiedLabel={t.hero.copied}
+                      className="font-semibold text-accent underline-offset-4 hover:underline"
+                    />
+                  </p>
+                </div>
                 {/* Trial reassurance — the "free" lever stays as subordinate microcopy now that the
                     button verb is the action (not "Start free trial"). Reuses the pricing badge copy. */}
-                <p className="-mt-1 text-xs text-gray-400">{fmt(t.pricing.badge, { days: TRIAL_DAYS })}</p>
-                <p className="text-sm text-gray-500">
-                  {t.hero.ctaOr}{' '}
-                  <TextNumberCta
-                    number={number}
-                    smsHref={smsHref!}
-                    variant={heroVariant}
-                    hideIcon
-                    inline
-                    label={number}
-                    copiedLabel={t.hero.copied}
-                    className="font-semibold text-accent underline-offset-4 hover:underline"
-                  />
-                </p>
+                <p className="text-xs text-gray-400">{fmt(t.pricing.badge, { days: TRIAL_DAYS })}</p>
               </div>
             )}
 

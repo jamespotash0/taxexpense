@@ -6,7 +6,7 @@
 import { getSupabaseAdmin } from './supabase';
 import { log } from './log';
 import { maskPhone } from './log';
-import { MAX_CO_OWNERS } from './pricing';
+import { MAX_CO_OWNERS, TRIAL_DAYS } from './pricing';
 
 export interface AppUser {
   id: string;
@@ -58,8 +58,9 @@ export async function getOrCreateUserByPhone(
 
   const admin = getSupabaseAdmin();
 
-  // 1. Create the organization with a fresh 21-day trial (DEC-021 hybrid paywall).
-  const trialEndsAt = new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString();
+  // 1. Create the organization with a fresh trial (DEC-021 hybrid paywall). TRIAL_DAYS is the
+  // single source of truth — shared with the landing/pricing copy so they can never drift.
+  const trialEndsAt = new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString();
   const { data: org, error: orgErr } = await admin
     .from('organizations')
     .insert({ subscription_tier: 'free', subscription_status: 'trialing', trial_ends_at: trialEndsAt })
