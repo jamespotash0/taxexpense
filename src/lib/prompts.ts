@@ -62,6 +62,19 @@ export const ONBOARDING_Q_PAIN =
   `Last thing, {{name}} — and totally optional:\n\n` +
   `What's the worst part of tax time for you? (In your own words, or reply "skip" to jump right in.)`;
 
+/**
+ * Guardrail re-ask lead-ins (DEC-060). When a setup answer doesn't make sense — an instruction
+ * ("ignore this / do X"), an early expense ("$30 gas"), an off-topic question, or an empty/photo
+ * reply — we DON'T store it. We acknowledge briefly and re-ask the SAME question. One line each;
+ * the current question is appended after a blank line.
+ */
+export const ONBOARDING_REASK = {
+  instruction: "Let's get you set up first — then I'm all yours.",
+  expense: "Love the eagerness — I'll capture that the second we're set up. First, though:",
+  question: "Happy to help once you're set up. Quick one first:",
+  empty: "Sorry, I didn't catch that.",
+} as const;
+
 /** Completion message; appUrl from NEXT_PUBLIC_APP_URL, name for a warm sign-off. */
 export function onboardingComplete(appUrl: string, name?: string): string {
   const lead = name ? `You're all set, ${name}.` : `Perfect — you're all set.`;
@@ -73,6 +86,28 @@ export function onboardingComplete(appUrl: string, name?: string): string {
     `- Or mileage like "drove 40 miles to Acme"\n\n` +
     `I'll capture the right context based on what the IRS actually requires. No app needed.\n\n` +
     `View your records anytime at ${appUrl}/login`
+  );
+}
+
+/**
+ * Proactive trial-expiry nudges (DEC-061). Sent by the daily cron — at most one "ending soon" and
+ * one "ended" per trial — to reach people BEFORE they hit the reactive paywall (or who drift away
+ * and never text again). Factual + records-are-safe framing (Sofia/Jordan). name = first name.
+ */
+export function trialEndingSoonSms(appUrl: string, daysLeft: number, name?: string): string {
+  const lead = name ? `Heads up, ${name} — ` : 'Heads up — ';
+  const when = daysLeft <= 1 ? 'tomorrow' : `in ${daysLeft} days`;
+  return (
+    `${lead}your Tally trial ends ${when}. Keep your expenses — and the why behind each one — ` +
+    `flowing into tax time: ${appUrl}/pricing`
+  );
+}
+
+export function trialEndedSms(appUrl: string, name?: string): string {
+  const lead = name ? `${name}, your Tally trial has ended.` : 'Your Tally trial has ended.';
+  return (
+    `${lead} Everything you've logged is safe. Subscribe to pick right back up — capture the why, ` +
+    `cited to the tax code: ${appUrl}/pricing`
   );
 }
 

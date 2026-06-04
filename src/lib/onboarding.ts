@@ -23,11 +23,13 @@ import {
   ONBOARDING_Q_BUSINESS,
   ONBOARDING_Q_PAYMENT,
   ONBOARDING_Q_PAIN,
+  ONBOARDING_REASK,
   onboardingComplete,
   onboardingJoinGreeting,
 } from './prompts';
 import { updateUser, getOrgOwner, getOrganizationName, updateOrganizationName, type AppUser } from './users';
 import { insertLead } from './leads';
+import { looksInstructionShaped } from './review';
 import { PUBLIC_ENV } from './env';
 
 type UserKey = 'full_name' | 'business_type' | 'entity_type' | 'default_payment_account';
@@ -42,6 +44,9 @@ interface OnboardingQuestion {
   parse: (text: string) => string | null;
   /** Optional gate — the question is only asked when this returns true given answers so far. */
   when?: (user: AppUser) => boolean;
+  /** Free-text answers (work type, business name) may legitimately contain a "$" or "?", so the
+   *  expense/question guardrails are NOT applied to them — only empty + instruction are. */
+  freeform?: boolean;
 }
 
 /** Strip common lead-ins ("I'm", "my name is") and keep a clean display name. */
@@ -87,6 +92,39 @@ export function hasNamedEntity(user: AppUser): boolean {
   return !!user.entity_type && user.entity_type !== 'unknown';
 }
 
+// --- Onboarding input guardrails (DEC-060) -------------------------------------------------
+// A setup answer can be something other than an answer: an instruction ("ignore the above / do X"),
+// an early expense ("$30 gas to client site"), an off-topic question, or empty (a photo). We must
+// NOT store those as answers — we acknowledge and re-ask. Pure + heavily unit-tested.
+
+/** Looks like the user is trying to LOG an expense before setup is finished (amount or mileage). */
+const ONBOARDING_AMOUNT_RE = /(\$\s?\d|\b\d+(?:\.\d{1,2})?\s?(?:dollars|bucks)\b)/i;
+const ONBOARDING_MILES_RE = /\b(?:\d+(?:\.\d+)?\s?(?:mi|mile|miles)\b|drove)\b/i;
+/** Looks like an off-topic question / clarification rather than an answer. */
+const ONBOARDING_QUESTION_RE = /\?\s*$|^\s*(?:how|what|why|who|when|where|can you|could you|do you|does|is there|are you)\b/i;
+// Bot-directed instructions ("ignore this", "system: …", "do X or do Y", "categorize everything").
+// Broader than review.ts's looksInstructionShaped (safe here — onboarding answers are short and
+// structured) but deliberately does NOT match valid short answers like "skip" / "none" / "just me".
+const ONBOARDING_INSTRUCTION_RE =
+  /\bignore\b|\bdisregard\b|\bforget\b|\bsystem\s*[:=]|\bassistant\s*:|\bdo\s+[xyz]\b|\bcategori[sz]e\b|\boverride\b|\b(?:reveal|print|repeat)\s+(?:your|the)\b/i;
+
+export type OnboardingInputKind = 'empty' | 'instruction' | 'expense' | 'question' | 'answer';
+
+/**
+ * Classify a reply to a setup question. Only 'answer' is stored; the rest trigger a re-ask.
+ * Priority: empty → instruction → expense → question → answer (most-specific guardrail wins).
+ * NOTE: deliberately conservative so genuine answers (incl. "not sure", short names, "skip",
+ * work descriptions) classify as 'answer'. Used by handleOnboarding; pure.
+ */
+export function classifyOnboardingInput(text: string): OnboardingInputKind {
+  const t = text.trim();
+  if (!t) return 'empty';
+  if (looksInstructionShaped(t) || ONBOARDING_INSTRUCTION_RE.test(t)) return 'instruction';
+  if (ONBOARDING_AMOUNT_RE.test(t) || ONBOARDING_MILES_RE.test(t)) return 'expense';
+  if (ONBOARDING_QUESTION_RE.test(t)) return 'question';
+  return 'answer';
+}
+
 // The tunable onboarding script. Reorder / reword / add a question here.
 // NOTE (DEC-013 follow-up): entity_type does not change Schedule C treatment in V1
 // (sole prop ≈ single-member LLC). Instrument per-step completion before deciding
@@ -94,10 +132,10 @@ export function hasNamedEntity(user: AppUser): boolean {
 // email is still collected at the dashboard (DEC-014).
 export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
   { key: 'full_name', target: 'user', prompt: ONBOARDING_Q_NAME, parse: parseName },
-  { key: 'business_type', target: 'user', prompt: ONBOARDING_Q_WORK, parse: (t) => t.trim().slice(0, 100) },
+  { key: 'business_type', target: 'user', prompt: ONBOARDING_Q_WORK, parse: (t) => t.trim().slice(0, 100), freeform: true },
   { key: 'entity_type', target: 'user', prompt: ONBOARDING_Q_ENTITY, parse: parseEntityType },
   // Business name — org-level, asked only after entity type and only for real entities (DEC-058).
-  { key: 'organization_name', target: 'org', prompt: ONBOARDING_Q_BUSINESS, parse: parseBusinessName, when: hasNamedEntity },
+  { key: 'organization_name', target: 'org', prompt: ONBOARDING_Q_BUSINESS, parse: parseBusinessName, when: hasNamedEntity, freeform: true },
   { key: 'default_payment_account', target: 'user', prompt: ONBOARDING_Q_PAYMENT, parse: parsePaymentAccount },
 ];
 
@@ -111,11 +149,6 @@ function render(prompt: string, name: string): string {
   return prompt.replace(/\{\{name\}\}/g, name);
 }
 
-/** An answer is unusable only if it's empty (e.g. a photo with no caption). */
-function isUsableAnswer(text: string): boolean {
-  return text.trim().length > 0;
-}
-
 /** The stored value backing a question — a user column, or the org name for the org question. */
 function answeredValueFor(q: OnboardingQuestion, user: AppUser, orgName: string | null): unknown {
   return q.target === 'org' ? orgName : (user as unknown as Record<string, unknown>)[q.key];
@@ -127,15 +160,43 @@ function shouldAsk(q: OnboardingQuestion, user: AppUser, orgName: string | null)
   return !answeredValueFor(q, user, orgName);
 }
 
+// Injectable I/O so the WHOLE flow is testable deterministically (scripts/onboarding + tests),
+// not just the pure parsers. Production passes nothing → realDeps. (DEC-060)
+export interface OnboardingDeps {
+  getOrganizationName: (orgId: string) => Promise<string | null>;
+  updateUser: (userId: string, patch: Partial<AppUser>) => Promise<void>;
+  updateOrganizationName: (orgId: string, name: string | null) => Promise<void>;
+  getOrgOwner: (orgId: string) => Promise<{ id: string; full_name: string | null } | null>;
+  insertLead: (lead: Parameters<typeof insertLead>[0]) => Promise<unknown>;
+}
+
+const realDeps: OnboardingDeps = {
+  getOrganizationName,
+  updateUser,
+  updateOrganizationName,
+  getOrgOwner,
+  insertLead,
+};
+
+/** A re-ask reply: acknowledge the off-base input, then re-render the SAME question. No advance. */
+function reAsk(kind: Exclude<OnboardingInputKind, 'answer'>, question: string, name: string): string {
+  return `${ONBOARDING_REASK[kind]}\n\n${render(question, name)}`;
+}
+
 /**
  * Advance onboarding by one step given the user's latest message. Returns the SMS reply.
- * Caller only invokes this while user.onboarding_completed === false.
+ * Caller only invokes this while user.onboarding_completed === false. `deps` is injectable for
+ * deterministic full-flow testing; production uses the default real I/O.
  */
-export async function handleOnboarding(user: AppUser, messageText: string): Promise<string> {
+export async function handleOnboarding(
+  user: AppUser,
+  messageText: string,
+  deps: OnboardingDeps = realDeps,
+): Promise<string> {
   const step = user.onboarding_step;
   // The business-name question lives on the org, so we need its current value to know whether it's
   // already answered (and to honor the co-owner pre-fill skip). One read per onboarding message.
-  const orgName = await getOrganizationName(user.organization_id);
+  const orgName = await deps.getOrganizationName(user.organization_id);
 
   // Step 0: first contact. Normally this greets + asks for the name. But an invited co-owner
   // (inviteToOrg) arrives with the org's business fields already filled — in that case jump
@@ -147,19 +208,19 @@ export async function handleOnboarding(user: AppUser, messageText: string): Prom
     if (firstUnanswered === -1) {
       // Everything was pre-seeded → nothing left to ask; complete immediately.
       const name = firstName(user.full_name);
-      await updateUser(user.id, {
+      await deps.updateUser(user.id, {
         onboarding_completed: true,
         onboarding_step: ONBOARDING_QUESTIONS.length + 1,
       });
       return onboardingComplete(PUBLIC_ENV.appUrl || 'https://tallywhy.com', name === 'there' ? undefined : name);
     }
-    await updateUser(user.id, { onboarding_step: firstUnanswered + 1 });
+    await deps.updateUser(user.id, { onboarding_step: firstUnanswered + 1 });
 
     // Join-aware greeting (DEC-045): an invited co-owner isn't the org owner and arrives with
     // the business fields pre-filled, so step 0 asks only their name. Greet them warmly and name
     // who added them, instead of the generic first-run greeting. (Solo owners fall through.)
     if (firstUnanswered === 0) {
-      const owner = await getOrgOwner(user.organization_id);
+      const owner = await deps.getOrgOwner(user.organization_id);
       if (owner && owner.id !== user.id) {
         return onboardingJoinGreeting(owner.full_name ? firstName(owner.full_name) : undefined);
       }
@@ -176,7 +237,7 @@ export async function handleOnboarding(user: AppUser, messageText: string): Prom
     const answer = messageText.trim();
     const skipped = answer.length === 0 || /^(skip|no|nope|nah|pass|n\/?a)\.?$/i.test(answer);
     if (!skipped) {
-      await insertLead({
+      await deps.insertLead({
         phone_number: user.phone_number,
         full_name: user.full_name,
         business_type: user.business_type,
@@ -184,7 +245,7 @@ export async function handleOnboarding(user: AppUser, messageText: string): Prom
         source: 'sms_onboarding',
       }).catch(() => { /* best-effort; never block completion on research capture */ });
     }
-    await updateUser(user.id, {
+    await deps.updateUser(user.id, {
       onboarding_completed: true,
       onboarding_step: ONBOARDING_QUESTIONS.length + 2,
     });
@@ -194,18 +255,30 @@ export async function handleOnboarding(user: AppUser, messageText: string): Prom
   const answeredIndex = Math.min(step - 1, ONBOARDING_QUESTIONS.length - 1);
   const current = ONBOARDING_QUESTIONS[answeredIndex];
 
-  // Light validation: re-ask the same question if the answer is empty (no advance).
-  if (!isUsableAnswer(messageText)) {
-    return `Sorry, I didn't catch that.\n\n${render(current.prompt, firstName(user.full_name))}`;
+  // Guardrail (DEC-060): an answer that doesn't make sense — empty/photo, an instruction
+  // ("ignore this / do X"), an early expense ("$30 gas"), or an off-topic question — is NOT
+  // stored. Acknowledge and re-ask the SAME question (no advance), so a stray message can never
+  // land in full_name / business_type / etc.
+  let kind = classifyOnboardingInput(messageText);
+  // Free-text questions tolerate "$" / "?" in real answers — only empty + instruction are off-limits.
+  if (current.freeform && (kind === 'expense' || kind === 'question')) kind = 'answer';
+  if (kind !== 'answer') {
+    return reAsk(kind, current.prompt, firstName(user.full_name));
   }
 
   const value = current.parse(messageText);
+
+  // A name must contain an actual letter (Unicode-aware, so non-Latin names pass) — an
+  // emoji/punctuation-only reply like "🤷" isn't a name, so re-ask instead of storing it.
+  if (current.key === 'full_name' && !/\p{L}/u.test(value ?? '')) {
+    return reAsk('empty', current.prompt, firstName(user.full_name));
+  }
 
   // Persist to the right place: the org's name for the business-name question, else a user column.
   const patch: Partial<AppUser> = {};
   let answeredOrgName = orgName;
   if (current.target === 'org') {
-    await updateOrganizationName(user.organization_id, value);
+    await deps.updateOrganizationName(user.organization_id, value);
     answeredOrgName = value;
   } else {
     (patch as Record<string, unknown>)[current.key] = value;
@@ -230,13 +303,13 @@ export async function handleOnboarding(user: AppUser, messageText: string): Prom
 
   if (nextIndex < ONBOARDING_QUESTIONS.length) {
     patch.onboarding_step = nextIndex + 1;
-    await updateUser(user.id, patch);
+    await deps.updateUser(user.id, patch);
     return render(ONBOARDING_QUESTIONS[nextIndex].prompt, name);
   }
 
   // All setup questions answered → ask the one optional research question, then complete on the
   // next inbound (handled by the step >= length+1 branch above). DEC-057.
   patch.onboarding_step = ONBOARDING_QUESTIONS.length + 1;
-  await updateUser(user.id, patch);
+  await deps.updateUser(user.id, patch);
   return render(ONBOARDING_Q_PAIN, name);
 }

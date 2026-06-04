@@ -7,6 +7,73 @@ Format: date, decision, who pushed back, resolution, rationale.
 
 ---
 
+## 2026-06-04 — Proactive trial-expiry reminders (the #1 conversion moment)
+
+### DEC-061 — Daily cron nudges trials before they lapse; reactive paywall stays; one-tap pay deferred
+
+- **Problem.** The paywall was REACTIVE only — it fired when an expired user texted in. The users
+  most likely to churn drift away BEFORE expiry and never see it. We were losing them silently.
+- **Team call (Marcus/Maya/Alex/Jordan/Priya/Raj/Sofia).** Add a proactive cron: at most ONE
+  "ending soon" (T-3) and ONE "ended" message per trial — value-forward, records-are-safe framing.
+  Idempotent (two stamps), opt-out respected (TCPA), `CRON_SECRET`-gated. Decision logic is a pure
+  `trialReminderDue(org, now)` so it's unit-tested without a DB.
+- **Kept the hard wall** for expired users (no free read-only value — it undercuts conversion).
+- **Magic-link one-tap subscribe = DEFERRED, not built.** Strong recommendation (removes the
+  log-in-before-pay friction for an SMS user we already know), but it's a new security surface
+  (signed single-use token + a no-session checkout route). Alex: ship reminders first, validate the
+  wall is actually being hit, then build it. Designed; awaiting go.
+- **Files.** Migration `0019_trial_reminders.sql` (+2 stamp columns, index); `trialReminderDue` /
+  `listTrialingForReminder` / `stampTrialReminder` in subscription.ts; `trialEndingSoonSms` /
+  `trialEndedSms` copy; cron `/api/cron/trial-reminders` (daily, vercel.json); 7 pure tests.
+- **⚠️ Migration gotcha (fixed).** First cut used a PARTIAL index `WHERE subscription_status =
+  'trialing'`; that hard-requires the column at index-creation time and failed on a DB missing
+  migration 0005. Changed to a plain index on `trial_ends_at` — no cross-column dependency. Note:
+  the cron + paywall still require `subscription_status`/`trial_ends_at` (migration 0005) to exist.
+- **Verified.** 152/152 tests; tsc + eslint clean.
+
+---
+
+## 2026-06-04 — Onboarding guardrails + a full sim suite; race-safe subscribe idempotency
+
+### DEC-060 — Guard onboarding against non-answers; harden subscribe-welcome to at-most-once
+
+**Onboarding guardrails (Jordan/Sofia/Priya).** A setup reply that isn't an answer must NEVER be
+stored. New pure `classifyOnboardingInput()` → `empty | instruction | expense | question | answer`;
+only `answer` is stored, the rest acknowledge + re-ask the SAME question (no advance), so a stray
+message can't land in `full_name`/`business_type`/etc.
+- **instruction** — "ignore the above", "system:", **"do X or do Y"** (the founder's example),
+  "categorize everything…". Broader than review.ts's `looksInstructionShaped` (safe — onboarding
+  answers are short/structured) but deliberately does NOT match valid short answers ("skip",
+  "none", "just me", "not sure").
+- **expense** — "$30 gas", "drove 40 miles" → "I'll capture that once you're set up"; never stored
+  as a name.
+- **question** — off-topic "what is an LLC?" → re-ask (helpful, not stored as junk).
+- **freeform exemption** — the work-type and business-name questions tolerate "$"/"?" in genuine
+  answers (only empty + instruction apply there).
+- **name sanity** — a name must contain a Unicode letter (`\p{L}`), so "🤷" re-asks while non-Latin
+  names pass.
+
+**Full test harness (the founder's "test in real time or under the hood").** Refactored
+`handleOnboarding` to take injectable `OnboardingDeps` (default = real I/O), so the WHOLE state
+machine runs deterministically with an in-memory store — no DB.
+- `scripts/onboarding/harness.ts` — in-memory driver; `src/lib/onboarding-sim.test.ts` drives full
+  conversations + an adversarial battery (happy sole-prop, 1099-skips-business-name, every guardrail).
+- `npm run sim:onboarding` — runnable simulator that PRINTS the conversations (and accepts a custom
+  `-- "hi" "Jane" …` script). What the tests assert is exactly what it prints.
+
+**Subscribe idempotency made race-safe (Raj/Jordan; hardens DEC-059).** The prior-status read had a
+race (two concurrent webhook retries could both see non-active). Replaced with an **atomic claim**:
+migration `0018_subscription_welcomed.sql` adds `subscription_welcomed_at`; `claimSubscriptionWelcome()`
+does `UPDATE … SET subscription_welcomed_at = now() WHERE id = $1 AND subscription_welcomed_at IS NULL`
+— true for exactly one caller. `sendSubscriptionWelcome` resolves owner + opt-out FIRST (so an
+opted-out owner never burns the one-shot), then claims, then sends; injectable deps make it
+unit-tested (idempotent, concurrent-safe, TCPA opt-out, no-owner). Webhook simplified accordingly.
+
+- **⚠️ Migration:** run `supabase/migrations/0018_subscription_welcomed.sql` before this deploys.
+- **Verified:** 145/145 tests (incl. new onboarding-sim + billing-notify suites); tsc + eslint clean.
+
+---
+
 ## 2026-06-04 — Business name in onboarding (conditional) + a real subscribe-welcome message
 
 ### DEC-058 — Capture business name in SMS onboarding, but ONLY for entity-having users (partially reverses DEC-014)
