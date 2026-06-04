@@ -14,6 +14,7 @@ import { getOrgMembers, getOrgOwnerId } from '@/lib/users';
 import { MAX_CO_OWNERS } from '@/lib/pricing';
 import { getI18n } from '@/i18n/server';
 import { fmt } from '@/i18n/config';
+import { formatUsPhone } from '@/lib/phone';
 
 export default async function SettingsPage() {
   const user = await getCurrentUser();
@@ -44,7 +45,7 @@ export default async function SettingsPage() {
         <LocaleSwitcher current={locale} />
       </div>
       <h1 className="mt-4 text-xl font-semibold">{s.title}</h1>
-      <p className="mt-1 text-sm text-muted">{fmt(s.loggedInAs, { phone: user.phone_number })}</p>
+      <p className="mt-1 text-sm text-muted">{fmt(s.loggedInAs, { phone: formatUsPhone(user.phone_number) })}</p>
       <div className="mt-6">
         <SettingsForm
           t={t.app.settingsForm}

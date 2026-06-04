@@ -238,6 +238,10 @@ const en = {
       errInvalid: 'Invalid code.',
       errGeneric: 'Something went wrong.',
       loading: 'Loading…',
+      backHome: '← Back to home',
+      noAccount: 'Haven’t texted Tally yet?',
+      noAccountCta: 'Text {number} to get started',
+      noAccountCtaFallback: 'Get started',
     },
     settings: {
       title: 'Settings',
@@ -592,6 +596,10 @@ const es: Dict = {
       errInvalid: 'Código inválido.',
       errGeneric: 'Algo salió mal.',
       loading: 'Cargando…',
+      backHome: '← Volver al inicio',
+      noAccount: '¿Aún no le has escrito a Tally?',
+      noAccountCta: 'Escribe a {number} para empezar',
+      noAccountCtaFallback: 'Empezar',
     },
     settings: {
       title: 'Ajustes',
