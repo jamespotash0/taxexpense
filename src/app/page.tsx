@@ -84,8 +84,11 @@ export default async function Home() {
                   data={{ experiment: 'hero-copy', variant: heroVariant }}
                   className="press inline-flex items-center justify-center rounded-xl bg-accent px-7 py-3.5 text-base font-medium text-white shadow-lg shadow-accent/20 transition-colors hover:bg-accent-hover"
                 >
-                  {t.hero.ctaTrial}
+                  {t.nav.getStarted}
                 </TrackedLink>
+                {/* Trial reassurance — the "free" lever stays as subordinate microcopy now that the
+                    button verb is the action (not "Start free trial"). Reuses the pricing badge copy. */}
+                <p className="-mt-1 text-xs text-gray-400">{fmt(t.pricing.badge, { days: TRIAL_DAYS })}</p>
                 <p className="text-sm text-gray-500">
                   {t.hero.ctaOr}{' '}
                   <TextNumberCta
@@ -150,7 +153,7 @@ export default async function Home() {
           <h2 className="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">{t.pricing.title}</h2>
           <p className="mx-auto mt-3 max-w-md text-gray-600">{t.pricing.subtitle}</p>
           <div className="mt-10">
-            <LandingPricing t={t.pricing} trialDays={TRIAL_DAYS} ctaLabel={t.hero.ctaTrial} />
+            <LandingPricing t={t.pricing} trialDays={TRIAL_DAYS} ctaLabel={t.nav.getStarted} />
           </div>
         </Reveal>
       </section>
@@ -186,7 +189,7 @@ export default async function Home() {
                 href="/start"
                 className="press inline-flex items-center justify-center rounded-xl bg-accent px-7 py-3.5 text-base font-medium text-white shadow-lg shadow-black/20 transition-colors hover:bg-accent-hover"
               >
-                {t.cta.button}
+                {t.nav.getStarted}
               </Link>
               <p className="text-sm text-gray-400">
                 {t.hero.ctaOr}{' '}

@@ -15,7 +15,6 @@ const en = {
     // Kept to ~2 lines at the hero's max-w-xl measure (matches variant B below).
     subtitle:
       'Text a photo or a quick note. Tally captures the why behind each one — so the deductions you’ve earned actually hold up at tax time.',
-    ctaTrial: 'Start free trial',
     tryEyebrow: 'Try it out',
     tryText: 'Text {number}',
     ctaOr: 'or text',
@@ -123,7 +122,7 @@ const en = {
       { q: 'Is this tax advice?', a: 'No — Tally is recordkeeping, not advice. For your specific situation, consult a licensed tax professional.' },
     ],
   },
-  cta: { heading: 'Say hello to easy tax time.', sub: 'Snap a receipt or fire off a note — that’s your first expense, logged.', subNoNumber: 'Install Tally and send your first expense.', button: 'Start free trial' },
+  cta: { heading: 'Say hello to easy tax time.', sub: 'Snap a receipt or fire off a note — that’s your first expense, logged.', subNoNumber: 'Install Tally and send your first expense.' },
   footer: { tagline: 'Recordkeeping, not tax advice.', privacy: 'Privacy', terms: 'Terms' },
   install: { button: 'Install Tally', help: 'On iPhone: tap Share → “Add to Home Screen.” On Android: menu → “Install app.”', installed: 'Installed ✓ — find Tally on your home screen.' },
   onboarding: {
@@ -385,7 +384,6 @@ const es: Dict = {
     // A ~2 líneas en el ancho del hero (max-w-xl), igual que la variante B.
     subtitle:
       'Envía una foto o una nota rápida. Tally captura el porqué de cada uno — para que las deducciones que ya ganaste de verdad se sostengan en la temporada de impuestos.',
-    ctaTrial: 'Empezar gratis',
     tryEyebrow: 'Pruébalo',
     tryText: 'Escribe a {number}',
     ctaOr: 'o escribe a',
@@ -485,7 +483,7 @@ const es: Dict = {
       { q: '¿Esto es asesoría fiscal?', a: 'No — Tally lleva registros, no da asesoría. Para tu situación específica, consulta a un profesional fiscal con licencia.' },
     ],
   },
-  cta: { heading: 'Dile hola a impuestos fáciles.', sub: 'Toma una foto del recibo o manda una nota — ese es tu primer gasto, registrado.', subNoNumber: 'Instala Tally y envía tu primer gasto.', button: 'Empezar gratis' },
+  cta: { heading: 'Dile hola a impuestos fáciles.', sub: 'Toma una foto del recibo o manda una nota — ese es tu primer gasto, registrado.', subNoNumber: 'Instala Tally y envía tu primer gasto.' },
   footer: { tagline: 'Llevar registros, no asesoría fiscal.', privacy: 'Privacidad', terms: 'Términos' },
   install: { button: 'Instalar Tally', help: 'En iPhone: toca Compartir → “Agregar a inicio”. En Android: menú → “Instalar app”.', installed: 'Instalada ✓ — busca Tally en tu pantalla de inicio.' },
   onboarding: {
