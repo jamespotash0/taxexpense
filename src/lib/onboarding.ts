@@ -1,37 +1,47 @@
-// Onboarding (TSNAP-017, DEC-013/DEC-014). Config-driven + deterministic — NOT
+// Onboarding (TSNAP-017, DEC-013/014/058). Config-driven + deterministic — NOT
 // LLM-generated (reliability at the highest-drop-off moment). OWNER: Raj + Sofia.
 //
-// 4 setup questions: name → work type → entity type → default payment account, then one
-// OPTIONAL pain-research question ("worst part of tax time?", DEC-057) that lands in the leads
-// table. Name is captured over SMS (warm, easy); email + org name are collected later at the
-// dashboard, not over SMS (DEC-014). Adaptivity lives at EXPENSE time, not here.
+// Setup questions: name → work type → entity type → [business name] → default payment account,
+// then one OPTIONAL pain-research question ("worst part of tax time?", DEC-057) that lands in the
+// leads table. Business name (DEC-058) is asked ONLY for users who named a real entity
+// (sole-prop / LLC / S- or C-corp) and persists to organizations.name; a "not sure"/1099 user who
+// likely operates under their own name is skipped. Name is captured over SMS (warm, easy); email
+// is still collected at the dashboard. Per-question adaptivity uses `when`; richer adaptivity
+// lives at EXPENSE time.
 //
-// Step semantics (onboarding_step), len = ONBOARDING_QUESTIONS.length (4):
-//   0          → brand new; first inbound is the trigger → send Q[0] (name), step→1
-//   N (1..len) → message answers Q[N-1]; store it, send Q[N] or, after the last, the pain Q (step→len+1)
+// Step semantics (onboarding_step), len = ONBOARDING_QUESTIONS.length:
+//   0          → brand new; first inbound is the trigger → send first askable question, step→idx+1
+//   N (1..len) → message answers Q[N-1]; store it, send the next askable question or the pain Q
 //   len+1      → message is the (optional) pain answer; log to leads, complete (step→len+2)
-// Re-ask: empty/whitespace answer to a SETUP question (e.g. a photo) → re-ask, no advance. An
-// empty/"skip" pain answer just completes (research never traps the user).
+// Skipped questions (gated by `when`) advance the step past them. Re-ask: empty/whitespace answer
+// to a SETUP question (e.g. a photo) → re-ask, no advance. An empty/"skip" pain answer completes.
 
 import {
   ONBOARDING_Q_NAME,
   ONBOARDING_Q_WORK,
   ONBOARDING_Q_ENTITY,
+  ONBOARDING_Q_BUSINESS,
   ONBOARDING_Q_PAYMENT,
   ONBOARDING_Q_PAIN,
   onboardingComplete,
   onboardingJoinGreeting,
 } from './prompts';
-import { updateUser, getOrgOwner, type AppUser } from './users';
+import { updateUser, getOrgOwner, getOrganizationName, updateOrganizationName, type AppUser } from './users';
 import { insertLead } from './leads';
 import { PUBLIC_ENV } from './env';
 
-type OnboardingKey = 'full_name' | 'business_type' | 'entity_type' | 'default_payment_account';
+type UserKey = 'full_name' | 'business_type' | 'entity_type' | 'default_payment_account';
+type OnboardingKey = UserKey | 'organization_name';
 
 interface OnboardingQuestion {
   key: OnboardingKey;
+  /** Where the answer persists: a user column, or the org's name. */
+  target: 'user' | 'org';
   prompt: string; // may contain {{name}}, filled at send time
-  parse: (text: string) => string;
+  /** Parse the answer; null means "no value" (e.g. a skipped optional question). */
+  parse: (text: string) => string | null;
+  /** Optional gate — the question is only asked when this returns true given answers so far. */
+  when?: (user: AppUser) => boolean;
 }
 
 /** Strip common lead-ins ("I'm", "my name is") and keep a clean display name. */
@@ -63,15 +73,32 @@ export function parsePaymentAccount(text: string): 'business' | 'personal' | 'un
   return 'unknown'; // "mixed"/"both"/unclear is valid
 }
 
+/** Clean a business name; null for an explicit skip / "no business name" answer. */
+export function parseBusinessName(text: string): string | null {
+  const t = text.trim();
+  if (!t || /^(skip|none|no|nope|nah|n\/?a|just me|myself|i don'?t|own name)\.?$/i.test(t)) return null;
+  return t.slice(0, 120);
+}
+
+/** True when the user named a real entity — sole-prop / LLC / S- or C-corp (DEC-058). A
+ *  "not sure" / 1099 contractor (entity_type unknown or unset) often has no business name, so
+ *  we skip the business-name question for them rather than force a blank field. */
+export function hasNamedEntity(user: AppUser): boolean {
+  return !!user.entity_type && user.entity_type !== 'unknown';
+}
+
 // The tunable onboarding script. Reorder / reword / add a question here.
 // NOTE (DEC-013 follow-up): entity_type does not change Schedule C treatment in V1
 // (sole prop ≈ single-member LLC). Instrument per-step completion before deciding
-// whether to keep it. email + org name are collected at the dashboard (DEC-014).
+// whether to keep it. Business name is captured here for entity-having users (DEC-058);
+// email is still collected at the dashboard (DEC-014).
 export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
-  { key: 'full_name', prompt: ONBOARDING_Q_NAME, parse: parseName },
-  { key: 'business_type', prompt: ONBOARDING_Q_WORK, parse: (t) => t.trim().slice(0, 100) },
-  { key: 'entity_type', prompt: ONBOARDING_Q_ENTITY, parse: parseEntityType },
-  { key: 'default_payment_account', prompt: ONBOARDING_Q_PAYMENT, parse: parsePaymentAccount },
+  { key: 'full_name', target: 'user', prompt: ONBOARDING_Q_NAME, parse: parseName },
+  { key: 'business_type', target: 'user', prompt: ONBOARDING_Q_WORK, parse: (t) => t.trim().slice(0, 100) },
+  { key: 'entity_type', target: 'user', prompt: ONBOARDING_Q_ENTITY, parse: parseEntityType },
+  // Business name — org-level, asked only after entity type and only for real entities (DEC-058).
+  { key: 'organization_name', target: 'org', prompt: ONBOARDING_Q_BUSINESS, parse: parseBusinessName, when: hasNamedEntity },
+  { key: 'default_payment_account', target: 'user', prompt: ONBOARDING_Q_PAYMENT, parse: parsePaymentAccount },
 ];
 
 /** First name for friendly interpolation; falls back to "there". */
@@ -89,12 +116,26 @@ function isUsableAnswer(text: string): boolean {
   return text.trim().length > 0;
 }
 
+/** The stored value backing a question — a user column, or the org name for the org question. */
+function answeredValueFor(q: OnboardingQuestion, user: AppUser, orgName: string | null): unknown {
+  return q.target === 'org' ? orgName : (user as unknown as Record<string, unknown>)[q.key];
+}
+
+/** Ask a question now only if its `when` gate passes AND it isn't already answered. */
+function shouldAsk(q: OnboardingQuestion, user: AppUser, orgName: string | null): boolean {
+  if (q.when && !q.when(user)) return false;
+  return !answeredValueFor(q, user, orgName);
+}
+
 /**
  * Advance onboarding by one step given the user's latest message. Returns the SMS reply.
  * Caller only invokes this while user.onboarding_completed === false.
  */
 export async function handleOnboarding(user: AppUser, messageText: string): Promise<string> {
   const step = user.onboarding_step;
+  // The business-name question lives on the org, so we need its current value to know whether it's
+  // already answered (and to honor the co-owner pre-fill skip). One read per onboarding message.
+  const orgName = await getOrganizationName(user.organization_id);
 
   // Step 0: first contact. Normally this greets + asks for the name. But an invited co-owner
   // (inviteToOrg) arrives with the org's business fields already filled — in that case jump
@@ -102,7 +143,7 @@ export async function handleOnboarding(user: AppUser, messageText: string): Prom
   // message is only a trigger, never an answer, so step 0 always just SENDS a question and
   // advances; we set onboarding_step so the NEXT inbound answers that same question.
   if (step <= 0) {
-    const firstUnanswered = ONBOARDING_QUESTIONS.findIndex((q) => !user[q.key]);
+    const firstUnanswered = ONBOARDING_QUESTIONS.findIndex((q) => shouldAsk(q, user, orgName));
     if (firstUnanswered === -1) {
       // Everything was pre-seeded → nothing left to ask; complete immediately.
       const name = firstName(user.full_name);
@@ -159,19 +200,31 @@ export async function handleOnboarding(user: AppUser, messageText: string): Prom
   }
 
   const value = current.parse(messageText);
-  const patch: Partial<AppUser> = { [current.key]: value } as Partial<AppUser>;
+
+  // Persist to the right place: the org's name for the business-name question, else a user column.
+  const patch: Partial<AppUser> = {};
+  let answeredOrgName = orgName;
+  if (current.target === 'org') {
+    await updateOrganizationName(user.organization_id, value);
+    answeredOrgName = value;
+  } else {
+    (patch as Record<string, unknown>)[current.key] = value;
+  }
 
   // Name for interpolating the NEXT prompt: the value we just parsed if this was the
   // name step, otherwise whatever's already stored.
   const name = firstName(current.key === 'full_name' ? value : user.full_name);
 
-  // Advance to the next question the user hasn't already answered. Normally that's just the
-  // next one in order; but a co-owner invited to an existing org (inviteToOrg, DEC-045) arrives
-  // with the business fields pre-filled, so after their name there's nothing left to ask and
-  // we complete. (A brand-new user has nothing pre-filled, so this is the +1 it always was.)
-  const answered = { ...user, [current.key]: value } as AppUser;
+  // Advance to the next question we should ask: skip ones already answered OR gated out by `when`
+  // (e.g. the business-name question for a "not sure"/1099 user, DEC-058). A co-owner invited to
+  // an existing org (DEC-045) likewise has business fields pre-filled, so this skips straight to
+  // completion after their name. A brand-new user has nothing pre-filled, so it advances in order.
+  const answeredUser = (current.target === 'user' ? { ...user, [current.key]: value } : user) as AppUser;
   let nextIndex = answeredIndex + 1;
-  while (nextIndex < ONBOARDING_QUESTIONS.length && answered[ONBOARDING_QUESTIONS[nextIndex].key]) {
+  while (
+    nextIndex < ONBOARDING_QUESTIONS.length &&
+    !shouldAsk(ONBOARDING_QUESTIONS[nextIndex], answeredUser, answeredOrgName)
+  ) {
     nextIndex++;
   }
 

@@ -4,7 +4,8 @@
 import { NextResponse } from 'next/server';
 import type Stripe from 'stripe';
 import { constructWebhookEvent, mapStripeStatus, getSubscriptionPeriodEnd, periodEndFromSubscription } from '@/lib/stripe';
-import { updateOrgBilling, getOrgIdByStripeCustomer } from '@/lib/subscription';
+import { updateOrgBilling, getOrgIdByStripeCustomer, getOrgSubscriptionStatus } from '@/lib/subscription';
+import { sendSubscriptionWelcome } from '@/lib/billing-notify';
 import { isPlanId } from '@/lib/pricing';
 import { log } from '@/lib/log';
 
@@ -30,6 +31,9 @@ export async function POST(req: Request): Promise<NextResponse> {
         const customerId = typeof s.customer === 'string' ? s.customer : undefined;
         const plan = s.metadata?.plan;
         if (orgId) {
+          // Detect the FIRST activation BEFORE we flip the status, so the welcome SMS fires once
+          // (not on Stripe's webhook retries, and never on renewals — those are subscription.updated).
+          const wasActive = (await getOrgSubscriptionStatus(orgId)) === 'active';
           await updateOrgBilling(orgId, {
             subscription_status: 'active',
             ...(plan && isPlanId(plan) ? { plan } : {}),
@@ -38,6 +42,12 @@ export async function POST(req: Request): Promise<NextResponse> {
             current_period_end: subId ? await getSubscriptionPeriodEnd(subId) : null,
           });
           log.info('subscription_activated', { org: orgId });
+          if (!wasActive) {
+            // Best-effort: a failed welcome must never fail the webhook (Stripe would retry).
+            await sendSubscriptionWelcome(orgId).catch((err) =>
+              log.warn('subscription_welcome_failed', { org: orgId, message: err instanceof Error ? err.message : 'unknown' }),
+            );
+          }
         }
         break;
       }

@@ -29,12 +29,23 @@ export function onboardingJoinGreeting(ownerName?: string): string {
 }
 
 export const ONBOARDING_Q_WORK =
-  `Nice to meet you, {{name}}! Three quick setup questions.\n\n` +
+  `Nice to meet you, {{name}}! A few quick setup questions.\n\n` +
   `What kind of work do you do? (e.g., freelance designer, consultant, photographer)`;
 
 export const ONBOARDING_Q_ENTITY =
   `Got it. How's your business set up?\n\n` +
-  `Reply: "sole prop", "LLC", "S-corp", "C-corp", or "not sure"`;
+  `Reply: "Sole Prop", "LLC", "S-corp", "C-corp", or "not sure"`;
+
+/**
+ * Business / organization name (DEC-058). Asked only AFTER entity type and only when the user
+ * named a real entity (sole-prop / LLC / S- or C-corp) — a "not sure" / 1099 contractor often
+ * operates under their own name, so we skip it for them rather than force a blank field. Stored
+ * on organizations.name (same field Settings edits). Skippable for those who invoice under their
+ * own name.
+ */
+export const ONBOARDING_Q_BUSINESS =
+  `Perfect. What's your business called?\n\n` +
+  `(The name you invoice under — or reply "skip" if you just use your own name.)`;
 
 export const ONBOARDING_Q_PAYMENT =
   `Last one: when you pay for business expenses, do you usually use a dedicated ` +
@@ -62,6 +73,23 @@ export function onboardingComplete(appUrl: string, name?: string): string {
     `- Or mileage like "drove 40 miles to Acme"\n\n` +
     `I'll capture the right context based on what the IRS actually requires. No app needed.\n\n` +
     `View your records anytime at ${appUrl}/login`
+  );
+}
+
+/**
+ * One-time welcome SMS when a user first SUBSCRIBES (DEC-059). They're a CONTINUING user (they
+ * onboarded + logged during the trial), so this reassures + reaffirms the WHY — it does NOT
+ * re-explain the product. Sent once on first activation only (never on renewals); see the billing
+ * webhook. name = owner's first name.
+ */
+export function subscriptionWelcome(appUrl: string, name?: string): string {
+  const lead = name ? `You're locked in, ${name} 🎉` : `You're locked in 🎉`;
+  return (
+    `${lead} Thanks for making it official.\n\n` +
+    `Nothing changes in how you use me — keep texting expenses as they happen and I'll keep ` +
+    `capturing the why behind each, citing the tax code, and keeping you documentation-complete ` +
+    `for tax time.\n\n` +
+    `Your records anytime: ${appUrl}/dashboard`
   );
 }
 

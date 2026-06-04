@@ -68,6 +68,18 @@ export async function updateOrgBilling(orgId: string, patch: OrgBillingPatch): P
   if (error) throw error;
 }
 
+/** Read an org's current subscription status — used to detect the FIRST activation so the
+ *  subscribe-welcome SMS fires once, not on every webhook retry / renewal (DEC-059). */
+export async function getOrgSubscriptionStatus(orgId: string): Promise<SubStatus> {
+  const { data, error } = await getSupabaseAdmin()
+    .from('organizations')
+    .select('subscription_status')
+    .eq('id', orgId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data?.subscription_status as SubStatus) ?? null;
+}
+
 /** Resolve a Stripe customer id back to our org id (for subscription.* webhooks). */
 export async function getOrgIdByStripeCustomer(customerId: string): Promise<string | null> {
   const { data, error } = await getSupabaseAdmin()

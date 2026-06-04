@@ -126,6 +126,27 @@ export async function getOrgOwner(orgId: string): Promise<{ id: string; full_nam
   return { id: ownerId, full_name: (data?.full_name as string | null) ?? null };
 }
 
+/** The org owner's phone + name + opt-out flag (for transactional notices like the subscribe
+ *  welcome, DEC-059). Returns null if there's no owner. */
+export async function getOrgOwnerContact(
+  orgId: string,
+): Promise<{ phone_number: string; full_name: string | null; optedOut: boolean } | null> {
+  const ownerId = await getOrgOwnerId(orgId);
+  if (!ownerId) return null;
+  const { data, error } = await getSupabaseAdmin()
+    .from('users')
+    .select('phone_number, full_name, sms_opted_out_at')
+    .eq('id', ownerId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  return {
+    phone_number: data.phone_number as string,
+    full_name: (data.full_name as string | null) ?? null,
+    optedOut: !!data.sms_opted_out_at,
+  };
+}
+
 /** Everyone who belongs to an org (owner + invited co-owners), for the settings screen. */
 export async function getOrgMembers(orgId: string): Promise<OrgMember[]> {
   const ownerId = await getOrgOwnerId(orgId);
@@ -206,6 +227,23 @@ export async function inviteToOrg(
 /** Patch arbitrary user fields (onboarding answers, settings). */
 export async function updateUser(userId: string, patch: Partial<AppUser>): Promise<void> {
   const { error } = await getSupabaseAdmin().from('users').update(patch).eq('id', userId);
+  if (error) throw error;
+}
+
+/** Read an org's business name (org-level, not a user field). Null if unset. */
+export async function getOrganizationName(orgId: string): Promise<string | null> {
+  const { data, error } = await getSupabaseAdmin()
+    .from('organizations')
+    .select('name')
+    .eq('id', orgId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data?.name as string | null) ?? null;
+}
+
+/** Set an org's business name (captured at onboarding for entity-having users, or at Settings). */
+export async function updateOrganizationName(orgId: string, name: string | null): Promise<void> {
+  const { error } = await getSupabaseAdmin().from('organizations').update({ name }).eq('id', orgId);
   if (error) throw error;
 }
 

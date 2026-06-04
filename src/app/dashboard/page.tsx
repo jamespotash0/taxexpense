@@ -14,7 +14,7 @@ import { fmt } from '@/i18n/config';
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string }>;
+  searchParams: Promise<{ filter?: string; sub?: string }>;
 }) {
   const user = await getCurrentUser();
   if (!user) redirect('/login?returnTo=/dashboard');
@@ -30,9 +30,10 @@ export default async function DashboardPage({
     { key: 'this_month', label: d.filterThisMonth },
   ];
 
-  const { filter: filterParam } = await searchParams;
+  const { filter: filterParam, sub } = await searchParams;
   const filter: ReceiptFilter =
     filterParam === 'needs_attention' || filterParam === 'this_month' ? filterParam : 'all';
+  const justSubscribed = sub === 'success';
 
   const [summary, { rows }, entitlement] = await Promise.all([
     getMonthlySummary(user.organization_id),
@@ -57,6 +58,15 @@ export default async function DashboardPage({
           </form>
         </nav>
       </header>
+
+      {/* Subscribe success banner (DEC-059) — the on-screen half of the "you're subscribed"
+          moment; the SMS welcome is the other half. */}
+      {justSubscribed && (
+        <div className="mt-6 rounded-lg border border-success-600/30 bg-success-50 p-4">
+          <p className="font-medium text-success-700">{d.subSuccessTitle}</p>
+          <p className="mt-1 text-sm text-muted">{d.subSuccessBody}</p>
+        </div>
+      )}
 
       {/* Trial / paywall banner (DEC-021) */}
       {!entitlement.entitled ? (

@@ -7,6 +7,46 @@ Format: date, decision, who pushed back, resolution, rationale.
 
 ---
 
+## 2026-06-04 — Business name in onboarding (conditional) + a real subscribe-welcome message
+
+### DEC-058 — Capture business name in SMS onboarding, but ONLY for entity-having users (partially reverses DEC-014)
+
+- **Change.** Onboarding now asks for the **business / organization name** and stores it on
+  `organizations.name` (the same field Settings edits). Order: name → work → entity → **business
+  name** → payment, then the optional pain question. Founder directive; partially reverses [[DEC-014]]
+  ("org name at the dashboard, not SMS").
+- **Conditional (founder refinement).** The business-name question is **gated on entity type**:
+  asked only when the user named a real entity (sole-prop / LLC / S- or C-corp), and **skipped for a
+  "not sure" / 1099 contractor**, who often operates under their own name — forcing a blank field
+  there is friction (Sofia). Implemented via a new `when?(user)` predicate on the question config;
+  also made the question skippable ("skip"/"just me" → null).
+- **Mechanism.** Generalized the config-driven loop ([[onboarding.ts]]) with `target: 'user' | 'org'`
+  so a question can persist to the org, plus the `when` gate; a `shouldAsk()` resolver replaces the
+  raw `user[key]` checks so the co-owner pre-fill skip and the conditional both work. One extra org
+  read per onboarding message (Raj: fine at onboarding volume).
+- **Also:** "sole prop" → "Sole Prop" in the entity prompt for capitalization parity (display only;
+  the parser lowercases). Email is still collected at the dashboard.
+- **Verified.** New `parseBusinessName` / `hasNamedEntity` + config tests; 128/128 pass; tsc clean.
+
+### DEC-059 — Send a real "you're subscribed" message (there was none); team-designed
+
+- **Finding.** Subscribing sent **nothing** — the billing webhook silently flipped status to active
+  and `/dashboard?sub=success` wasn't even handled. Zero acknowledgment on either channel after payment.
+- **Team call (Sofia/Marcus/Maya/Priya/Alex/Raj/Jordan).** The subscriber is a CONTINUING user, so the
+  message **reassures + reaffirms the WHY** ("you're locked in, nothing changes, keep going") rather
+  than re-explaining the product (Sofia/Marcus). Two surfaces (Priya): a one-time welcome **SMS** plus
+  a dashboard **`?sub=success` banner** for the on-screen moment.
+- **Idempotency (Raj/Jordan — the real risk).** Welcome fires **only on the first transition to
+  active**: it lives in the `checkout.session.completed` branch and is guarded by a pre-update
+  status read (`getOrgSubscriptionStatus`), so Stripe retries and monthly `subscription.updated`
+  renewals never re-welcome. Skips opted-out owners (TCPA). Best-effort — a failed send never fails
+  the webhook. No new column needed.
+- **Files.** `subscriptionWelcome()` copy in prompts; `getOrgOwnerContact()` in users;
+  `getOrgSubscriptionStatus()` in subscription; `lib/billing-notify.ts` orchestrator; webhook wired;
+  dashboard banner + localized copy (en/es). Verified: tsc + eslint clean, 128/128 tests.
+
+---
+
 ## 2026-06-04 — Pain-research question moved to SMS onboarding (amends DEC-056)
 
 ### DEC-057 — "Worst part of tax time?" asked over SMS, lands in `leads`; SMS onboarding now 4 setup Qs + 1 optional research Q
