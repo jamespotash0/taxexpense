@@ -1,9 +1,9 @@
 // Receipt extraction + photo storage + text-expense parsing.
 // OWNER: Raj. TSNAP-018 (storage), TSNAP-019 (OCR), TSNAP-020 (text parse).
 //
-// Security (Jordan / SEC-001): the `receipts` Storage bucket MUST be private. We never
-// return public URLs — only short-lived signed URLs (1h). Twilio media URLs require
-// basic-auth with the account SID/token to download.
+// Security (Jordan / SEC-001): the `receipts` Storage bucket MUST be private (codified in
+// migration 0015 + a RESTRICTIVE storage.objects policy). We never return public URLs — only
+// short-lived signed URLs. Twilio media URLs require basic-auth with the account SID/token.
 
 import { randomUUID } from 'crypto';
 import { getSupabaseAdmin } from './supabase';
@@ -13,7 +13,11 @@ import { RECEIPT_EXTRACTION_PROMPT, TEXT_EXPENSE_PARSE_PROMPT } from './prompts'
 import { requireEnv } from './env';
 
 const RECEIPTS_BUCKET = 'receipts';
-const SIGNED_URL_TTL_SECONDS = 3600; // 1 hour
+// Signed receipt URLs are minted fresh on each dashboard/receipt-detail render, so they only
+// need to outlive a single page view. A short TTL shrinks the window in which a leaked URL
+// (browser history, shared screenshot, proxy log) is still live. 5 min covers render + image
+// load with margin; a reload re-mints.
+const SIGNED_URL_TTL_SECONDS = 300; // 5 minutes
 
 export interface ExtractedReceipt {
   vendor: string | null;

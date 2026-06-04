@@ -12,7 +12,7 @@ import type { Dict } from '@/i18n/dictionaries';
 
 export function LandingPricing({ t, trialDays, ctaLabel }: { t: Dict['pricing']; trialDays: number; ctaLabel: string }) {
   const [annual, setAnnual] = useState(true);
-  const plan = annual ? PLANS.annual : PLANS.monthly;
+  const plan = annual ? PLANS.annual : PLANS.weekly;
 
   return (
     <div className="mx-auto max-w-md">
@@ -24,7 +24,7 @@ export function LandingPricing({ t, trialDays, ctaLabel }: { t: Dict['pricing'];
             aria-pressed={!annual}
             className={`rounded-full px-4 py-1.5 font-medium transition-colors ${!annual ? 'bg-primary text-white' : 'text-gray-600 hover:text-gray-900'}`}
           >
-            {t.planMonthly}
+            {t.planWeekly}
           </button>
           <button
             onClick={() => setAnnual(true)}
@@ -44,11 +44,11 @@ export function LandingPricing({ t, trialDays, ctaLabel }: { t: Dict['pricing'];
         </span>
 
         <p className="mt-4 flex items-baseline justify-center gap-1">
-          <span className="text-5xl font-semibold tracking-tight">{formatMoney(plan.perMonthCents)}</span>
-          <span className="text-gray-500">{t.perMo}</span>
+          <span className="text-5xl font-semibold tracking-tight">{formatMoney(plan.displayCents)}</span>
+          <span className="text-gray-500">{plan.unit === 'wk' ? t.perWk : t.perMo}</span>
         </p>
         <p className="mt-1 text-sm text-gray-500">
-          {annual ? fmt(t.billedYearly, { price: formatMoney(plan.priceCents) }) : t.billedMonthly}
+          {annual ? fmt(t.billedYearly, { price: formatMoney(plan.priceCents) }) : t.billedWeekly}
         </p>
 
         <Link

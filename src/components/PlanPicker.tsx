@@ -33,7 +33,7 @@ export function PlanPicker({ t }: { t: Dict['pricing'] }) {
     }
   }
 
-  const order: PlanId[] = ['annual', 'monthly'];
+  const order: PlanId[] = ['annual', 'weekly'];
 
   return (
     <div>
@@ -54,16 +54,16 @@ export function PlanPicker({ t }: { t: Dict['pricing'] }) {
                 </span>
               )}
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold">{featured ? t.planAnnual : t.planMonthly}</h3>
+                <h3 className="font-semibold">{featured ? t.planAnnual : t.planWeekly}</h3>
                 {featured && <span className="rounded-full bg-accent-50 px-2.5 py-1 text-xs font-medium text-accent">{t.save}</span>}
               </div>
 
               <p className="mt-4 flex items-baseline gap-1">
-                <span className="text-4xl font-semibold tracking-tight">{formatMoney(p.perMonthCents)}</span>
-                <span className="text-gray-500">{t.perMo}</span>
+                <span className="text-4xl font-semibold tracking-tight">{formatMoney(p.displayCents)}</span>
+                <span className="text-gray-500">{p.unit === 'wk' ? t.perWk : t.perMo}</span>
               </p>
               <p className="mt-1 text-sm text-gray-500">
-                {p.interval === 'year' ? fmt(t.billedYearly, { price: formatMoney(p.priceCents) }) : t.billedMonthly}
+                {p.interval === 'year' ? fmt(t.billedYearly, { price: formatMoney(p.priceCents) }) : t.billedWeekly}
               </p>
 
               <button

@@ -7,6 +7,75 @@ Format: date, decision, who pushed back, resolution, rationale.
 
 ---
 
+## 2026-06-04 — Pricing: weekly decoy replaces monthly
+
+### DEC-044 — Weekly ($4.99/wk) is a decoy to force annual ($79.99/yr); monthly retired
+
+- **Context.** Founder wants the two plans to be **Weekly vs. Annual**, with weekly priced
+  high enough to make the annual plan the obvious buy — classic decoy pricing. Supersedes the
+  Monthly/Annual structure from [[DEC-021]] ($11.99/mo or $95.88/yr).
+- **Decision.**
+  - **Weekly = $4.99/wk** (the decoy). Paid for a full year that's **$259.48** — so anyone
+    who'd use Tally past tax season sees annual as the rational choice. Believable as a
+    "just for tax season" impulse price, punishing over time, not so high it looks predatory.
+  - **Annual = $79.99/yr** (≈ **$6.67/mo** billed yearly), down from $95.88. Headline badge
+    now **"Save 69%"** (vs paying weekly for a year), up from "Save 33%".
+  - Monthly plan removed entirely.
+- **Why these numbers (founder-set).** Founder chose $79.99 annual; weekly $4.99 recommended
+  and accepted for the ~69% framing and a ~16-week break-even (16 wks of weekly ≈ one year).
+- **Implementation.** `src/lib/pricing.ts` is the single source of truth — `PlanId` is now
+  `'weekly' | 'annual'`, plans carry `displayCents`/`unit` so the cards show `$4.99/wk` vs
+  `$6.67/mo` without per-component math. UI: `LandingPricing` toggle + `PlanPicker` two-card.
+  i18n: `planWeekly`/`perWk`/`billedWeekly` added (en+es); `planMonthly`/`billedMonthly`
+  removed. DB: migration `0013_weekly_plan.sql` widens the `plan` CHECK to allow `'weekly'`
+  (keeps `'monthly'` for any legacy rows). Stripe env var renamed
+  **`STRIPE_PRICE_MONTHLY` → `STRIPE_PRICE_WEEKLY`** — founder must create a $4.99/week
+  recurring Price in Stripe and set it; annual Price ID updates to the new $79.99 amount.
+- **Action items (founder).** (1) Create the weekly Stripe Price, set `STRIPE_PRICE_WEEKLY`.
+  (2) Create/swap the $79.99 annual Price, update `STRIPE_PRICE_ANNUAL`. (3) Run migration
+  `0013` in Supabase.
+
+---
+
+## 2026-06-03 — Homepage council review: ChatGPT draft made product-true
+
+### DEC-043 — Adopt the ChatGPT homepage IA, but restore the WHY/§-citation wedge; kill fabricated proof
+
+- **Context.** Founder shared a ChatGPT-generated homepage outline (hero → "Missing Piece"
+  problem → how it works → product demo → why-Tally → tax-season → social proof → FAQ) and
+  asked the council to make it inline with the product. Builds on the cinematic rebuild
+  ([[hero-redesign-direction]]): interactive video hero + cinematic how-it-works + pricing
+  band already shipped.
+- **What the council kept.** The IA is sound and the aesthetic north star (Cash App × Apple ×
+  Linear) matches our direction. Two ideas are genuinely strong and were adopted: the
+  **"Missing Piece"** problem section (three receipts you can't explain — the shareable hook,
+  Maya) and the **Without/With tax-season contrast** (a future section).
+- **Conflicts surfaced + rulings.**
+  - *Sofia/Priya:* the draft's instant "Saved under Meals ✓" misrepresents the product —
+    Tally's magic is that it **asks for the why when the rule requires it**, then "✓
+    Documentation complete." Demos must show the ask + the **IRC citation** (§162/§274), not
+    silent auto-filing. Restored across hero scenes + Missing Piece footnote.
+  - *Jordan (hard stop):* the draft proposed **writing testimonials** — we have ~0 users, so
+    that's a fabricated endorsement (FTC risk). **Cut.** Replace social proof with honest
+    problem/manifesto framing until real quotes exist. Also: "Documentation complete," never
+    "audit-ready"; recordkeeping-not-advice disclaimer stays; no fake (555) number — use the
+    real sms: deep-link.
+  - *Marcus/Alex:* the draft positions Tally as "a simpler Expensify" — simplicity is table
+    stakes. The defensible wedge is **capturing the WHY + knowing the IRS substantiation
+    rules + citing the code.** Lead with the live line **"Your bank knows WHAT. Tally knows
+    WHY."** (not the draft's "Remember why…", which puts the work on the user).
+  - *Maya/Emma:* keep the **interactive video hero** we built over a static phone mockup;
+    "Watch the 35-sec story" maps to the new landing brand film (`LANDING-VIDEO-SCRIPT.md`).
+- **Shipped this pass.** `MissingPiece.tsx` (problem section, en+es copy in `missingPiece`),
+  inserted between hero and how-it-works. Cinematic system reused (warm gradient + scrim +
+  Ken Burns). Generated the 8-shot landing brand film via Higgsfield Seedance into
+  `public/hero/story/`.
+- **Deferred (next pass).** "Why Tally exists" process graphic, "Tax season" Without/With
+  contrast, honest social-proof line, and a landing FAQ (reuse the spec-accurate
+  `pricing.faqs` answers, compliance-checked).
+
+---
+
 ## 2026-06-03 — Palette revision: indigo-led design tokens
 
 ### DEC-042 — Indigo is now the primary action color (app + landing); fuller semantic set

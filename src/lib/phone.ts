@@ -17,3 +17,18 @@ export function normalizeToE164(input: string | null | undefined): string | null
   if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`; // 1 + 10-digit / +1 E.164
   return null; // anything else (incl. non-US country codes) is rejected
 }
+
+/**
+ * Format a US phone number for display as +1 (XXX) XXX-XXXX.
+ *
+ * Accepts E.164 (+14155551234), bare 10-digit, or already-formatted input.
+ * If the value can't be confidently parsed as a US number, it's returned
+ * unchanged so display never silently drops a number it doesn't understand.
+ */
+export function formatUsPhone(input: string | null | undefined): string {
+  if (!input) return '';
+  const e164 = normalizeToE164(input);
+  if (!e164) return input.trim();
+  const d = e164.slice(2); // strip leading +1 → 10 digits
+  return `+1 (${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
+}

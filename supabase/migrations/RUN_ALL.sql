@@ -719,3 +719,84 @@ CREATE INDEX IF NOT EXISTS idx_receipts_cpa_flag ON receipts(organization_id) WH
 -- Run in the Supabase SQL editor. Idempotent.
 
 ALTER TABLE conversations ADD COLUMN IF NOT EXISTS pending_data JSONB;
+
+-- =============================================================
+-- 0013_weekly_plan.sql
+-- =============================================================
+
+-- Tally — Weekly-decoy pricing (DEC-044). The monthly plan is replaced by a deliberately
+-- steep weekly plan that pushes users to annual. Widen the `plan` CHECK to allow 'weekly'.
+-- 'monthly' is retained so any legacy rows don't violate the constraint (pre-launch; safe).
+-- Run in the Supabase SQL editor. Idempotent.
+
+ALTER TABLE organizations DROP CONSTRAINT IF EXISTS organizations_plan_check;
+ALTER TABLE organizations ADD CONSTRAINT organizations_plan_check
+  CHECK (plan IN ('weekly', 'monthly', 'annual'));
+
+-- =============================================================
+-- 0014_leads.sql
+-- =============================================================
+
+-- Tally — Web onboarding leads (EPIC-9 funnel).
+-- Every /start funnel completion drops a row here — including visitors who SKIP the phone step
+-- — capturing the name + work type they picked and their "worst part of tax time" answer in
+-- their own words, plus the phone they gave (if any).
+--
+-- Why this exists beyond marketing copy:
+--   • Funnel analytics — measure drop-off + web→SMS conversion (the core funnel KPI).
+--   • Work-type distribution — tune the onboarding chips AND the expense categorizer to the
+--     mix of trades that actually sign up (e.g. lots of "Something else" = a missing segment).
+--   • Pain taxonomy — real, unsolicited language about the problem prioritizes features and
+--     the in-thread IRC education, and validates positioning ("capture the WHY").
+--
+-- NOT an SMS opt-in: phones here are never texted cold. Recognition is handled by the user
+-- pre-seed (users.preseedUserByPhone), gated on the user texting Tally first (TCPA).
+--
+-- Access: service-role only. RLS is enabled with NO anon/auth policies, so only the server's
+-- service-role admin client (which bypasses RLS) can read/write — same posture as users/orgs.
+-- PII note: `pain` is free text; it lives here but is never written to logs.
+-- Run in the Supabase SQL editor. Idempotent.
+
+CREATE TABLE IF NOT EXISTS leads (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  phone_number      VARCHAR(20),
+  full_name         VARCHAR(120),
+  business_type     VARCHAR(100),
+  pain              TEXT,
+  locale            VARCHAR(8),
+  source            VARCHAR(40) NOT NULL DEFAULT 'web_onboarding',
+  -- Set later when this lead's phone first texts in — web→SMS attribution (column reserved;
+  -- population is a follow-up, not wired yet).
+  converted_user_id UUID REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_leads_created_at ON leads(created_at);
+CREATE INDEX IF NOT EXISTS idx_leads_phone ON leads(phone_number) WHERE phone_number IS NOT NULL;
+
+-- Service-role only (no policies created → anon/auth roles get nothing; service role bypasses RLS).
+ALTER TABLE leads ENABLE ROW LEVEL SECURITY;
+
+-- =============================================================
+-- 0015_storage_receipts_policies.sql
+-- =============================================================
+
+-- Lock down the private `receipts` Storage bucket (security audit, residual item).
+-- The app reads receipts ONLY via service-role-signed URLs (lib/ocr.ts), so no anon/auth role
+-- needs direct object access. Codify the bucket as private + a RESTRICTIVE policy so it stays
+-- sealed even if a permissive storage.objects policy is ever added later. Idempotent.
+
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('receipts', 'receipts', false)
+ON CONFLICT (id) DO UPDATE SET public = false;
+
+ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "receipts bucket is service-role only" ON storage.objects;
+CREATE POLICY "receipts bucket is service-role only"
+  ON storage.objects
+  AS RESTRICTIVE
+  FOR ALL
+  TO anon, authenticated
+  USING (bucket_id <> 'receipts')
+  WITH CHECK (bucket_id <> 'receipts');

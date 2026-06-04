@@ -56,7 +56,7 @@ export async function getOrgEntitlement(orgId: string): Promise<Entitlement> {
 
 export interface OrgBillingPatch {
   subscription_status?: SubStatus;
-  plan?: 'monthly' | 'annual';
+  plan?: 'weekly' | 'annual';
   stripe_customer_id?: string;
   stripe_subscription_id?: string;
   current_period_end?: string | null;

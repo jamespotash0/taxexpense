@@ -90,10 +90,24 @@ function isUsableAnswer(text: string): boolean {
 export async function handleOnboarding(user: AppUser, messageText: string): Promise<string> {
   const step = user.onboarding_step;
 
-  // Step 0: first contact — greet + ask for name. The triggering message is not stored.
+  // Step 0: first contact. Normally this greets + asks for the name. But a user can be
+  // pre-seeded from the WEB funnel (preseedUserByPhone) with name/work already known — in
+  // that case jump straight to the first question they HAVEN'T answered. The triggering
+  // message is only a trigger, never an answer, so step 0 always just SENDS a question and
+  // advances; we set onboarding_step so the NEXT inbound answers that same question.
   if (step <= 0) {
-    await updateUser(user.id, { onboarding_step: 1 });
-    return ONBOARDING_QUESTIONS[0].prompt;
+    const firstUnanswered = ONBOARDING_QUESTIONS.findIndex((q) => !user[q.key]);
+    if (firstUnanswered === -1) {
+      // Everything was pre-seeded → nothing left to ask; complete immediately.
+      const name = firstName(user.full_name);
+      await updateUser(user.id, {
+        onboarding_completed: true,
+        onboarding_step: ONBOARDING_QUESTIONS.length + 1,
+      });
+      return onboardingComplete(PUBLIC_ENV.appUrl || 'https://tallywhy.com', name === 'there' ? undefined : name);
+    }
+    await updateUser(user.id, { onboarding_step: firstUnanswered + 1 });
+    return render(ONBOARDING_QUESTIONS[firstUnanswered].prompt, firstName(user.full_name));
   }
 
   const answeredIndex = Math.min(step - 1, ONBOARDING_QUESTIONS.length - 1);

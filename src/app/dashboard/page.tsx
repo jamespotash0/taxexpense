@@ -49,7 +49,9 @@ export default async function DashboardPage({
         <nav className="flex items-center gap-4 text-sm text-muted">
           <LocaleSwitcher current={locale} />
           <Link href="/settings" className="hover:text-foreground">{t.app.nav.settings}</Link>
-          <a href="/api/auth/logout" className="hover:text-foreground">{t.app.nav.logout}</a>
+          <form action="/api/auth/logout" method="post" className="flex">
+            <button type="submit" className="cursor-pointer bg-transparent p-0 [font:inherit] text-inherit hover:text-foreground">{t.app.nav.logout}</button>
+          </form>
         </nav>
       </header>
 
