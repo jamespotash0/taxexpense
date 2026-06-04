@@ -37,7 +37,7 @@ export default async function StartPage() {
       </a>
 
       <p className="mt-4 text-xs text-gray-400">{o.startDesktopNote}</p>
-      <p className="mt-1 text-xs text-gray-400">{o.startWhatsapp} · {o.startDisclaimer}</p>
+      <p className="mt-1 text-xs text-gray-400">{o.startDisclaimer}</p>
 
       <p className="mt-10 border-t border-border pt-6 text-sm text-gray-500">
         {o.startHaveAccount}{' '}

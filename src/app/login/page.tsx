@@ -5,7 +5,6 @@ import { Suspense } from 'react';
 import { LoginForm } from '@/components/LoginForm';
 import { LocaleSwitcher } from '@/components/LocaleSwitcher';
 import { getI18n } from '@/i18n/server';
-import { fmt } from '@/i18n/config';
 import { formatUsPhone } from '@/lib/phone';
 
 export default async function LoginPage() {
@@ -34,7 +33,13 @@ export default async function LoginPage() {
       <p className="mt-8 border-t border-border pt-6 text-sm text-muted">
         {t.app.login.noAccount}{' '}
         <Link href={startHref} className="font-medium text-primary hover:underline">
-          {number ? fmt(t.app.login.noAccountCta, { number }) : t.app.login.noAccountCtaFallback}
+          {number ? (() => {
+            // Split on the {number} token so the phone number itself stays unbreakable -- its
+            // internal spaces/hyphen are break points that would otherwise split it mid-number
+            // (e.g. "475-" wrapping away from "4986"). Mirrors the dashboard empty-state pattern.
+            const [before, after] = t.app.login.noAccountCta.split('{number}');
+            return (<>{before}<span className="whitespace-nowrap">{number}</span>{after}</>);
+          })() : t.app.login.noAccountCtaFallback}
         </Link>
       </p>
     </main>

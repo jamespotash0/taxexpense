@@ -125,7 +125,7 @@ export default async function DashboardPage({
           <div className="p-8 text-center text-sm text-muted">
             {(() => {
               const [before, after] = d.emptyState.split('{number}');
-              return (<>{before}<span className="font-medium text-foreground">{tallyNumber}</span>{after}</>);
+              return (<>{before}<span className="font-medium text-foreground whitespace-nowrap">{tallyNumber}</span>{after}</>);
             })()}
           </div>
         ) : (
