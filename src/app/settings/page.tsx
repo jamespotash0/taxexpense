@@ -7,8 +7,11 @@ import { SettingsForm } from '@/components/SettingsForm';
 import { EmailAccountantButton } from '@/components/EmailAccountantButton';
 import { DeleteAccountButton } from '@/components/DeleteAccountButton';
 import { ManageBillingButton } from '@/components/ManageBillingButton';
+import { CoOwners } from '@/components/CoOwners';
 import { LocaleSwitcher } from '@/components/LocaleSwitcher';
 import { getOrgEntitlement } from '@/lib/subscription';
+import { getOrgMembers, getOrgOwnerId } from '@/lib/users';
+import { MAX_CO_OWNERS } from '@/lib/pricing';
 import { getI18n } from '@/i18n/server';
 import { fmt } from '@/i18n/config';
 
@@ -19,10 +22,13 @@ export default async function SettingsPage() {
   const { locale, t } = await getI18n();
   const s = t.app.settings;
 
-  const [{ data: org }, entitlement] = await Promise.all([
+  const [{ data: org }, entitlement, members, ownerId] = await Promise.all([
     getSupabaseAdmin().from('organizations').select('name').eq('id', user.organization_id).maybeSingle(),
     getOrgEntitlement(user.organization_id),
+    getOrgMembers(user.organization_id),
+    getOrgOwnerId(user.organization_id),
   ]);
+  const isOwner = ownerId === user.id;
 
   const billingLine =
     entitlement.reason === 'active'
@@ -62,6 +68,18 @@ export default async function SettingsPage() {
         <p className="mb-3 mt-1 text-sm text-muted">{billingLine}</p>
         <ManageBillingButton t={t.app.billing} />
       </div>
+
+      {isOwner && (
+        <div className="mt-8 border-t border-border pt-6">
+          <CoOwners
+            t={t.app.coOwners}
+            members={members}
+            currentUserId={user.id}
+            entitled={entitlement.entitled}
+            atCap={members.length >= 1 + MAX_CO_OWNERS}
+          />
+        </div>
+      )}
 
       <div className="mt-8 border-t border-border pt-6">
         <h2 className="text-sm font-medium text-error-700">{s.dangerZone}</h2>

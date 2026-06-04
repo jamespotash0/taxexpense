@@ -3,7 +3,12 @@
 import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { HeroVideo } from '@/components/HeroVideo';
+import { MissingPiece } from '@/components/MissingPiece';
 import { HowItWorks } from '@/components/HowItWorks';
+import { WhyTally } from '@/components/WhyTally';
+import { TaxSeason } from '@/components/TaxSeason';
+import { Proof } from '@/components/Proof';
+import { LandingFaq } from '@/components/LandingFaq';
 import { Reveal } from '@/components/Reveal';
 import { LocaleSwitcher } from '@/components/LocaleSwitcher';
 import { SiteHeader } from '@/components/SiteHeader';
@@ -13,6 +18,7 @@ import { HeroTextMeForm } from '@/components/HeroTextMeForm';
 import { TextNumberCta } from '@/components/TextNumberCta';
 import { TrackedLink } from '@/components/TrackedLink';
 import { TRIAL_DAYS } from '@/lib/pricing';
+import { formatUsPhone } from '@/lib/phone';
 import { AB_HERO_COOKIE, isHeroVariant, type HeroVariant } from '@/lib/ab';
 import { getI18n } from '@/i18n/server';
 import { fmt } from '@/i18n/config';
@@ -25,7 +31,7 @@ export default async function Home() {
   // mechanic stays visible. A real env number always wins and makes the CTA a live sms: link
   // with a prefilled "Hi Tally" draft; with the placeholder, the CTA routes to /start instead.
   const liveNumber = process.env.TWILIO_PHONE_NUMBER || '';
-  const number = liveNumber || '+1 (415) 555-0134';
+  const number = liveNumber ? formatUsPhone(liveNumber) : '+1 (415) 555-0134';
   const smsHref = liveNumber
     ? `sms:${liveNumber.replace(/[^\d+]/g, '')}?&body=${encodeURIComponent('Hi Tally')}`
     : '/start';
@@ -38,7 +44,7 @@ export default async function Home() {
       <div className="hero-glow pointer-events-none absolute inset-x-0 top-0 -z-10 h-[820px]" />
 
       {/* Nav — floating pill that condenses on scroll (SiteHeader) */}
-      <SiteHeader login={t.nav.login} getStarted={t.nav.getStarted} howItWorks={t.nav.howItWorks} pricing={t.nav.pricing} />
+      <SiteHeader login={t.nav.login} getStarted={t.nav.getStarted} />
 
       {/* Hero — two-column on lg: copy left, the live phone tilted toward the lower-right (SE).
           Stacks centered below lg. */}
@@ -46,6 +52,8 @@ export default async function Home() {
         <div className="mx-auto grid max-w-6xl items-center gap-12 px-6 pt-24 pb-20 md:pt-32 lg:grid-cols-2 lg:gap-8 lg:pb-28 lg:px-8">
           {/* Left — copy + CTA */}
           <div className="text-center lg:text-left">
+            {/* Who it's for — answers the audience question before the headline. */}
+            <p className="reveal mb-4 text-xs font-semibold uppercase tracking-wider text-accent">{t.hero.audienceEyebrow}</p>
             <HeroCopy
               variant={heroVariant}
               a={{
@@ -66,30 +74,34 @@ export default async function Home() {
             {heroVariant === 'C' ? (
               <HeroTextMeForm variant={heroVariant} t={t.heroForm} />
             ) : (
-              <>
-                <p className="reveal-3 mt-8 text-xs font-semibold uppercase tracking-wider text-gray-500">{t.hero.tryEyebrow}</p>
-                <div className="reveal-3 mt-2 flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start">
+              // One primary action (start the trial); texting the number is offered as a
+              // lighter, tappable line beneath — same intent, no competing buttons.
+              <div className="reveal-3 mt-8 flex flex-col items-center gap-3 lg:items-start">
+                <TrackedLink
+                  href="/start"
+                  event="hero_cta_click"
+                  data={{ experiment: 'hero-copy', variant: heroVariant }}
+                  className="press inline-flex items-center justify-center rounded-xl bg-accent px-7 py-3.5 text-base font-medium text-white shadow-lg shadow-accent/20 transition-colors hover:bg-accent-hover"
+                >
+                  {t.hero.ctaTrial}
+                </TrackedLink>
+                <p className="text-sm text-gray-500">
+                  {t.hero.ctaOr}{' '}
                   <TextNumberCta
                     number={number}
                     smsHref={smsHref!}
                     variant={heroVariant}
-                    label={fmt(t.hero.tryText, { number })}
+                    hideIcon
+                    label={number}
                     copiedLabel={t.hero.copied}
-                    className="press inline-flex max-w-full flex-wrap items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3.5 text-sm font-medium text-white shadow-lg shadow-accent/20 hover:bg-accent-hover sm:px-6 sm:text-base"
+                    className="font-semibold text-accent underline-offset-4 hover:underline"
                   />
-                  <TrackedLink
-                    href="/start"
-                    event="hero_cta_click"
-                    data={{ experiment: 'hero-copy', variant: heroVariant }}
-                    className="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-5 py-3.5 text-sm font-medium text-gray-900 transition-colors hover:bg-gray-50 sm:text-base"
-                  >
-                    {t.hero.ctaTrial}
-                  </TrackedLink>
-                </div>
-              </>
+                </p>
+              </div>
             )}
 
-            <p className="reveal-3 mt-4 text-xs text-gray-400">{t.hero.disclaimer}</p>
+            <p className="reveal-3 mt-5 text-sm text-gray-500">{t.hero.audience}</p>
+            <p className="reveal-3 mt-2 text-xs text-gray-400">{t.hero.disclaimer}</p>
           </div>
 
           {/* Right — the interactive video centerpiece: a cinematic moment of spending with
@@ -100,9 +112,24 @@ export default async function Home() {
         </div>
       </section>
 
+      {/* The Missing Piece — the problem before the solution (council DEC-028). */}
+      <section className="mx-auto max-w-6xl px-6 py-24 lg:px-8">
+        <MissingPiece t={t.missingPiece} />
+      </section>
+
       {/* How it works — cinematic 3-scene flow: Text it → Tally captures the why → ready by tax time. */}
       <section id="how-it-works" className="mx-auto max-w-6xl scroll-mt-24 px-6 py-24 lg:px-8">
         <HowItWorks t={t.bento} />
+      </section>
+
+      {/* Why Tally exists — capture-now vs. reconstruct-later (DEC-043). */}
+      <section className="mx-auto max-w-6xl px-6 py-20 lg:px-8">
+        <WhyTally t={t.whyTally} />
+      </section>
+
+      {/* Tax season, two ways — the payoff (DEC-043). */}
+      <section className="mx-auto max-w-6xl px-6 py-20 lg:px-8">
+        <TaxSeason t={t.taxSeason} />
       </section>
 
       {/* Pricing — cinematic dark band with an accent glow. The white plan card pops against
@@ -124,6 +151,16 @@ export default async function Home() {
             <p className="mx-auto mt-8 max-w-md text-sm leading-relaxed text-gray-400">{t.pricing.value}</p>
           </div>
         </Reveal>
+      </section>
+
+      {/* Why we built it — honest founding-insight line, not a fabricated testimonial (DEC-043). */}
+      <section className="mx-auto max-w-page px-6 py-20 lg:px-8">
+        <Proof t={t.proof} />
+      </section>
+
+      {/* FAQ — spec-accurate, compliance-checked (DEC-043). */}
+      <section id="faq" className="mx-auto max-w-page scroll-mt-24 px-6 py-16 lg:px-8">
+        <LandingFaq t={t.faq} />
       </section>
 
       {/* Footer — one closing card: the text-to-test CTA up top, the footer nav folded in below. */}

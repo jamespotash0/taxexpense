@@ -15,6 +15,22 @@ export interface LeadInput {
   source?: string;
 }
 
+/**
+ * Record a single funnel step view (DEC-049) for per-step drop-off + a text-tap conversion
+ * proxy. Best-effort; never blocks the funnel. No PII (no name/phone/pain) — just step + session.
+ */
+export async function insertFunnelEvent(e: {
+  session_id: string;
+  step: number;
+  step_name?: string | null;
+  locale?: string | null;
+}): Promise<void> {
+  const { error } = await getSupabaseAdmin()
+    .from('funnel_events')
+    .insert({ session_id: e.session_id, step: e.step, step_name: e.step_name ?? null, locale: e.locale ?? null });
+  if (error) log.warn('funnel_event_insert_failed', { message: error.message });
+}
+
 /** Insert a funnel lead. Throws on DB error; callers treat it as best-effort (never block the funnel). */
 export async function insertLead(lead: LeadInput): Promise<void> {
   const { error } = await getSupabaseAdmin()

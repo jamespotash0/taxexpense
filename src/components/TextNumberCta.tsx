@@ -18,6 +18,7 @@ export function TextNumberCta({
   copiedLabel,
   className,
   experiment = 'hero-copy',
+  hideIcon = false,
 }: {
   number: string;
   smsHref: string;
@@ -26,6 +27,8 @@ export function TextNumberCta({
   copiedLabel: string;
   className?: string;
   experiment?: string;
+  /** Drop the 💬 glyph when the CTA renders as an inline text link rather than a button. */
+  hideIcon?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
   const isSms = smsHref.startsWith('sms:');
@@ -51,7 +54,7 @@ export function TextNumberCta({
 
   return (
     <button type="button" onClick={onClick} className={className} aria-live="polite">
-      <span aria-hidden>💬</span>
+      {!hideIcon && <span aria-hidden>💬</span>}
       {copied ? copiedLabel : label}
     </button>
   );

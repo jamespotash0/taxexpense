@@ -516,8 +516,18 @@ The AI then looks up the substantiation rule and runs the decision tree.
 
 ### Rate Limiting
 - OTP requests: 3 per phone number per 15 minutes
-- Receipt logging: 30 per user per day
+- Inbound SMS: 25 per user per 10 min (burst) + 200 per user per 24h (abuse backstop) — see `src/lib/sms-handler.ts`
 - API endpoints: 60 requests per session per minute
+
+### Usage Caps (DEC-050 — cost control on flat-price plans)
+Counted on **receipts created**, org-scoped (the org owns the plan; co-owners ride it). Only NEW
+expense logging is gated — read-only queries, "why?" explanations, exports and recurring
+confirmations are never capped. Implemented in `src/lib/usage.ts` (pure `decideUsage` + loader),
+enforced in `handleExpenseFlow`.
+- **Daily:** 30 receipts / rolling 24h — burst/abuse ceiling far above any real day.
+- **Annual:** 1,200 receipts / rolling 365d (~$54 all-in COGS, profitable at $79.99/yr). Nudge at
+  90% (1,080), allow a 50-receipt grace overage, then hard-block at 1,250 with a high-volume
+  upsell to support@tallywhy.com (no separate Stripe tier in V1).
 
 ### Data Privacy
 - Photo URLs in Supabase Storage with signed URLs (expire after 1 hour)

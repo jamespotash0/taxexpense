@@ -83,6 +83,17 @@ export async function getReceipt(orgId: string, receiptId: string): Promise<Rece
   return (data as ReceiptRow | null) ?? null;
 }
 
+/** Count an org's receipts created since `sinceIso` — for usage caps (DEC-050, cost control). */
+export async function countReceiptsSince(orgId: string, sinceIso: string): Promise<number> {
+  const { count, error } = await getSupabaseAdmin()
+    .from('receipts')
+    .select('id', { count: 'exact', head: true })
+    .eq('organization_id', orgId)
+    .gte('created_at', sinceIso);
+  if (error) throw error;
+  return count ?? 0;
+}
+
 /** Patch a receipt (org-scoped). */
 export async function updateReceipt(
   orgId: string,

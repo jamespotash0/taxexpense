@@ -4,19 +4,16 @@
 // scroll it shrinks tightly (narrower, smaller logo + padding, stronger shadow) and stays stuck.
 // Slides down on first paint via Framer Motion (reduced-motion honored by MotionProvider).
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 
 export function SiteHeader({
   login,
   getStarted,
-  howItWorks,
-  pricing,
 }: {
   login: string;
   getStarted: string;
-  howItWorks: string;
-  pricing: string;
 }) {
   const [scrolled, setScrolled] = useState(false);
 
@@ -37,16 +34,20 @@ export function SiteHeader({
       {/* Only the width (max-w) + shadow change on scroll — the pill keeps its height. */}
       <nav
         className={`mx-auto flex items-center justify-between gap-4 rounded-full border border-gray-200/70 bg-white/80 py-2 pl-5 pr-2 backdrop-blur-md transition-all duration-300 ${
-          scrolled ? 'max-w-xl shadow-md shadow-gray-900/10' : 'max-w-3xl shadow-lg shadow-gray-900/5'
+          scrolled ? 'max-w-sm shadow-md shadow-gray-900/10' : 'max-w-md shadow-lg shadow-gray-900/5'
         }`}
       >
-        <div className="flex items-center">
+        <Link href="/" className="flex items-center gap-2">
+          <Image
+            src="/brand/tally-logo.svg"
+            alt="Tally logo"
+            width={28}
+            height={28}
+            className="rounded-md"
+            priority
+          />
           <span className="text-lg font-semibold tracking-tight">Tally</span>
-          <div className="ml-2 hidden items-center text-sm sm:flex">
-            <a href="#how-it-works" className="rounded-full px-3 py-2 text-gray-600 hover:text-gray-900">{howItWorks}</a>
-            <a href="#pricing" className="rounded-full px-3 py-2 text-gray-600 hover:text-gray-900">{pricing}</a>
-          </div>
-        </div>
+        </Link>
         <div className="flex items-center gap-1.5 text-sm sm:gap-2">
           <Link href="/login" className="rounded-full px-4 py-2 text-gray-600 hover:text-gray-900">{login}</Link>
           <Link

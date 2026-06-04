@@ -14,6 +14,20 @@ export const ONBOARDING_Q_NAME =
   `Hey! I'm Tally — I help you capture business expenses just by texting me. ` +
   `First, what should I call you?`;
 
+/**
+ * First message for an invited co-owner (DEC-045). Warmer + clearer than the generic greeting:
+ * it names who added them so they know they're joining a shared account, then asks only their
+ * name (the business setup was inherited from the owner). ownerName = owner's first name.
+ */
+export function onboardingJoinGreeting(ownerName?: string): string {
+  const lead = ownerName ? `You've been added to ${ownerName}'s Tally 👋` : `You've been added to a shared Tally 👋`;
+  return (
+    `${lead}\n\n` +
+    `I capture business expenses straight from a text — send a photo or a quick note and I'll log the why behind each one, into the same account.\n\n` +
+    `First, what should I call you?`
+  );
+}
+
 export const ONBOARDING_Q_WORK =
   `Nice to meet you, {{name}}! Three quick setup questions.\n\n` +
   `What kind of work do you do? (e.g., freelance designer, consultant, photographer)`;

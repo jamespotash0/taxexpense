@@ -7,6 +7,246 @@ Format: date, decision, who pushed back, resolution, rationale.
 
 ---
 
+## 2026-06-04 — Messaging channel strategy: SMS now, WhatsApp deferred, Signal ruled out
+
+### DEC-051 — Ship V1 on SMS only; WhatsApp is a post-launch fast-follow; Signal is not viable
+
+- **SMS (A2P 10DLC):** the V1 channel. Sole-prop campaign approved + live on tallywhy.com; the
+  inbound webhook lives on the **Messaging Service Integration** (not the phone number — the
+  service overrides it). Per-segment pricing; ~$0.045 all-in COGS/expense (see [[DEC-050]]).
+- **WhatsApp — DEFERRED (code is already channel-ready; the gate is purely Meta onboarding).**
+  - *Mechanism in place:* `sendMessage(...,'whatsapp')` via `TWILIO_WHATSAPP_FROM`; inbound route
+    detects the `whatsapp:` prefix. No code work needed to enable.
+  - *What's involved:* Twilio self-sign-up → Meta Embedded Signup (Business Portfolio + WABA) →
+    OTP-verify a **separate** number → display-name review → **Meta Business Verification**
+    (required for production/higher limits). Sole-prop w/o EIN can mark EIN "not available" (same
+    as A2P). Unverified = limited tier (~250 business-initiated convos/day) — OK for a pilot.
+  - *Complexity:* technical work trivial; the real cost is the **business-verification timeline**
+    (days–weeks, doc-dependent — the sole-prop friction point) + ongoing **template management**.
+  - *Cost (US, 2026) is NOT the blocker for our pattern:* **service** replies (in-window) are
+    **free**; **utility** nudges (recurring/trial reminders) are cheap and got cheaper in NA Jan
+    2026; we'd never use the pricey **marketing** category. The 24h-window + approved-template
+    rule for business-initiated nudges is the real behavioral constraint.
+  - *Trigger to build:* real user demand for WhatsApp. Prep now = line up business-verification
+    docs so onboarding is painless when we pull the trigger.
+- **Signal — RULED OUT.** No business API, no CPaaS support (incl. Twilio); the only route
+  (`signal-cli`/`signald` driving a consumer account) violates Signal's ToS and risks bans. Not a
+  hard approval — there is no door. Do not revisit.
+
+---
+
+## 2026-06-04 — OPEN QUESTION: per-user web→SMS attribution
+
+### OPEN-Q1 — Do we want true web→SMS conversion? If so, reopen the phone/token decisions together.
+
+- **The gap.** We can measure funnel drop-off ([[DEC-049]]) and, aggregate, how many people text
+  in — but **not** per-user "this web visitor became this texter." Attribution needs a shared key
+  across the web→SMS channel boundary, and we removed both candidates: the **phone** (funnel no
+  longer collects it, [[DEC-048]]) and the **deep-link token** (co-owner invite link deferred,
+  [[DEC-046]]).
+- **Why it's parked, not decided.** Each removal was individually right (simpler funnel; no
+  leakable token; cleaner TCPA posture). But together they foreclose per-user attribution. Don't
+  half-measure it with fragile inbound-body matching.
+- **Trigger to revisit.** If the aggregate funnel→activation ratio becomes the number we most need
+  to optimize (e.g. paid acquisition, or deciding which funnel steps to cut), reopen **DEC-048 +
+  DEC-046 together** and pick ONE shared key:
+  - *Phone, reintroduced* — bring back optional phone capture purely to set `leads.converted_user_id`
+    on first inbound (the column is already reserved). Highest-fidelity; reintroduces the friction/
+    consent considerations we removed.
+  - *Deep-link token* — a per-session marker carried into the prefilled `sms:` body and matched on
+    inbound. No phone, but Jordan's token-hardening (single-use/expiry) and body-parsing fragility
+    apply.
+- **Owner:** Priya (metric need) + Raj/Jordan (mechanism). No code until the trigger fires.
+
+---
+
+## 2026-06-04 — Per-customer usage caps (unit economics)
+
+### DEC-050 — Receipt-based usage caps to protect margin on the flat-price plans
+
+- **Why.** Revenue is fixed ($79.99/yr) but variable cost scales with usage. Real per-expense
+  COGS ≈ **$0.045 all-in** (Twilio inbound+reply+carrier fees ~$0.033 + Claude ~$0.011, with
+  prompt caching already on — [[DEC-036]]). At that rate a typical customer (~40 expenses/mo)
+  costs ~$22/yr (≈72% margin — healthy), but the **long tail was uncapped**: the only guard was
+  the 200/day *inbound-message* backstop, so a runaway/abusive sender could cost ~$2,000/yr.
+  SPEC's "30 receipts/user/day" line was **documented but never implemented**.
+- **Decision (founder).** Two layers, both counted on **receipts created** (the real cost driver),
+  **org-scoped** (the org owns the plan; co-owners ride it, capped at 1 per [[DEC-047]] — so the
+  per-org refinement of SPEC's "per user" is negligible). Only **new expense logging** is gated;
+  read-only queries, "why?" explanations, exports and recurring confirmations flow through uncapped.
+  - **Daily:** 30 receipts / rolling 24h — burst/abuse ceiling, far above any real day.
+  - **Annual:** 1,200 receipts / rolling 365d (~$54 COGS, still profitable). **Grace-then-block:**
+    nudge at 90% (1,080, every 50 to avoid per-msg spam), allow a 50-receipt grace overage, then
+    hard-block at 1,250.
+- **Upsell.** No separate Stripe tier in V1 — the annual block points high-volume users to
+  **support@tallywhy.com** to arrange a fitting plan (handle the rare case manually).
+- **Mechanism.** `src/lib/usage.ts` (pure `decideUsage` + `getUsageCounts` loader),
+  `countReceiptsSince` in `receipts.ts`, enforced in `handleExpenseFlow`. Photo new-expense path
+  short-circuits **before OCR** when blocked, so a capped user incurs no LLM cost.
+- 119 tests pass (6 new for `decideUsage`); typecheck clean.
+
+---
+
+## 2026-06-04 — Team review of the funnel → instrumentation, WHY hook, a11y
+
+### DEC-049 — Instrument funnel drop-off; front-load the WHY; progressbar a11y. Decoupling finding logged.
+
+- **Team review (Sofia/Priya/Marcus/Alex/Maya/Emma/Jordan).** Verdict on the simplified funnel
+  ([[DEC-048]]): execution good; the real issue is the funnel's *job* is now unnamed.
+- **Headline finding — web↔SMS decoupling.** Removing the phone step means the funnel records a
+  **lead only** and no longer pre-fills the SMS flow, so a texter re-answers all 4 SMS Qs. It
+  also means the `leads.converted_user_id` attribution column (reserved, phone-keyed) **can't be
+  populated** for funnel completions. ⇒ Per-user web→SMS attribution is impossible without a
+  shared key (phone — removed; or a deep-link token — the same channel-crossing problem as the
+  co-owner invite link, [[DEC-046]]). Accepted: the funnel is a **commitment ladder + lead/pain
+  capture**, not an onboarding shortcut.
+- **Actioned (founder picked 3 of 4 suggestions).**
+  1. **Instrumentation** — `funnel_events` table (`0016`), `POST /api/onboarding/event`
+     (IP-rate-limited, no PII), client fires one event per step view (guarded vs Strict-Mode
+     double-fire) + a `text_click` event on the SMS-link tap (`keepalive`). Gives per-step
+     drop-off + a tap-to-text conversion proxy. *Note: "did they actually text" stays
+     **aggregate-only*** (funnel completions vs new SMS users), per the decoupling above.
+     (This is also the analytics Priya wanted for the co-owner adoption trigger, [[DEC-046]].)
+  2. **Front-load the WHY** — persistent hook under the progress bar: "Your bank knows WHAT you
+     spent. Tally knows WHY." (en+es), so the wedge lands before any input (Marcus/Sofia).
+  3. **A11y** — progress bar now `role=progressbar` + `aria-valuenow/min/max` + label (Emma).
+- **Held (Priya/Alex): do NOT cut steps yet.** The pain step stays (Maya: pain-taxonomy for ad
+  copy). Decide any step cuts on the new drop-off data, not opinion.
+- Typecheck + 113 tests pass; hook render + event firing verified by screenshot. Founder must
+  run migration `0016` in Supabase.
+
+---
+
+## 2026-06-04 — Web onboarding funnel: simplified + polished
+
+### DEC-048 — Drop the phone-capture step; unify inputs, add step counter, "other" box, adaptive layout
+
+- **Context.** Founder reviewed the `/start` funnel and flagged: inconsistent input backgrounds,
+  no progress sense, no free-text fallback for "what work," a confusing phone step, and a
+  bloated final page.
+- **Phone step removed.** The old step 5 ("Drop your number to *skip the setup questions*") was
+  confusing — it oversold (skips ~2 of 4 SMS Qs), was circular, and you text first anyway. Flow
+  is now **name → work → pain → how-it-works → text-the-number** (5 steps). The lead
+  (name/work/pain) is still recorded on the final step via `/api/onboarding/preseed`; the SMS
+  flow asks the 2 remaining setup Qs (entity + payment). Removed the now-dead `phone*` i18n keys.
+- **Other changes.**
+  - **Unified field styling** — shared `FIELD` class (white card + soft border + shadow + accent
+    focus ring) across name, "other work," and pain, matching the work chips. The name input
+    previously lacked the card/ring.
+  - **Step counter** — "Step 1/2/3 of 3" on the three question steps (`stepOf` i18n).
+  - **"Something else" → free-text box** — selecting the last work chip reveals an input
+    (`otherWorkPlaceholder`); Continue is gated until it's filled; its value becomes
+    `business_type`.
+  - **Adaptive** — container widens (`max-w-md sm:max-w-xl`), chips go 2-col→3-col, type/padding
+    scale up on desktop. Verified mobile (390) + desktop (1280) by screenshot.
+  - **Succinct final page** — badge + title + big number + one CTA + a single combined fine-print
+    line (dropped the redundant `startSub`).
+- **No backend/schema change.** Typecheck + 113 tests pass.
+
+---
+
+## 2026-06-04 — Co-owner pricing + paywall + join-aware greeting
+
+### DEC-047 — Co-owner is included (no extra charge), capped at 1; adding is paywalled
+
+- **Pricing decision.** A co-owner does **not** cost extra — they're included on the org's
+  single subscription ([[DEC-044]] $79.99/yr). This matches "one plan, everything included" and
+  the validated use case (a spouse is the same household/business, not a new customer).
+  - To stop a whole team riding one plan, headcount is **capped: `MAX_CO_OWNERS = 1`**
+    (owner + 1 co-owner). Per-seat billing for real teams stays deferred (V2).
+  - Considered + rejected for V1: per-seat billing — adds Stripe quantity-sync + friction for a
+    feature with zero adoption data; it's the V2 teams lever, not a V1 need.
+- **Paywall enforcement (founder ask: "prevent adding while payment unfulfilled").**
+  - *Web:* `POST /api/settings/members` now returns **402** if the org isn't paid/in-trial
+    (`getOrgEntitlement`), and the Settings UI swaps the invite form for a "Subscribe to add a
+    co-owner" link. The seat cap returns `seat_limit` (enforced in `inviteToOrg`) → UI shows a
+    "reached the co-owner limit" note.
+  - *Text:* already gated — an unentitled org's inbound hits the paywall in `sms-handler`
+    **before** onboarding, so a pending co-owner can't start capturing on a lapsed account. No
+    new code needed there.
+- **Join-aware greeting (warmer/clearer, founder ask).** An invited co-owner's first text now
+  gets `onboardingJoinGreeting(ownerName)` — "You've been added to **{owner}'s** Tally 👋 …
+  what should I call you?" — instead of the generic first-run greeting. Fires only for a
+  non-owner (via `getOrgOwner`); solo owners are unchanged. SMS copy stays English-only
+  (prompts.ts), consistent with the rest of the conversation.
+- **Shipped.** `MAX_CO_OWNERS` + seat-cap check (`inviteToOrg`), entitlement gate on the invite
+  route, `onboardingJoinGreeting` + `getOrgOwner`, CoOwners UI states (subscribe / at-cap /
+  form), `app.coOwners` copy additions (en+es). Typecheck + 113 tests pass; UI states verified
+  by screenshot. No schema change.
+
+---
+
+## 2026-06-04 — Co-owner join mechanism: phone-entry now, invite-link deferred
+
+### DEC-046 — Keep dashboard phone-entry as the co-owner join path; defer the invite-link/token flow
+
+- **Context.** With co-owner join shipped via owner-typed phone ([[DEC-045]]), founder asked
+  whether the joiner should instead come in via an **invite link** ("click link → how does the
+  system know they belong to this org?"). The team debated link-token vs. phone-entry.
+- **The core constraint.** An inbound text gives us only the `From` number. A web click and an
+  SMS are separate channels, so a link can only work if a **token rides inside the first text**
+  (`sms:+1…?&body=Join: TOKEN`, reusing our existing deep-link pattern) and the handler resolves
+  token→org *before* the default new-org path.
+- **Debate.**
+  - *Marcus / Alex / Raj (converged):* the validated case is **one spouse, one set of books** —
+    phone-entry already covers it (you know your spouse's number). Token infra (`org_invites`
+    table, lifecycle, handler branch) is V2 plumbing on V1's clock; build it on evidence, not
+    instinct. Phone-entry is done, free, and needs no new table.
+  - *Jordan (security — pivotal):* a shareable `/join/TOKEN` link is a **bearer credential to
+    financial records**. Forward/screenshot it and a stranger's first text joins your books.
+    Phone-entry has no leakable artifact and is owner-controlled. If the link is ever built it
+    MUST be single-use + short-expiry + owner-notified-on-join.
+  - *Sofia (dissent):* the prefilled-SMS link is lovely UX, but conceded it mainly helps the
+    **teams** case (numbers you don't know) we're deferring; for a spouse the typing papercut is
+    tiny. Her one standing argument: a spouse sharing a link is a small **virality loop** (Maya
+    would likely agree) — the only frame in which building now wins.
+  - *Priya:* make it measurable — ship phone-entry, instrument **% of orgs that add a co-owner**;
+    the link's trigger is that metric clearing a bar AND users complaining about typing numbers.
+- **Decision.** Keep the **phone-entry** path ([[DEC-045]]); **do not** build the invite-link/
+  token flow now. **Revisit trigger:** (a) meaningful co-owner adoption (~15%+ of orgs) **and**
+  (b) the teams/employees use case going live (numbers the owner doesn't know). At that point
+  build it hardened per Jordan. The **collision rule stays** regardless (a number with its own
+  account can't silently join — that's an account-merge, out of scope).
+- **No code change** this pass — decision + revisit trigger only.
+
+---
+
+## 2026-06-04 — Multi-user: co-owner join (spouse), teams deferred
+
+### DEC-045 — Owner can invite a co-owner to one org; net-new phones only, no account merge
+
+- **Context.** Until now every inbound phone went through `getOrCreateUserByPhone`, which spins
+  up a *brand-new org* for any unknown number. So a second person (e.g. a spouse) texting the
+  Tally number silently became a disconnected duplicate tenant — there was no "join an account"
+  path. Founder wants co-owner/spouse join now; teams/employees stay deferred (V2).
+- **Decision (co-owner slice).** Owner-initiated invite, reusing the preseed pattern:
+  - Owner adds a co-owner by **phone** in Settings → new `inviteToOrg(orgId, phone, profile)`
+    inserts a `users` row on the **existing** org (role `editor`) and **copies the org's
+    business context** (`business_type`/`entity_type`/`default_payment_account`) so the joiner
+    only has to give their **name** on first text.
+  - The joiner **texts Tally** → `getOrCreateUserByPhone` finds the pre-seeded row → **no new
+    org** → lands in the shared books. First inbound stamps their own TCPA consent
+    (`sms_consent_at` left null at invite time; no outbound until they opt in).
+  - Onboarding now **skips already-answered questions** when advancing, so a co-owner completes
+    right after their name (general improvement; brand-new users unaffected).
+  - **Billing:** rides on the org's single subscription — per-org entitlement, no seat math
+    ([[DEC-021]]).
+- **The hard rule — phone collision.** `phone_number` is globally UNIQUE, so a clean join only
+  works for a **net-new** phone. A number that already has *any* Tally account is **refused**
+  (`has_other_account`, 409). Re-homing an existing account (with its receipts/sub) is an
+  **account merge — explicitly out of scope** for V1.
+- **Roles.** Co-owner = `editor` (full capture + edit, but can't invite or touch billing —
+  owner-only, enforced via `organizations.owner_user_id`). Same boundary teams will want.
+- **NOT in this slice (deferred to teams/V2):** per-seat billing, role enforcement beyond
+  owner-vs-editor, member removal UI, account merge.
+- **Shipped.** `inviteToOrg`/`getOrgMembers`/`getOrgOwnerId` (users.ts), skip-filled advance
+  (onboarding.ts), `POST /api/settings/members` (owner-only + collision guard), `CoOwners.tsx`
+  + owner-only Settings section, `app.coOwners` copy (en+es). Typecheck + onboarding tests pass;
+  UI verified via throwaway preview screenshot. No schema change (model already supported
+  many-users→one-org).
+
+---
+
 ## 2026-06-04 — Pricing: weekly decoy replaces monthly
 
 ### DEC-044 — Weekly ($4.99/wk) is a decoy to force annual ($79.99/yr); monthly retired

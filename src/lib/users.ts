@@ -6,6 +6,7 @@
 import { getSupabaseAdmin } from './supabase';
 import { log } from './log';
 import { maskPhone } from './log';
+import { MAX_CO_OWNERS } from './pricing';
 
 export interface AppUser {
   id: string;
@@ -142,6 +143,119 @@ export async function preseedUserByPhone(
   await admin.from('user_roles').insert({ user_id: user.id, organization_id: org.id, role: 'owner' });
 
   log.info('user_preseeded', { org: org.id, phone: maskPhone(phoneE164) });
+}
+
+// ── Co-owner / multi-user (DEC-045) ────────────────────────────────────────────────
+// V1 supports inviting a co-owner (e.g. a spouse) to ONE org so both capture into the
+// same books on the org's single subscription. Team/seat billing is deferred (V2).
+
+export interface OrgMember {
+  id: string;
+  phone_number: string;
+  full_name: string | null;
+  role: 'owner' | 'editor';
+  status: 'active' | 'pending'; // pending = invited but hasn't texted in yet (no SMS consent)
+}
+
+/** The org's owner user id (the one billing/invite authority). */
+export async function getOrgOwnerId(orgId: string): Promise<string | null> {
+  const { data, error } = await getSupabaseAdmin()
+    .from('organizations')
+    .select('owner_user_id')
+    .eq('id', orgId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data?.owner_user_id as string | undefined) ?? null;
+}
+
+/** The org owner's id + display name (for a join-aware greeting to invited co-owners). */
+export async function getOrgOwner(orgId: string): Promise<{ id: string; full_name: string | null } | null> {
+  const ownerId = await getOrgOwnerId(orgId);
+  if (!ownerId) return null;
+  const { data, error } = await getSupabaseAdmin()
+    .from('users')
+    .select('full_name')
+    .eq('id', ownerId)
+    .maybeSingle();
+  if (error) throw error;
+  return { id: ownerId, full_name: (data?.full_name as string | null) ?? null };
+}
+
+/** Everyone who belongs to an org (owner + invited co-owners), for the settings screen. */
+export async function getOrgMembers(orgId: string): Promise<OrgMember[]> {
+  const ownerId = await getOrgOwnerId(orgId);
+  const { data, error } = await getSupabaseAdmin()
+    .from('users')
+    .select('id, phone_number, full_name, sms_consent_at, onboarding_completed')
+    .eq('organization_id', orgId)
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  return (data ?? []).map((u) => ({
+    id: u.id as string,
+    phone_number: u.phone_number as string,
+    full_name: (u.full_name as string | null) ?? null,
+    role: u.id === ownerId ? 'owner' : 'editor',
+    status: u.sms_consent_at || u.onboarding_completed ? 'active' : 'pending',
+  }));
+}
+
+export type InviteResult = { ok: true } | { ok: false; reason: 'already_member' | 'has_other_account' | 'seat_limit' };
+
+/**
+ * Invite a co-owner to an EXISTING org by phone (DEC-045). Unlike getOrCreateUserByPhone /
+ * preseedUserByPhone (which each spin up a fresh org), this attaches the new user to the
+ * inviter's org and copies the org's business context so the joiner only has to give their
+ * NAME on first text — categorization then uses the same entity/payment defaults.
+ *
+ * Net-new phones only: because phone_number is globally unique, a number that already belongs
+ * to ANY org is refused. Re-homing an existing account (with its receipts/subscription) is an
+ * account-merge — explicitly out of scope for V1.
+ *
+ * TCPA: sms_consent_at is left null; the joiner's first inbound text is their opt-in (stamped
+ * by getOrCreateUserByPhone, which finds this pre-seeded row instead of creating a new org).
+ */
+export async function inviteToOrg(
+  orgId: string,
+  phoneE164: string,
+  inviterProfile: Pick<AppUser, 'business_type' | 'entity_type' | 'default_payment_account'>,
+): Promise<InviteResult> {
+  const existing = await getUserByPhone(phoneE164);
+  if (existing) {
+    return existing.organization_id === orgId
+      ? { ok: false, reason: 'already_member' }
+      : { ok: false, reason: 'has_other_account' };
+  }
+
+  const admin = getSupabaseAdmin();
+
+  // Seat cap (DEC-047): owner + MAX_CO_OWNERS. Co-owners are included on the one subscription,
+  // so cap headcount to keep a team from riding a single plan; per-seat billing is V2.
+  const { count, error: countErr } = await admin
+    .from('users')
+    .select('id', { count: 'exact', head: true })
+    .eq('organization_id', orgId);
+  if (countErr) throw countErr;
+  if ((count ?? 0) >= 1 + MAX_CO_OWNERS) return { ok: false, reason: 'seat_limit' };
+
+  const { data: user, error } = await admin
+    .from('users')
+    .insert({
+      organization_id: orgId,
+      phone_number: phoneE164,
+      business_type: inviterProfile.business_type,
+      entity_type: inviterProfile.entity_type,
+      default_payment_account: inviterProfile.default_payment_account,
+      onboarding_completed: false,
+      onboarding_step: 0,
+      // sms_consent_at intentionally omitted — first inbound is the TCPA opt-in.
+    })
+    .select('id')
+    .single();
+  if (error) throw error;
+
+  await admin.from('user_roles').insert({ user_id: user.id, organization_id: orgId, role: 'editor' });
+  log.info('user_invited', { org: orgId, phone: maskPhone(phoneE164) });
+  return { ok: true };
 }
 
 /** Patch arbitrary user fields (onboarding answers, settings). */

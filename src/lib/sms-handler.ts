@@ -31,6 +31,7 @@ import {
 import type { ExpenseInput } from './categorize';
 import { sendMessage, type Channel } from './twilio';
 import { getOrgEntitlement } from './subscription';
+import { getUsageCounts, decideUsage, ANNUAL_RECEIPT_QUOTA, type UsageDecision } from './usage';
 import { PUBLIC_ENV } from './env';
 import { log, maskPhone } from './log';
 
@@ -169,6 +170,25 @@ function appBase(): string {
   return PUBLIC_ENV.appUrl || 'https://tallywhy.com';
 }
 
+// Usage-cap replies (DEC-050). A "block" reply never logs a receipt: the daily one stays
+// friendly (a genuinely heavy day), the annual one upsells high-volume use to support.
+function cappedReply(decision: Extract<UsageDecision, { kind: 'block_daily' | 'block_annual' }>): ProcessResult {
+  const smsText =
+    decision.kind === 'block_daily'
+      ? `That's a lot of expenses in one day — I've saved every one. I'll catch up on new ones shortly so nothing gets garbled; everything so far is on your dashboard: ${appBase()}.`
+      : `You've reached your plan's expense limit for the year — everything's saved and exportable. If you're logging this much, let's get you on a plan that fits: email support@tallywhy.com.`;
+  return { smsText, receiptId: null, contextState: null };
+}
+
+/** Append a one-line annual-quota nudge to an otherwise-normal reply (only fires at milestones). */
+function withAnnualNudge(decision: UsageDecision, result: ProcessResult): ProcessResult {
+  if (decision.kind !== 'warn_annual') return result;
+  return {
+    ...result,
+    smsText: `${result.smsText}\n\nHeads up — you're near your yearly expense limit (${decision.used}/${ANNUAL_RECEIPT_QUOTA}). Logging a lot? Email support@tallywhy.com about a high-volume plan.`,
+  };
+}
+
 // Closing line on any tax-guidance reply (suggest-not-advise + CPA deferral).
 const CPA_NOTE = 'Suggestion, not advice — for your situation, check with a CPA.';
 
@@ -222,7 +242,17 @@ async function handleExpenseFlow(user: AppUser, msg: InboundMessage): Promise<Pr
   const hasPhoto = msg.numMedia > 0 && msg.mediaUrls.length > 0;
   const pending = await getPendingContext(user.id);
 
+  // Usage caps (DEC-050): gate only NEW expense logging. Answering a pending question, "why?",
+  // recurring confirmations and read-only queries below all flow through uncapped.
+  const decision = decideUsage(await getUsageCounts(user.organization_id));
+  const blocked = decision.kind === 'block_daily' || decision.kind === 'block_annual';
+
   if (hasPhoto) {
+    // A photo with NO pending question is a new expense → short-circuit BEFORE OCR when capped,
+    // so a blocked user never incurs the OCR cost. (A photo answering a pending receipt completes
+    // an expense that already counted, so it's allowed.)
+    if (!pending && blocked) return cappedReply(decision);
+
     // OCR from the bytes FIRST; we only write to Storage once we know the image links
     // to a receipt (prevents orphaned uploads from non-receipt / unmatched photos).
     const { buffer, contentType } = await fetchTwilioMedia(msg.mediaUrls[0]);
@@ -233,7 +263,9 @@ async function handleExpenseFlow(user: AppUser, msg: InboundMessage): Promise<Pr
       const attached = await processAttachment(user, ocr, buffer, contentType);
       if (attached) return attached;
     }
-    return maybeOfferRecurring(user, await handlePhotoAsNewExpense(user, ocr, msg.body, buffer, contentType));
+    // Fell through to a new expense (no match) → re-check the cap before logging.
+    if (blocked) return cappedReply(decision);
+    return withAnnualNudge(decision, await maybeOfferRecurring(user, await handlePhotoAsNewExpense(user, ocr, msg.body, buffer, contentType)));
   }
 
   // Y/N answer to a monthly recurring nudge (DEC-033). Only query when the reply is a bare
@@ -275,7 +307,10 @@ async function handleExpenseFlow(user: AppUser, msg: InboundMessage): Promise<Pr
   const routed = await routeTextMessage(user, msg.body);
   if (routed) return routed;
 
-  return maybeOfferRecurring(user, await handleTextAsNewExpense(user, msg.body));
+  // New text expense → subject to the usage caps (checked after the router so read-only
+  // queries above are never blocked, and before parse/categorize so a blocked user costs nothing).
+  if (blocked) return cappedReply(decision);
+  return withAnnualNudge(decision, await maybeOfferRecurring(user, await handleTextAsNewExpense(user, msg.body)));
 }
 
 /** Top-level inbound handler. Always sends exactly one SMS reply. */

@@ -16,8 +16,9 @@ import {
   ONBOARDING_Q_ENTITY,
   ONBOARDING_Q_PAYMENT,
   onboardingComplete,
+  onboardingJoinGreeting,
 } from './prompts';
-import { updateUser, type AppUser } from './users';
+import { updateUser, getOrgOwner, type AppUser } from './users';
 import { PUBLIC_ENV } from './env';
 
 type OnboardingKey = 'full_name' | 'business_type' | 'entity_type' | 'default_payment_account';
@@ -107,6 +108,16 @@ export async function handleOnboarding(user: AppUser, messageText: string): Prom
       return onboardingComplete(PUBLIC_ENV.appUrl || 'https://tallywhy.com', name === 'there' ? undefined : name);
     }
     await updateUser(user.id, { onboarding_step: firstUnanswered + 1 });
+
+    // Join-aware greeting (DEC-045): an invited co-owner isn't the org owner and arrives with
+    // the business fields pre-filled, so step 0 asks only their name. Greet them warmly and name
+    // who added them, instead of the generic first-run greeting. (Solo owners fall through.)
+    if (firstUnanswered === 0) {
+      const owner = await getOrgOwner(user.organization_id);
+      if (owner && owner.id !== user.id) {
+        return onboardingJoinGreeting(owner.full_name ? firstName(owner.full_name) : undefined);
+      }
+    }
     return render(ONBOARDING_QUESTIONS[firstUnanswered].prompt, firstName(user.full_name));
   }
 
@@ -124,7 +135,16 @@ export async function handleOnboarding(user: AppUser, messageText: string): Prom
   // Name for interpolating the NEXT prompt: the value we just parsed if this was the
   // name step, otherwise whatever's already stored.
   const name = firstName(current.key === 'full_name' ? value : user.full_name);
-  const nextIndex = answeredIndex + 1;
+
+  // Advance to the next question the user hasn't already answered. Normally that's just the
+  // next one in order; but a co-owner invited to an existing org (inviteToOrg, DEC-045) arrives
+  // with the business fields pre-filled, so after their name there's nothing left to ask and
+  // we complete. (A brand-new user has nothing pre-filled, so this is the +1 it always was.)
+  const answered = { ...user, [current.key]: value } as AppUser;
+  let nextIndex = answeredIndex + 1;
+  while (nextIndex < ONBOARDING_QUESTIONS.length && answered[ONBOARDING_QUESTIONS[nextIndex].key]) {
+    nextIndex++;
+  }
 
   if (nextIndex < ONBOARDING_QUESTIONS.length) {
     patch.onboarding_step = nextIndex + 1;

@@ -5,6 +5,10 @@
 
 export const TRIAL_DAYS = 21;
 
+// Co-owners are included on the org's single subscription, but capped to prevent a whole team
+// riding one plan (DEC-047). 1 = a spouse/partner. Per-seat billing for teams is deferred (V2).
+export const MAX_CO_OWNERS = 1;
+
 export type PlanId = 'weekly' | 'annual';
 
 export interface Plan {

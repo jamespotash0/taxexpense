@@ -800,3 +800,24 @@ CREATE POLICY "receipts bucket is service-role only"
   TO anon, authenticated
   USING (bucket_id <> 'receipts')
   WITH CHECK (bucket_id <> 'receipts');
+
+-- =============================================================
+-- 0016_funnel_events.sql
+-- =============================================================
+
+-- Tally — Web onboarding funnel instrumentation (DEC-049). One row per step VIEW, keyed by a
+-- client-generated session_id, for per-step drop-off + a "reached number / tapped text" proxy.
+-- Aggregate only: no phone is captured in the funnel (DEC-048), so a web session can't be tied
+-- to a later inbound text. No PII here. Run in the Supabase SQL editor. Idempotent.
+
+CREATE TABLE IF NOT EXISTS funnel_events (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  session_id  UUID NOT NULL,
+  step        SMALLINT NOT NULL,
+  step_name   VARCHAR(40),
+  locale      VARCHAR(8)
+);
+CREATE INDEX IF NOT EXISTS idx_funnel_events_session ON funnel_events(session_id);
+CREATE INDEX IF NOT EXISTS idx_funnel_events_created_at ON funnel_events(created_at);
+ALTER TABLE funnel_events ENABLE ROW LEVEL SECURITY;
