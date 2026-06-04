@@ -20,7 +20,7 @@ function dollars(cents: number | null | undefined): string {
 export function toStandardCsv(receipts: ReceiptRow[]): string {
   const header = [
     'Date', 'Vendor', 'Amount', 'Category', 'IRC Section', 'Deductible Amount',
-    'Payment Account', 'Business Purpose', 'Attendees', 'Notes', 'Documentation Complete', 'Flagged for CPA',
+    'Payment Account', 'Business Purpose', 'Attendees', 'Notes', 'Documentation Complete', 'Flagged for CPA', 'Needs Review',
   ];
   const lines = receipts.map((r) =>
     row([
@@ -36,6 +36,7 @@ export function toStandardCsv(receipts: ReceiptRow[]): string {
       r.notes ?? '',
       r.substantiation_complete ? 'Yes' : 'No',
       r.flagged_for_cpa ? 'Yes' : '',
+      r.needs_review ? 'Yes' : '',
     ]),
   );
   return [row(header), ...lines].join('\n');

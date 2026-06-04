@@ -318,6 +318,7 @@ const en = {
       needsReceipt: '⚠ Needs receipt',
       needsContext: '⚠ Needs context',
       pending: 'Pending',
+      review: '👀 Review',
     },
     emailAccountant: {
       button: 'Email this month to my accountant',
@@ -671,6 +672,7 @@ const es: Dict = {
       needsReceipt: '⚠ Falta recibo',
       needsContext: '⚠ Falta contexto',
       pending: 'Pendiente',
+      review: '👀 Revisar',
     },
     emailAccountant: {
       button: 'Enviar este mes a mi contador',

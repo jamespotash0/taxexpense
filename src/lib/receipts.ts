@@ -7,6 +7,7 @@ import { getSupabaseAdmin } from './supabase';
 import type { AppUser } from './users';
 import type { ExpenseInput } from './categorize';
 import type { SubstantiationRule, SubstantiationResult } from './substantiation';
+import type { ReviewAssessment } from './review';
 import { todayISO } from './format';
 
 export interface ReceiptRow {
@@ -34,6 +35,9 @@ export interface ReceiptRow {
   raw_extracted_data: unknown;
   notes: string | null;
   flagged_for_cpa: boolean;
+  needs_review: boolean;
+  review_reason: string | null;
+  category_confidence: number | null;
   created_at: string;
 }
 
@@ -45,8 +49,9 @@ export async function saveReceipt(args: {
   rule: SubstantiationRule;
   decision: SubstantiationResult;
   photoPath?: string | null;
+  review?: ReviewAssessment;
 }): Promise<string> {
-  const { user, input, category, rule, decision, photoPath } = args;
+  const { user, input, category, rule, decision, photoPath, review } = args;
 
   const row = {
     user_id: user.id,
@@ -69,6 +74,9 @@ export async function saveReceipt(args: {
     substantiation_complete: decision.substantiation_complete,
     substantiation_missing_fields: decision.missing_context_fields,
     raw_extracted_data: input.raw_text ? { text: input.raw_text } : input,
+    needs_review: review?.needsReview ?? false,
+    review_reason: review?.reason ?? null,
+    category_confidence: review?.confidence ?? null,
   };
 
   const { data, error } = await orgTable('receipts', user.organization_id).insertOne(row);

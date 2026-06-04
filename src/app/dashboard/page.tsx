@@ -140,6 +140,14 @@ export default async function DashboardPage({
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-3">
+                {r.needs_review && (
+                  <span
+                    title={r.review_reason ?? undefined}
+                    className="inline-flex items-center rounded-md bg-warning-50 px-2 py-0.5 text-xs font-medium text-warning-700 ring-1 ring-inset ring-warning-600/20"
+                  >
+                    {t.app.badge.review}
+                  </span>
+                )}
                 <SubstantiationBadge
                   substantiationComplete={r.substantiation_complete}
                   needsReceipt={r.needs_receipt}

@@ -11,6 +11,8 @@ import {
   type SubstantiationRule,
 } from './substantiation';
 import { getIrcSummary } from './irc';
+import { assessCategoryReview } from './review';
+import { log } from './log';
 import {
   saveReceipt,
   getReceipt,
@@ -101,6 +103,13 @@ export async function processNewExpense(
 
   const irc = await getIrcSummary(rule.irc_section);
 
+  // Flag for a quick human glance when the category was uncertain or the note looked
+  // instruction-shaped (DEC-055). Deterministic; never blocks logging or adds an SMS question.
+  const review = assessCategoryReview({ category: cat.category, confidence: cat.confidence, input });
+  if (review.needsReview) {
+    log.info('expense_flagged_for_review', { user: user.id, reason: review.reasonCode, confidence: review.confidence });
+  }
+
   const receiptId = await saveReceipt({
     user,
     input,
@@ -108,6 +117,7 @@ export async function processNewExpense(
     rule,
     decision,
     photoPath,
+    review,
   });
 
   const smsText = await composeResponse({ input, category: cat.category, rule, decision, irc, user });

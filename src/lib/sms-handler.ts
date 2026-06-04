@@ -61,6 +61,8 @@ const MSG = {
   needAmount: 'Got it — quick: how much was this?',
   help: 'Send me a business expense — a receipt photo, text like "$30 gas to client site", or "drove 40 miles to Acme".',
   failure: "Hmm, that didn't go through on my end. Mind sending it once more?",
+  // Parser failed (not a delivery failure — the message arrived and is saved). Sofia copy.
+  couldntRead: "I couldn't quite make that one out. Mind rephrasing it — something like \"$30 gas to client site\" works great.",
 };
 
 function ocrToInput(data: Extract<OcrResult, { ok: true }>['data'], bodyText: string): ExpenseInput {
@@ -103,7 +105,16 @@ async function handlePhotoAsNewExpense(
 async function handleTextAsNewExpense(user: AppUser, body: string): Promise<ProcessResult> {
   if (!body.trim()) return { smsText: MSG.help, receiptId: null, contextState: null };
 
-  const parsed = await parseTextExpense(body);
+  // The inbound text is already persisted by handleInboundSms before we parse, so a parser
+  // failure loses nothing — reply helpfully instead of letting it throw to the generic
+  // failure path (red-team graceful_fail; team DEC). parseTextExpense has no internal fallback.
+  let parsed: Awaited<ReturnType<typeof parseTextExpense>>;
+  try {
+    parsed = await parseTextExpense(body);
+  } catch (err) {
+    log.warn('text_parse_failed', { user: user.id, message: errMsg(err) });
+    return { smsText: MSG.couldntRead, receiptId: null, contextState: null };
+  }
   if (parsed.amount == null && parsed.business_miles == null) {
     return { smsText: MSG.needAmount, receiptId: null, contextState: null };
   }

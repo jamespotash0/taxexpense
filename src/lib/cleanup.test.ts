@@ -43,6 +43,9 @@ function row(over: Partial<ReceiptRow> = {}): ReceiptRow {
     raw_extracted_data: null,
     notes: null,
     flagged_for_cpa: false,
+    needs_review: false,
+    review_reason: null,
+    category_confidence: null,
     created_at: '2026-03-10T00:00:00Z',
     ...over,
   };

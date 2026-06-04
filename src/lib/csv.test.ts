@@ -11,20 +11,22 @@ function receipt(partial: Partial<ReceiptRow>): ReceiptRow {
     business_purpose: 'Q3, with "the team"', attendees: 'John', business_relationship: 'client',
     location_city: null, business_miles: null, photo_url: null, needs_receipt: false,
     receipt_reason: null, substantiation_complete: true, substantiation_missing_fields: [],
-    raw_extracted_data: null, notes: null, created_at: '2026-04-15T00:00:00Z',
+    raw_extracted_data: null, notes: null, flagged_for_cpa: false,
+    needs_review: false, review_reason: null, category_confidence: null,
+    created_at: '2026-04-15T00:00:00Z',
     ...partial,
   } as ReceiptRow;
 }
 
 test('standard CSV: header + escaped fields + dollar formatting', () => {
-  const csv = toStandardCsv([receipt({ flagged_for_cpa: true })]);
+  const csv = toStandardCsv([receipt({ flagged_for_cpa: true, needs_review: true })]);
   const [header, row] = csv.split('\n');
   assert.match(header, /^Date,Vendor,Amount,Category,IRC Section,Deductible Amount/);
-  assert.match(header, /Documentation Complete,Flagged for CPA$/);
+  assert.match(header, /Documentation Complete,Flagged for CPA,Needs Review$/);
   assert.match(row, /340\.00/);
   assert.match(row, /170\.00/);
   assert.match(row, /"Q3, with ""the team"""/); // comma + quotes escaped
-  assert.match(row, /Yes,Yes$/); // documentation complete + flagged for CPA
+  assert.match(row, /Yes,Yes,Yes$/); // documentation complete + flagged for CPA + needs review
 });
 
 test('QuickBooks CSV: maps category to QBO account', () => {
