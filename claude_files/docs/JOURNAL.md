@@ -7,6 +7,78 @@ Format: date, decision, who pushed back, resolution, rationale.
 
 ---
 
+## 2026-06-04 — Pain-research question moved to SMS onboarding (amends DEC-056)
+
+### DEC-057 — "Worst part of tax time?" asked over SMS, lands in `leads`; SMS onboarding now 4 setup Qs + 1 optional research Q
+
+- **Trigger.** DEC-056 deleted the web funnel AND its lead/pain capture. Founder: "I still want the
+  leads — do we not ask that on SMS?" We didn't: SMS onboarding asks only the 4 functional setup
+  questions (name, work, entity, payment). The "worst part of tax time?" pain question was
+  web-funnel-only, so DEC-056 dropped it entirely.
+- **Decision.** Founder directive: "whatever was on web, ask on SMS as well." Name + work are
+  already on SMS; the only missing piece is the pain question. So it now runs as an **optional final
+  step of SMS onboarding** and writes to the (revived) `leads` table.
+- **Tension acknowledged.** This bends CLAUDE.md's "ask only when required" / "don't ask too many
+  questions" rule — a pain-research question isn't required for substantiation. Recommendation had
+  been to keep research on a web surface (email-based, retargetable); founder chose SMS. Logged as a
+  deliberate founder override. Mitigations so the rule isn't fully broken: it's framed as **optional**
+  ("totally optional… or reply 'skip'"), comes **after** all functional setup, and an empty/"skip"
+  answer completes silently — research never traps the user.
+- **Implementation.**
+  - `lib/prompts.ts`: new `ONBOARDING_Q_PAIN` (optional, `{{name}}`-interpolated, mentions "skip").
+  - `lib/onboarding.ts`: after the 4th setup answer, send the pain Q (step → len+1) instead of
+    completing; the next inbound is the pain answer (step len+1) → `insertLead({…, source:
+    'sms_onboarding'})` best-effort, then complete (step → len+2). Empty/"skip"/"no" → complete, no
+    insert. Step-semantics docblock updated.
+  - `lib/leads.ts`: revived with `insertLead` only (funnel-event tracking stays gone — no web funnel).
+  - The `leads` table (migration 0014) is back in use; no schema change. `funnel_events` (0016)
+    stays orphaned.
+  - Co-owner invites flow through pain too (they answer name → all fields filled → pain → complete).
+- **Net:** SMS onboarding is now name → work → entity → payment → (optional) pain → complete.
+
+## 2026-06-04 — Onboarding moved fully to SMS; web question funnel removed
+
+### DEC-056 — Web onboarding funnel removed; onboarding is SMS-only (supersedes DEC-048, DEC-049)
+
+- **Trigger (a bug, not a hunch).** The founder completed the web `/start` funnel, then texted in,
+  and Tally re-asked the same questions. Root cause: `/start` could only hand answers to the SMS
+  flow by **keying on phone number** (`preseedUserByPhone`), but DEC-048 had removed the web
+  phone-capture step. So `recordLead()` sent name/work/pain with **no phone**, the preseed branch
+  never ran, and the typed answers were silently dropped — the web questions had been decorative
+  since DEC-048.
+- **Options.** (A) Re-add web phone capture so preseed works again — but that re-introduces the
+  exact confusing step DEC-048 deliberately killed, plus friction. (B) Drop the web question funnel
+  and onboard entirely over SMS.
+- **Team.** Sofia (UX): strongest yes — asking twice is the cardinal onboarding sin; one channel,
+  no handoff to drop state. Marcus (strategy): yes — a multi-step web funnel quietly contradicts
+  "just text it, not another app," and it's broken, so we lose nothing. Maya (growth): yes *if* the
+  landing/`/start` stays as the ad/reel destination — she wanted a *destination*, not the
+  *questions* (the orphaned lead row captured no contact handle, so it was near-worthless for
+  retargeting). Alex (devil's advocate): yes by elimination — "stop calling it a pivot, it's a bug;
+  re-adding phone capture to save two questions is backwards," and don't over-invest in a funnel
+  pre-validation. Priya (metrics): yes with instrumentation + the **desktop edge case** (an `sms:`
+  link dead-ends on a computer).
+- **Resolution.**
+  - **Repurposed** `/start` into a thin "text us to get started" page (big number + `sms:` CTA +
+    a desktop "text from your phone" note + a Log-in link). Keeping the route means every existing
+    CTA (header, hero, pricing, IRC pages, login fallback) stays valid — no repointing.
+  - **Deleted** `OnboardingFlow.tsx`, `/api/onboarding/preseed`, `/api/onboarding/event`,
+    `src/lib/leads.ts`, and `preseedUserByPhone` in `lib/users.ts`. Cut the orphaned lead/pain
+    capture (Alex + Marcus: revisit only with users + a reason — and then capture *email*, which is
+    retargetable).
+  - **Payment untouched** — the founder's stated worry ("web lets you enforce payment") was moot:
+    enforcement was always independent of onboarding (21-day trial on org create, SMS hard paywall
+    after trial in `sms-handler.ts`, `/pricing` → Stripe Checkout). All of it stays.
+  - **Kept** `/api/hero-optin` (hero A/B arm C "text me first") — it properly captures phone +
+    sends the first SMS, so it genuinely starts the SMS flow.
+  - The step-0 immediate-completion branch in `lib/onboarding.ts` remains — it still serves
+    **co-owner invites** (`inviteToOrg` pre-fills the org's business fields).
+- **Orphaned (left in place, harmless).** The `leads` (0014) and `funnel_events` (0016) tables are
+  now unused; not dropped (append-only migration history, solo-founder scope). Drop later if desired.
+- **Follow-up (Priya).** New funnel seam to watch: landing → `sms:` tap → first inbound → SMS
+  onboarding complete. Step-level web funnel events are gone; the replacement signal is
+  sms-link-tap + first-inbound rate.
+
 ## 2026-06-04 — Eval + red-team harnesses added; three findings triaged by the team
 
 Built two reusable harnesses against the production AI functions (not mocks): a categorization

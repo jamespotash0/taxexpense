@@ -4,6 +4,7 @@
 // collected here (not over SMS). PATCH /api/settings.
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useFormSubmit } from '@/lib/use-form-submit';
 
 interface Initial {
   full_name: string;
@@ -24,9 +25,9 @@ interface SettingsCopy {
 
 export function SettingsForm({ initial, t }: { initial: Initial; t: SettingsCopy }) {
   const router = useRouter();
+  const { busy, error, submit } = useFormSubmit();
   const [form, setForm] = useState(initial);
-  const [status, setStatus] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   function set<K extends keyof Initial>(k: K, v: string) {
     setForm((f) => ({ ...f, [k]: v }));
@@ -34,26 +35,20 @@ export function SettingsForm({ initial, t }: { initial: Initial; t: SettingsCopy
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    setBusy(true);
-    setStatus(null);
-    try {
-      const res = await fetch('/api/settings', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          full_name: form.full_name || null,
-          email: form.email || null,
-          organization_name: form.organization_name || null,
-          accountant_email: form.accountant_email || null,
-        }),
-      });
-      if (!res.ok) throw new Error('Save failed');
-      setStatus(t.saved);
+    setSaved(false);
+    const { ok } = await submit('/api/settings', {
+      method: 'PATCH',
+      errorMessage: t.saveFailed,
+      body: {
+        full_name: form.full_name || null,
+        email: form.email || null,
+        organization_name: form.organization_name || null,
+        accountant_email: form.accountant_email || null,
+      },
+    });
+    if (ok) {
+      setSaved(true);
       router.refresh();
-    } catch {
-      setStatus(t.saveFailed);
-    } finally {
-      setBusy(false);
     }
   }
 
@@ -71,7 +66,7 @@ export function SettingsForm({ initial, t }: { initial: Initial; t: SettingsCopy
       </div>
       <div className="flex items-center gap-3">
         <button type="submit" disabled={busy} className="rounded-md bg-primary hover:bg-primary-hover px-4 py-2 text-white disabled:opacity-50">{t.save}</button>
-        {status && <span className="text-sm text-muted">{status}</span>}
+        {error ? <span className="text-sm text-error-600">{error}</span> : saved && <span className="text-sm text-muted">{t.saved}</span>}
       </div>
     </form>
   );

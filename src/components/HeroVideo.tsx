@@ -85,11 +85,10 @@ export function HeroVideo() {
   const [progress, setProgress] = useState(0); // 0–1 within the active clip
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
 
-  // Play the now-active clip from the top, reset beats, and warm up the next one so the
-  // crossfade is seamless.
+  // Play the now-active clip from the top and warm up the next one so the crossfade is
+  // seamless. (Beats reset to 0 in onEnded, alongside the active-clip advance.)
   useEffect(() => {
     if (reduced) return;
-    setProgress(0);
     const current = videoRefs.current[active];
     if (current) {
       current.currentTime = 0;
@@ -131,7 +130,10 @@ export function HeroVideo() {
             const v = e.currentTarget;
             if (v.duration) setProgress(v.currentTime / v.duration);
           }}
-          onEnded={() => setActive((a) => (a + 1) % SCENES.length)}
+          onEnded={() => {
+            setProgress(0);
+            setActive((a) => (a + 1) % SCENES.length);
+          }}
           onError={(e) => {
             (e.currentTarget as HTMLVideoElement).style.display = 'none';
           }}

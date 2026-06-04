@@ -152,6 +152,9 @@ const en = {
     startText: 'Text to start 👋',
     startWhatsapp: '…or WhatsApp the same number.',
     startDisclaimer: 'Recordkeeping, not tax advice. Reply STOP to opt out.',
+    startSub: 'Text this number and Tally starts capturing the why behind every expense — no app to install.',
+    startDesktopNote: 'On a computer? Text the number above from your phone to get started.',
+    startHaveAccount: 'Already set up?',
     back: '← Back',
   },
   pricing: {
@@ -511,6 +514,9 @@ const es: Dict = {
     startText: 'Escribe para empezar 👋',
     startWhatsapp: '…o WhatsApp al mismo número.',
     startDisclaimer: 'Llevar registros, no asesoría fiscal. Responde STOP para darte de baja.',
+    startSub: 'Escribe a este número y Tally empieza a capturar el porqué de cada gasto — sin instalar ninguna app.',
+    startDesktopNote: '¿En una computadora? Escribe al número de arriba desde tu teléfono para empezar.',
+    startHaveAccount: '¿Ya tienes cuenta?',
     back: '← Atrás',
   },
   pricing: {

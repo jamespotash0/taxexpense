@@ -3,6 +3,7 @@
 // Triggers POST /api/email-accountant (TSNAP-048).
 import { useState } from 'react';
 import { fmt } from '@/i18n/config';
+import { useFormSubmit } from '@/lib/use-form-submit';
 
 interface EmailCopy {
   button: string;
@@ -13,22 +14,13 @@ interface EmailCopy {
 }
 
 export function EmailAccountantButton({ hasAccountantEmail, t }: { hasAccountantEmail: boolean; t: EmailCopy }) {
-  const [status, setStatus] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const { busy, error, submit } = useFormSubmit();
+  const [sent, setSent] = useState<string | null>(null);
 
   async function send() {
-    setBusy(true);
-    setStatus(null);
-    try {
-      const res = await fetch('/api/email-accountant', { method: 'POST' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || t.couldNotSend);
-      setStatus(fmt(t.sentTo, { email: data.sent_to }));
-    } catch (err) {
-      setStatus(err instanceof Error ? err.message : t.couldNotSend);
-    } finally {
-      setBusy(false);
-    }
+    setSent(null);
+    const { ok, data } = await submit<{ sent_to: string }>('/api/email-accountant', { errorMessage: t.couldNotSend });
+    if (ok) setSent(fmt(t.sentTo, { email: data?.sent_to ?? '' }));
   }
 
   return (
@@ -41,7 +33,7 @@ export function EmailAccountantButton({ hasAccountantEmail, t }: { hasAccountant
       >
         {busy ? t.sending : t.button}
       </button>
-      {status && <p className="text-sm text-muted">{status}</p>}
+      {error ? <p className="text-sm text-error-600">{error}</p> : sent && <p className="text-sm text-muted">{sent}</p>}
     </div>
   );
 }

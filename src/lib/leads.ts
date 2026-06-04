@@ -1,7 +1,7 @@
-// Web onboarding leads (EPIC-9 funnel). Every /start completion lands here — including
-// visitors who SKIP the phone step — so we can measure funnel drop-off + web→SMS conversion,
-// see the real distribution of work types and "tax pain" in users' own words, and feed both
-// back into onboarding/categorization. Service-role only (not org-scoped; this is pre-user).
+// Lead / pain-research capture. The "worst part of tax time?" question — the old web funnel's
+// one unique signal (DEC-049) — now lives at the END of SMS onboarding (DEC-057) and lands here,
+// so we keep a queryable corpus of user pain in their own words for content + categorization work.
+// Service-role only (not org-scoped; this is a research log keyed by phone).
 // PII note: `pain` is free text — it lives in the leads row but is NEVER written to logs.
 import { getSupabaseAdmin } from './supabase';
 import { log } from './log';
@@ -15,23 +15,7 @@ export interface LeadInput {
   source?: string;
 }
 
-/**
- * Record a single funnel step view (DEC-049) for per-step drop-off + a text-tap conversion
- * proxy. Best-effort; never blocks the funnel. No PII (no name/phone/pain) — just step + session.
- */
-export async function insertFunnelEvent(e: {
-  session_id: string;
-  step: number;
-  step_name?: string | null;
-  locale?: string | null;
-}): Promise<void> {
-  const { error } = await getSupabaseAdmin()
-    .from('funnel_events')
-    .insert({ session_id: e.session_id, step: e.step, step_name: e.step_name ?? null, locale: e.locale ?? null });
-  if (error) log.warn('funnel_event_insert_failed', { message: error.message });
-}
-
-/** Insert a funnel lead. Throws on DB error; callers treat it as best-effort (never block the funnel). */
+/** Insert a lead/research row. Callers treat it as best-effort (never block onboarding on it). */
 export async function insertLead(lead: LeadInput): Promise<void> {
   const { error } = await getSupabaseAdmin()
     .from('leads')
@@ -41,7 +25,7 @@ export async function insertLead(lead: LeadInput): Promise<void> {
       business_type: lead.business_type ?? null,
       pain: lead.pain ?? null,
       locale: lead.locale ?? null,
-      source: lead.source ?? 'web_onboarding',
+      source: lead.source ?? 'sms_onboarding',
     });
   if (error) {
     log.warn('lead_insert_failed', { message: error.message });

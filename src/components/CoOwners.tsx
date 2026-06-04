@@ -6,6 +6,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { formatUsPhone } from '@/lib/phone';
+import { useFormSubmit } from '@/lib/use-form-submit';
 
 export interface CoOwnersCopy {
   heading: string;
@@ -53,39 +54,27 @@ export function CoOwners({
   atCap: boolean;
 }) {
   const router = useRouter();
+  const { busy, error, submit } = useFormSubmit();
   const [phone, setPhone] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   async function add(e: React.FormEvent) {
     e.preventDefault();
-    setBusy(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/settings/members', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone }),
-      });
-      if (res.ok) {
-        setPhone('');
-        router.refresh();
-        return;
-      }
-      const data = (await res.json().catch(() => null)) as { error?: string } | null;
-      const map: Record<string, string> = {
-        already_member: t.errAlready,
-        has_other_account: t.errOther,
-        invalid_phone: t.errPhone,
-        cannot_invite_self: t.errSelf,
-        not_entitled: t.errNotEntitled,
-        seat_limit: t.errSeatLimit,
-      };
-      setError((data?.error && map[data.error]) || t.errGeneric);
-    } catch {
-      setError(t.errGeneric);
-    } finally {
-      setBusy(false);
+    const errors: Record<string, string> = {
+      already_member: t.errAlready,
+      has_other_account: t.errOther,
+      invalid_phone: t.errPhone,
+      cannot_invite_self: t.errSelf,
+      not_entitled: t.errNotEntitled,
+      seat_limit: t.errSeatLimit,
+    };
+    const { ok } = await submit<{ error?: string }>('/api/settings/members', {
+      body: { phone },
+      errorMessage: t.errGeneric,
+      mapError: (data) => (data?.error ? errors[data.error] : undefined),
+    });
+    if (ok) {
+      setPhone('');
+      router.refresh();
     }
   }
 

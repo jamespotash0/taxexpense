@@ -4,6 +4,7 @@
 // verify endpoint sets the session cookie; we navigate to returnTo/dashboard.
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useFormSubmit } from '@/lib/use-form-submit';
 
 interface LoginCopy {
   title: string;
@@ -25,50 +26,29 @@ export function LoginForm({ t }: { t: LoginCopy }) {
   const params = useSearchParams();
   const returnTo = params.get('returnTo') || '/dashboard';
 
+  const { busy, error, setError, submit } = useFormSubmit();
   const [phase, setPhase] = useState<'phone' | 'code'>('phone');
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
 
   async function requestCode(e: React.FormEvent) {
     e.preventDefault();
-    setBusy(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/auth/request-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone_number: phone }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || t.errSend);
-      setPhase('code');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t.errGeneric);
-    } finally {
-      setBusy(false);
-    }
+    const { ok } = await submit('/api/auth/request-code', {
+      body: { phone_number: phone },
+      errorMessage: t.errSend,
+    });
+    if (ok) setPhase('code');
   }
 
   async function verify(e: React.FormEvent) {
     e.preventDefault();
-    setBusy(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/auth/verify-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone_number: phone, code }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || t.errInvalid);
+    const { ok } = await submit('/api/auth/verify-code', {
+      body: { phone_number: phone, code },
+      errorMessage: t.errInvalid,
+    });
+    if (ok) {
       router.replace(returnTo);
       router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t.errGeneric);
-    } finally {
-      setBusy(false);
     }
   }
 

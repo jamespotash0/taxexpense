@@ -1,24 +1,29 @@
 // Onboarding (TSNAP-017, DEC-013/DEC-014). Config-driven + deterministic — NOT
 // LLM-generated (reliability at the highest-drop-off moment). OWNER: Raj + Sofia.
 //
-// 4 questions: name → work type → entity type → default payment account. Name is
-// captured over SMS (warm, easy); email + org name are collected later at the
+// 4 setup questions: name → work type → entity type → default payment account, then one
+// OPTIONAL pain-research question ("worst part of tax time?", DEC-057) that lands in the leads
+// table. Name is captured over SMS (warm, easy); email + org name are collected later at the
 // dashboard, not over SMS (DEC-014). Adaptivity lives at EXPENSE time, not here.
 //
-// Step semantics (onboarding_step):
+// Step semantics (onboarding_step), len = ONBOARDING_QUESTIONS.length (4):
 //   0          → brand new; first inbound is the trigger → send Q[0] (name), step→1
-//   N (1..len) → message answers Q[N-1]; store it, send Q[N] (with {{name}}) or complete
-// Re-ask: empty/whitespace answer (e.g. a photo with no text) → re-ask, no advance.
+//   N (1..len) → message answers Q[N-1]; store it, send Q[N] or, after the last, the pain Q (step→len+1)
+//   len+1      → message is the (optional) pain answer; log to leads, complete (step→len+2)
+// Re-ask: empty/whitespace answer to a SETUP question (e.g. a photo) → re-ask, no advance. An
+// empty/"skip" pain answer just completes (research never traps the user).
 
 import {
   ONBOARDING_Q_NAME,
   ONBOARDING_Q_WORK,
   ONBOARDING_Q_ENTITY,
   ONBOARDING_Q_PAYMENT,
+  ONBOARDING_Q_PAIN,
   onboardingComplete,
   onboardingJoinGreeting,
 } from './prompts';
 import { updateUser, getOrgOwner, type AppUser } from './users';
+import { insertLead } from './leads';
 import { PUBLIC_ENV } from './env';
 
 type OnboardingKey = 'full_name' | 'business_type' | 'entity_type' | 'default_payment_account';
@@ -91,9 +96,9 @@ function isUsableAnswer(text: string): boolean {
 export async function handleOnboarding(user: AppUser, messageText: string): Promise<string> {
   const step = user.onboarding_step;
 
-  // Step 0: first contact. Normally this greets + asks for the name. But a user can be
-  // pre-seeded from the WEB funnel (preseedUserByPhone) with name/work already known — in
-  // that case jump straight to the first question they HAVEN'T answered. The triggering
+  // Step 0: first contact. Normally this greets + asks for the name. But an invited co-owner
+  // (inviteToOrg) arrives with the org's business fields already filled — in that case jump
+  // straight to the first question they HAVEN'T answered (just their name). The triggering
   // message is only a trigger, never an answer, so step 0 always just SENDS a question and
   // advances; we set onboarding_step so the NEXT inbound answers that same question.
   if (step <= 0) {
@@ -119,6 +124,30 @@ export async function handleOnboarding(user: AppUser, messageText: string): Prom
       }
     }
     return render(ONBOARDING_QUESTIONS[firstUnanswered].prompt, firstName(user.full_name));
+  }
+
+  // Final step (DEC-057): the optional pain-research question. Setup is functionally done; this
+  // message is the answer to "worst part of tax time?". We log it to the leads table (best-effort,
+  // never blocking) and complete. Empty (e.g. a photo) or "skip"/"no" just completes silently —
+  // research never traps the user. Intercepted here because this step is past ONBOARDING_QUESTIONS.
+  if (step >= ONBOARDING_QUESTIONS.length + 1) {
+    const name = firstName(user.full_name);
+    const answer = messageText.trim();
+    const skipped = answer.length === 0 || /^(skip|no|nope|nah|pass|n\/?a)\.?$/i.test(answer);
+    if (!skipped) {
+      await insertLead({
+        phone_number: user.phone_number,
+        full_name: user.full_name,
+        business_type: user.business_type,
+        pain: answer.slice(0, 500),
+        source: 'sms_onboarding',
+      }).catch(() => { /* best-effort; never block completion on research capture */ });
+    }
+    await updateUser(user.id, {
+      onboarding_completed: true,
+      onboarding_step: ONBOARDING_QUESTIONS.length + 2,
+    });
+    return onboardingComplete(PUBLIC_ENV.appUrl || 'https://tallywhy.com', name === 'there' ? undefined : name);
   }
 
   const answeredIndex = Math.min(step - 1, ONBOARDING_QUESTIONS.length - 1);
@@ -152,9 +181,9 @@ export async function handleOnboarding(user: AppUser, messageText: string): Prom
     return render(ONBOARDING_QUESTIONS[nextIndex].prompt, name);
   }
 
-  // All questions answered → complete.
-  patch.onboarding_completed = true;
+  // All setup questions answered → ask the one optional research question, then complete on the
+  // next inbound (handled by the step >= length+1 branch above). DEC-057.
   patch.onboarding_step = ONBOARDING_QUESTIONS.length + 1;
   await updateUser(user.id, patch);
-  return onboardingComplete(PUBLIC_ENV.appUrl || 'https://tallywhy.com', name === 'there' ? undefined : name);
+  return render(ONBOARDING_Q_PAIN, name);
 }

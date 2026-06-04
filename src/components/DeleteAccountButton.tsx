@@ -4,6 +4,7 @@
 // Two-step, type-to-confirm to prevent accidental deletion.
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useFormSubmit } from '@/lib/use-form-submit';
 
 interface DeleteCopy {
   deleteMyAccount: string;
@@ -18,22 +19,15 @@ interface DeleteCopy {
 
 export function DeleteAccountButton({ t }: { t: DeleteCopy }) {
   const router = useRouter();
+  const { busy, error, setError, submit } = useFormSubmit();
   const [open, setOpen] = useState(false);
   const [confirm, setConfirm] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   async function destroy() {
-    setBusy(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/account', { method: 'DELETE' });
-      if (!res.ok) throw new Error(t.couldNotDelete);
+    const { ok } = await submit('/api/account', { method: 'DELETE', errorMessage: t.couldNotDelete });
+    if (ok) {
       router.replace('/');
       router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t.errGeneric);
-      setBusy(false);
     }
   }
 

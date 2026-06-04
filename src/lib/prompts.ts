@@ -41,6 +41,16 @@ export const ONBOARDING_Q_PAYMENT =
   `business account, or your personal account?\n\n` +
   `Reply: "business", "personal", or "mixed"`;
 
+/**
+ * Optional final onboarding question (DEC-057). The 4 setup questions above are functional;
+ * this one is research — it captures the user's "worst part of tax time" in their own words (the
+ * old web funnel's one unique signal) into the leads table. Framed as optional so it never feels
+ * like another setup gate; an empty answer or "skip" just completes onboarding.
+ */
+export const ONBOARDING_Q_PAIN =
+  `Last thing, {{name}} — and totally optional:\n\n` +
+  `What's the worst part of tax time for you? (In your own words, or reply "skip" to jump right in.)`;
+
 /** Completion message; appUrl from NEXT_PUBLIC_APP_URL, name for a warm sign-off. */
 export function onboardingComplete(appUrl: string, name?: string): string {
   const lead = name ? `You're all set, ${name}.` : `Perfect — you're all set.`;

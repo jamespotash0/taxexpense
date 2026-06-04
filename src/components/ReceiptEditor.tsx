@@ -5,6 +5,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CATEGORY_LABELS } from '@/lib/categories';
+import { useFormSubmit } from '@/lib/use-form-submit';
 
 interface Receipt {
   id: string;
@@ -63,6 +64,7 @@ export function ReceiptEditor({
   categories: Record<string, string>;
 }) {
   const router = useRouter();
+  const { busy, error, submit } = useFormSubmit();
   const [form, setForm] = useState({
     vendor: receipt.vendor ?? '',
     amount: (receipt.amount_cents / 100).toFixed(2),
@@ -77,75 +79,60 @@ export function ReceiptEditor({
     notes: receipt.notes ?? '',
   });
   const [flagged, setFlagged] = useState(receipt.flagged_for_cpa);
-  const [status, setStatus] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  // `notice` carries success/progress copy; failures come from the hook's `error`.
+  const [notice, setNotice] = useState<string | null>(null);
 
   function set<K extends keyof typeof form>(k: K, v: string) {
     setForm((f) => ({ ...f, [k]: v }));
   }
 
   async function save() {
-    setBusy(true);
-    setStatus(null);
-    try {
-      const res = await fetch(`/api/receipts/${receipt.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          vendor: form.vendor || null,
-          amount_cents: Math.round(parseFloat(form.amount || '0') * 100),
-          transaction_date: form.transaction_date,
-          category: form.category,
-          payment_account: form.payment_account,
-          business_purpose: form.business_purpose || null,
-          attendees: form.attendees || null,
-          business_relationship: form.business_relationship || null,
-          location_city: form.location_city || null,
-          business_miles: form.business_miles ? parseInt(form.business_miles, 10) : null,
-          notes: form.notes || null,
-          flagged_for_cpa: flagged,
-        }),
-      });
-      if (!res.ok) throw new Error('Save failed');
-      setStatus(t.saved);
+    setNotice(null);
+    const { ok } = await submit(`/api/receipts/${receipt.id}`, {
+      method: 'PATCH',
+      errorMessage: t.saveFailed,
+      body: {
+        vendor: form.vendor || null,
+        amount_cents: Math.round(parseFloat(form.amount || '0') * 100),
+        transaction_date: form.transaction_date,
+        category: form.category,
+        payment_account: form.payment_account,
+        business_purpose: form.business_purpose || null,
+        attendees: form.attendees || null,
+        business_relationship: form.business_relationship || null,
+        location_city: form.location_city || null,
+        business_miles: form.business_miles ? parseInt(form.business_miles, 10) : null,
+        notes: form.notes || null,
+        flagged_for_cpa: flagged,
+      },
+    });
+    if (ok) {
+      setNotice(t.saved);
       router.refresh();
-    } catch {
-      setStatus(t.saveFailed);
-    } finally {
-      setBusy(false);
     }
   }
 
   async function upload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setBusy(true);
-    setStatus(t.uploading);
-    try {
-      const fd = new FormData();
-      fd.append('file', file);
-      const res = await fetch(`/api/receipts/${receipt.id}/attach-receipt`, { method: 'POST', body: fd });
-      if (!res.ok) throw new Error('Upload failed');
-      setStatus(t.receiptAttached);
+    setNotice(t.uploading);
+    const fd = new FormData();
+    fd.append('file', file);
+    const { ok } = await submit(`/api/receipts/${receipt.id}/attach-receipt`, { body: fd, errorMessage: t.uploadFailed });
+    if (ok) {
+      setNotice(t.receiptAttached);
       router.refresh();
-    } catch {
-      setStatus(t.uploadFailed);
-    } finally {
-      setBusy(false);
+    } else {
+      setNotice(null);
     }
   }
 
   async function remove() {
     if (!confirm(t.confirmDelete)) return;
-    setBusy(true);
-    try {
-      const res = await fetch(`/api/receipts/${receipt.id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Delete failed');
+    const { ok } = await submit(`/api/receipts/${receipt.id}`, { method: 'DELETE', errorMessage: t.deleteFailed });
+    if (ok) {
       router.replace('/dashboard');
       router.refresh();
-    } catch {
-      setStatus(t.deleteFailed);
-      setBusy(false);
     }
   }
 
@@ -197,7 +184,7 @@ export function ReceiptEditor({
 
       <div className="flex items-center justify-between">
         <button onClick={save} disabled={busy} className="rounded-md bg-primary hover:bg-primary-hover px-4 py-2 text-white disabled:opacity-50">{t.save}</button>
-        {status && <span className="text-sm text-muted">{status}</span>}
+        {error ? <span className="text-sm text-error-600">{error}</span> : notice && <span className="text-sm text-muted">{notice}</span>}
         <button onClick={remove} disabled={busy} className="text-sm text-error-600 hover:underline">{t.delete}</button>
       </div>
     </div>
