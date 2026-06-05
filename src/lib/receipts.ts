@@ -226,6 +226,23 @@ export async function getReceiptsForMonth(orgId: string, month: string): Promise
   return (data as unknown as ReceiptRow[]) ?? [];
 }
 
+/**
+ * An org's prior receipts for a given vendor (case-insensitive substring), newest first —
+ * for the month-end review agent to spot categorization inconsistencies ("logged Delta as
+ * travel last month, meals this month"). Org-scoped.
+ */
+export async function getReceiptsByVendor(orgId: string, vendor: string, limit = 10): Promise<ReceiptRow[]> {
+  const term = vendor.trim();
+  if (!term) return [];
+  const { data, error } = await orgTable('receipts', orgId)
+    .select()
+    .ilike('vendor', `%${term}%`)
+    .order('transaction_date', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data as unknown as ReceiptRow[]) ?? [];
+}
+
 export interface MonthlySummary {
   total_cents: number;
   count: number;

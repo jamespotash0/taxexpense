@@ -31,10 +31,21 @@ Format: date, decision, who pushed back, resolution, rationale.
 - **Why now / why it fits the signals.** It's a **rare per-user event** (monthly, not per-receipt),
   so the 5-15× agent cost multiplier the doc warns about is a non-issue; and it's a bounded
   multi-step task ("review my month, tell me what's missing") — exactly the doc's Signals 1 & 2.
-- **Open / deferred.** Migration 0023 must be applied in the Supabase SQL editor before first run.
-  No dashboard surface yet (Phase C: a "Review my month" button + draft editor + vision wow);
-  monthly Vercel cron deferred until the on-demand path is proven. Behavioural rules (suggest-not-
-  advise, cite IRC, defer to CPA, "documentation complete") are enforced in the agent system prompt.
+- **Tool composition (autonomy made load-bearing).** Beyond the 3 inspectors, the agent has
+  `lookup_irc_section` (grounds citations against the `irc_summaries` table instead of memory —
+  anti-hallucination for tax claims; normalizes `§274(n)`→`274`), `get_vendor_history` (catches
+  categorization drift — e.g. "Delta was travel last month, meals now"), and `get_month_summary`
+  (trend/comparison). Live smoke run (`npm run agent:smoke`, in-memory fakes, no DB) shows the
+  model composing 6 tools across ~9 data-dependent calls and using the evidence in the draft.
+- **Phase C — dashboard surface BUILT.** `MonthEndReview.tsx` on the dashboard: "Review my month"
+  → runs the agent → shows summary + flagged items (linked to receipts) + an **editable** draft →
+  `POST /api/agents/month-end-review/send` emails it to the configured accountant (human-in-the-loop;
+  Jordan: configured address only). A collapsible "how the agent reviewed" exposes the tool trace.
+  Copy is inline (one COPY object), not i18n'd yet — deliberate for a beta feature.
+- **Open / deferred.** Migration 0023 must be applied in the Supabase SQL editor before the
+  dashboard path works (the orchestrator writes to `agent_runs`). Monthly Vercel cron deferred
+  until the on-demand path is proven on live data. Behavioural rules (suggest-not-advise, cite IRC,
+  defer to CPA, "documentation complete") enforced in the agent system prompt.
 
 ---
 

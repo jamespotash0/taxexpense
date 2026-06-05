@@ -5,7 +5,8 @@
 // the agent's structured DRAFT back out for a human to approve (no auto-send — Jordan).
 
 import type { AgentTool, ToolResultBlock } from './agent';
-import { getReceiptsForMonth, getReceipt, type ReceiptRow } from './receipts';
+import { getReceiptsForMonth, getReceiptsByVendor, getReceipt, type ReceiptRow } from './receipts';
+import { lookupIrcSectionFlexible } from './irc';
 import { getSignedReceiptUrl } from './ocr';
 import { formatMoney } from './format';
 
@@ -105,6 +106,69 @@ export function buildMonthEndTools(orgId: string, month: string): AgentTool[] {
       handler: async (input) => {
         const r = await getReceipt(orgId, String(input.id));
         return r ? asText(detail(r)) : [{ type: 'text', text: 'No expense found with that id.' }];
+      },
+    },
+    {
+      name: 'lookup_irc_section',
+      description:
+        'Look up the plain-language summary of an IRC section (e.g. "274", "§274(n)", "162", "280F") — ' +
+        'its title, what it typically covers, deduction percentage, and what is worth noting. Use this to ' +
+        'GROUND a citation before you make it, rather than relying on memory. Returns nothing if the ' +
+        'section is not in Tally’s reference set.',
+      input_schema: {
+        type: 'object',
+        properties: { section: { type: 'string', description: 'IRC section as written on the expense, e.g. "§274(n)".' } },
+        required: ['section'],
+        additionalProperties: false,
+      },
+      handler: async (input) => {
+        const irc = await lookupIrcSectionFlexible(String(input.section));
+        return irc
+          ? asText(irc)
+          : [{ type: 'text', text: `No reference summary on file for "${String(input.section)}". Do not invent its contents.` }];
+      },
+    },
+    {
+      name: 'get_vendor_history',
+      description:
+        'Look up this user’s past expenses from a vendor (across all months) — to check whether the ' +
+        'current categorization is consistent with how the same vendor was logged before, or whether a ' +
+        'charge looks out of pattern. Returns the most recent matches.',
+      input_schema: {
+        type: 'object',
+        properties: { vendor: { type: 'string', description: 'Vendor name, e.g. "Delta Air Lines".' } },
+        required: ['vendor'],
+        additionalProperties: false,
+      },
+      handler: async (input) => {
+        const rows = await getReceiptsByVendor(orgId, String(input.vendor));
+        return asText({ vendor: input.vendor, count: rows.length, history: rows.map(summarize) });
+      },
+    },
+    {
+      name: 'get_month_summary',
+      description:
+        'Aggregate totals for any month (\'YYYY-MM\') — total spend, count, deductible, and how many ' +
+        'expenses are documentation-complete. Use to compare the review month against a prior month for ' +
+        'trend/context (e.g. spending that jumped sharply).',
+      input_schema: {
+        type: 'object',
+        properties: { month: { type: 'string', description: "Calendar month as 'YYYY-MM'." } },
+        required: ['month'],
+        additionalProperties: false,
+      },
+      handler: async (input) => {
+        const rows = await getReceiptsForMonth(orgId, String(input.month));
+        const total = rows.reduce((s, r) => s + (r.amount_cents ?? 0), 0);
+        const deductible = rows.reduce((s, r) => s + (r.deductible_amount_cents ?? 0), 0);
+        const complete = rows.filter((r) => r.substantiation_complete).length;
+        return asText({
+          month: input.month,
+          count: rows.length,
+          total: formatMoney(total),
+          deductible: formatMoney(deductible),
+          documentation_complete: `${complete} of ${rows.length}`,
+        });
       },
     },
     {

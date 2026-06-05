@@ -51,6 +51,17 @@ const FAKE = [
   { id: 'r3', date: '2026-05-14', vendor: 'Delta Air Lines', amount: '$310.00', category: 'meals_business', irc_section: '§274(n)', has_photo: true, needs_receipt: false, needs_review: true, review_reason: 'low_confidence_category', substantiation_complete: true, missing_fields: [], flagged_for_cpa: false },
 ];
 
+// Prior-month history for Delta — logged as TRAVEL last time, so logging it as meals this
+// month is an inconsistency the agent should catch via get_vendor_history.
+const VENDOR_HISTORY: Record<string, unknown[]> = {
+  delta: [{ id: 'old1', date: '2026-04-11', vendor: 'Delta Air Lines', amount: '$402.00', category: 'travel_transportation', irc_section: '§162' }],
+};
+// Stand-in IRC reference set (the real tool reads irc_summaries).
+const IRC: Record<string, unknown> = {
+  '274': { section_id: '274', title: 'Disallowance of certain entertainment, etc. expenses', short_summary: 'Meals are 50% deductible with substantiation; entertainment generally not deductible.', deduction_percentage: 50, worth_noting: 'Receipt required at $75+; record business purpose and attendees.' },
+  '162': { section_id: '162', title: 'Trade or business expenses', short_summary: 'Ordinary and necessary business expenses are deductible. Business travel/airfare falls here.', deduction_percentage: 100, worth_noting: 'The catch-all for ordinary business costs, including transportation.' },
+};
+
 const log = (...a: unknown[]) => console.log(...a);
 
 const tools: AgentTool[] = [
@@ -71,6 +82,38 @@ const tools: AgentTool[] = [
       log(`  ↳ tool: get_expense(${input.id})`);
       const r = FAKE.find((x) => x.id === input.id);
       return [{ type: 'text', text: r ? JSON.stringify(r, null, 2) : 'No expense found.' }];
+    },
+  },
+  {
+    name: 'lookup_irc_section',
+    description: 'Look up the plain-language summary of an IRC section.',
+    input_schema: { type: 'object', properties: { section: { type: 'string' } }, required: ['section'], additionalProperties: false },
+    handler: async (input) => {
+      log(`  ↳ tool: lookup_irc_section(${input.section})`);
+      const key = String(input.section).replace(/[^0-9A-Za-z]/g, '').match(/\d+/)?.[0] ?? '';
+      const irc = IRC[key];
+      return [{ type: 'text', text: irc ? JSON.stringify(irc, null, 2) : `No reference summary on file for "${input.section}".` }];
+    },
+  },
+  {
+    name: 'get_vendor_history',
+    description: 'Look up this user’s past expenses from a vendor.',
+    input_schema: { type: 'object', properties: { vendor: { type: 'string' } }, required: ['vendor'], additionalProperties: false },
+    handler: async (input) => {
+      log(`  ↳ tool: get_vendor_history(${input.vendor})`);
+      const key = String(input.vendor).toLowerCase().split(' ')[0];
+      const history = VENDOR_HISTORY[key] ?? [];
+      return [{ type: 'text', text: JSON.stringify({ vendor: input.vendor, count: history.length, history }, null, 2) }];
+    },
+  },
+  {
+    name: 'get_month_summary',
+    description: 'Aggregate totals for any month.',
+    input_schema: { type: 'object', properties: { month: { type: 'string' } }, required: ['month'], additionalProperties: false },
+    handler: async (input) => {
+      log(`  ↳ tool: get_month_summary(${input.month})`);
+      const prior = { month: input.month, count: 5, total: '$280.00', deductible: '$210.00', documentation_complete: '5 of 5' };
+      return [{ type: 'text', text: JSON.stringify(prior, null, 2) }];
     },
   },
   {

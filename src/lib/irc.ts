@@ -24,3 +24,21 @@ export async function getIrcSummary(sectionId: string | null): Promise<IrcSummar
   if (error) throw error;
   return (data as IrcSummary | null) ?? null;
 }
+
+/**
+ * Look up an IRC summary tolerant of how the section is written. Receipts store sections
+ * like "§274(n)" / "§274(b)" / "§162", but section_id keys are bare ("274", "274b", "162",
+ * "280F"). Tries the alphanumeric form first (so §274(b) → "274b", the more specific match),
+ * then the digits-only form (so §274(n) → "274"). For the month-end review agent's lookup tool.
+ */
+export async function lookupIrcSectionFlexible(query: string): Promise<IrcSummary | null> {
+  const cleaned = query.replace(/§/g, '').trim();
+  const alnum = cleaned.replace(/[^0-9A-Za-z]/g, ''); // "274(b)" → "274b", "280F" → "280F"
+  const digits = cleaned.match(/\d+/)?.[0] ?? '';     // "274(n)" → "274"
+  const candidates = [...new Set([alnum, digits])].filter(Boolean);
+  for (const c of candidates) {
+    const hit = await getIrcSummary(c);
+    if (hit) return hit;
+  }
+  return null;
+}

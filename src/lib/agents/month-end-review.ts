@@ -6,7 +6,7 @@
 // user reviews and sends via the existing /api/email-accountant path. Nothing here
 // takes an outward action.
 
-import { runAgent } from '../agent';
+import { runAgent, type AgentStep } from '../agent';
 import { buildMonthEndTools, FINISH_REVIEW_TOOL } from '../agent-tools';
 import { MONTH_END_REVIEW_AGENT_PROMPT } from '../prompts';
 import { SONNET_MODEL } from '../claude';
@@ -32,6 +32,8 @@ export interface MonthEndDraft {
   flagged: FlaggedItem[];
   steps: number;
   usage: { input_tokens: number; output_tokens: number };
+  /** The tool-call sequence the agent chose — surfaced in the UI as "how it reviewed". */
+  trace: AgentStep[];
 }
 
 function toFlagged(value: unknown): FlaggedItem[] {
@@ -110,5 +112,6 @@ export async function runMonthEndReview(user: AppUser, month: string): Promise<M
     flagged,
     steps: result.steps,
     usage: result.usage,
+    trace: result.trace,
   };
 }

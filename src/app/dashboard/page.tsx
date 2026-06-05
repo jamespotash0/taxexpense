@@ -5,6 +5,7 @@ import { getCurrentUser } from '@/lib/session';
 import { getMonthlySummary, listReceipts, type ReceiptFilter } from '@/lib/receipts';
 import { getOrgEntitlement } from '@/lib/subscription';
 import { StatusIcons } from '@/components/StatusIcons';
+import { MonthEndReview } from '@/components/MonthEndReview';
 import { LocaleSwitcher } from '@/components/LocaleSwitcher';
 import { formatMoney, formatDate } from '@/lib/format';
 import { formatUsPhone } from '@/lib/phone';
@@ -106,6 +107,9 @@ export default async function DashboardPage({
           </div>
         </dl>
       </section>
+
+      {/* Month-end review agent (Phase 2 — AGENTS-VS-WORKFLOWS.md): on-demand, draft-only */}
+      <MonthEndReview hasAccountantEmail={!!user.accountant_email} />
 
       {/* Filters + export — stack on mobile; each group wraps so no button runs off-screen */}
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
