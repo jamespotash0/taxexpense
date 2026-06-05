@@ -1,13 +1,10 @@
-// Prompt-caching audit: measures each system prompt's token count and checks it against the
-// model's MINIMUM cacheable prefix. Below the minimum, cache_control is silently ignored
-// (cache_creation_input_tokens=0, no error) — so `cacheSystem: true` is a no-op.
-//   Sonnet 4.6 min = 2048 tokens · Haiku 4.5 min = 4096 tokens.
+// Prompt-caching audit (EMPIRICAL). For each system prompt, makes two back-to-back live calls
+// with cache_control on, and reports whether the 2nd call actually READ from cache. Live usage is
+// the source of truth — static "minimum cacheable prefix" tables are conservative and can be wrong.
 //   npm run cache:check   (needs ANTHROPIC_API_KEY via .env.local)
 
 import { getClaude, HAIKU_MODEL, SONNET_MODEL } from '../../src/lib/claude';
 import * as P from '../../src/lib/prompts';
-
-const MIN: Record<string, number> = { [HAIKU_MODEL]: 4096, [SONNET_MODEL]: 2048 };
 
 const PROMPTS: Array<{ name: string; model: string; text: string }> = [
   { name: 'RECEIPT_EXTRACTION_PROMPT', model: HAIKU_MODEL, text: P.RECEIPT_EXTRACTION_PROMPT },
@@ -21,26 +18,37 @@ const PROMPTS: Array<{ name: string; model: string; text: string }> = [
   { name: 'RECEIPT_ATTACHMENT_PROMPT', model: SONNET_MODEL, text: P.RECEIPT_ATTACHMENT_PROMPT },
 ];
 
-async function tokens(model: string, system: string): Promise<number> {
-  const r = await getClaude().messages.countTokens({
+interface Usage {
+  cache_creation_input_tokens?: number;
+  cache_read_input_tokens?: number;
+  input_tokens: number;
+}
+
+async function call(model: string, system: string): Promise<Usage> {
+  const r = await getClaude().messages.create({
     model,
-    system: [{ type: 'text', text: system }],
-    messages: [{ role: 'user', content: 'x' }],
-  });
-  return r.input_tokens;
+    max_tokens: 1,
+    system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
+    messages: [{ role: 'user', content: 'ping' }],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any);
+  return r.usage as Usage;
 }
 
 async function main() {
-  console.log('\nPrompt-caching prefix audit (system-prompt tokens vs model minimum)\n');
-  console.log(`${'prompt'.padEnd(36)} ${'model'.padEnd(10)} tokens  min   caches?`);
+  console.log('\nEmpirical prompt-caching audit — two back-to-back calls per prompt\n');
+  console.log(`${'prompt'.padEnd(36)} ${'model'.padEnd(10)} prefix  read?  (write→read)`);
   for (const p of PROMPTS) {
-    const t = await tokens(p.model, p.text);
-    const min = MIN[p.model];
+    const u1 = await call(p.model, p.text); // writes
+    const u2 = await call(p.model, p.text); // should read
+    const read = u2.cache_read_input_tokens ?? 0;
+    const wrote = u1.cache_creation_input_tokens ?? 0;
     const model = p.model.includes('haiku') ? 'haiku-4.5' : 'sonnet-4.6';
-    const ok = t >= min;
-    console.log(`${p.name.padEnd(36)} ${model.padEnd(10)} ${String(t).padStart(5)}  ${String(min).padStart(4)}  ${ok ? '✅ yes' : '❌ NO (silent)'}`);
+    const caches = read > 0;
+    console.log(
+      `${p.name.padEnd(36)} ${model.padEnd(10)} ${String(wrote || u1.input_tokens).padStart(5)}  ${caches ? '✅ yes' : '❌ NO '}  (${wrote}→${read})`,
+    );
   }
-  console.log('\nNote: ~5 of these tokens are the placeholder user turn, not the system prefix.');
 }
 
 main().catch((e) => {

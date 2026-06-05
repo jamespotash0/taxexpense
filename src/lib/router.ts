@@ -41,7 +41,8 @@ export type Intent =
   | { kind: 'query'; tool: QueryTool; category: string | null; period?: PeriodKey; count?: number }
   | { kind: 'command'; command: CommandName }
   | { kind: 'advice' }
-  | { kind: 'help' };
+  | { kind: 'help' }
+  | { kind: 'other' };
 
 const QUERY_TOOLS: QueryTool[] = ['aggregate', 'breakdown', 'recent', 'review_year'];
 const COMMANDS: CommandName[] = ['export', 'email_accountant'];
@@ -74,7 +75,8 @@ Intents:
 - "query": the user ASKS about expenses they already logged — totals, how much they spent, their latest/recent charges, a category breakdown, or a year review.
 - "command": an explicit request to "export" their data or "email my accountant".
 - "advice": asks for TAX ADVICE — what they'll owe, whether something is deductible, what they should do. (Tally does not give advice.)
-- "help": a greeting, "help", or "what can you do".
+- "help": a greeting ("hi", "hey", "thanks"), "help", or "what can you do".
+- "other": the message is off-topic or something Tally can't do — it is NOT an expense, NOT a question about their own logged expenses, NOT a command, NOT tax advice, and NOT a greeting/help. (e.g. "what's the weather", "book me a flight", "write me a poem".) Only use this when the message clearly has nothing to do with logging or reviewing expenses. When unsure whether it's an expense, choose "capture", not "other".
 
 For "query", also set:
 - "tool": one of "aggregate" (a total / how much), "breakdown" (spend by category), "recent" (latest/last N charges), "review_year" (review my year / year summary).
@@ -115,6 +117,8 @@ export function sanitizeIntent(raw: RawIntent): Intent {
       return { kind: 'advice' };
     case 'help':
       return { kind: 'help' };
+    case 'other':
+      return { kind: 'other' };
     case 'capture':
     default:
       return { kind: 'capture' };
@@ -159,6 +163,12 @@ const HELP_TEXT =
   '• "how much have I spent on meals this year?"\n' +
   '• "what are my last 3 charges?"\n' +
   '• "review my year"';
+
+// Off-topic / unprocessable message (DEC-029): say plainly we can't do it, then point back to
+// the one thing we do. Distinct from HELP_TEXT, which still greets a "hi" / "what can you do".
+const CANT_HELP_TEXT =
+  "Sorry, I can't help with that — I'm built to log business expenses. " +
+  'Text me one like "$30 gas to client site" and I\'ll take it from there.';
 
 function commandReply(user: AppUser, command: CommandName): ProcessResult {
   const base = appBase();
@@ -316,5 +326,7 @@ export async function routeTextMessage(user: AppUser, text: string): Promise<Pro
       return reply(ADVICE_DEFLECTION);
     case 'help':
       return reply(HELP_TEXT);
+    case 'other':
+      return reply(CANT_HELP_TEXT);
   }
 }
