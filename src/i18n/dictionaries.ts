@@ -208,6 +208,8 @@ const en = {
       emptyState: 'No receipts yet. Text {number} to get started.',
       unknownVendor: 'Unknown vendor',
       cleanupLink: 'Year-end cleanup',
+      pctDeductible: '{pct}% deductible',
+      nonDeductible: 'Non-deductible',
     },
     cleanup: {
       title: 'Year-end cleanup',
@@ -569,6 +571,8 @@ const es: Dict = {
       emptyState: 'Aún no hay recibos. Escribe a {number} para empezar.',
       unknownVendor: 'Comercio desconocido',
       cleanupLink: 'Limpieza de fin de año',
+      pctDeductible: '{pct}% deducible',
+      nonDeductible: 'No deducible',
     },
     cleanup: {
       title: 'Limpieza de fin de año',

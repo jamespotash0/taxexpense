@@ -166,6 +166,13 @@ export default async function DashboardPage({
                       labels={t.app.badge}
                     />
                   </div>
+                  {/* Tax line: deductibility % and the IRC section it falls under */}
+                  <p className="mt-1 truncate text-xs text-muted">
+                    {r.deduction_percentage === 0
+                      ? d.nonDeductible
+                      : fmt(d.pctDeductible, { pct: r.deduction_percentage ?? 100 })}
+                    {r.irc_section ? ` · §${r.irc_section}` : ''}
+                  </p>
                 </Link>
               </li>
             ))}
