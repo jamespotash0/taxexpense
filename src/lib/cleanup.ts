@@ -14,6 +14,22 @@
 import type { ReceiptRow } from './receipts';
 import { claudeJSON } from './llm';
 import { HAIKU_MODEL } from './claude';
+import { categoryLabel } from './categories';
+
+/** Human-readable phrasing for the substantiation field keys, for user-facing SMS copy. */
+const FIELD_LABELS: Record<string, string> = {
+  attendees: 'who was there',
+  business_purpose: 'the business purpose',
+  business_relationship: 'your business relationship to them',
+  location_city: 'the location',
+  business_miles: 'the miles driven',
+};
+
+function humanizeFields(fields: string[]): string {
+  const labeled = fields.map((f) => FIELD_LABELS[f] ?? f.replace(/_/g, ' '));
+  if (labeled.length <= 1) return labeled.join('');
+  return `${labeled.slice(0, -1).join(', ')} and ${labeled[labeled.length - 1]}`;
+}
 
 /** The kinds of issue the year-end scan can surface, in resolve-priority order. */
 export type CleanupIssueType =
@@ -83,8 +99,8 @@ export function checkMissingContext(receipts: ReceiptRow[]): CleanupIssue[] {
       type: 'missing_context' as const,
       receipt_ids: [r.id],
       fields: r.substantiation_missing_fields ?? [],
-      message: `Missing ${(r.substantiation_missing_fields ?? []).join(', ')} — the IRS asks for this on ${
-        r.category ?? 'this category'
+      message: `Missing ${humanizeFields(r.substantiation_missing_fields ?? [])} — the IRS asks for this on ${
+        r.category ? categoryLabel(r.category).toLowerCase() : 'this category'
       }.`,
     }));
 }

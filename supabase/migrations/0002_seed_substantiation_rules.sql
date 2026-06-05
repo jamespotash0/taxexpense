@@ -14,7 +14,9 @@ INSERT INTO substantiation_rules
 VALUES
   -- Strict substantiation categories (§274(d): amount, time, place, business purpose, relationship).
   -- receipt_threshold_cents 7500 = the $75 documentary-evidence rule (Reg §1.274-5(c)(2); fixed, not indexed).
-  ('meals_business',        '274',  'strict', 7500, FALSE, ARRAY['attendees', 'business_purpose'],        50,  NULL),
+  -- §274(d) meal substantiation = amount + time + place + business purpose + RELATIONSHIP of the
+  -- person entertained. 'business_relationship' added in 0024 (it was missing, so it was never asked).
+  ('meals_business',        '274',  'strict', 7500, FALSE, ARRAY['attendees', 'business_purpose', 'business_relationship'], 50,  NULL),
   ('meals_travel',          '274',  'strict', 7500, FALSE, ARRAY['business_purpose'],                     50,  NULL),
   -- Travel also requires "place" (§274(d)) — location_city, extracted up front (DEC-071).
   ('travel_transportation', '162',  'strict', 7500, FALSE, ARRAY['business_purpose', 'location_city'],    100, NULL),

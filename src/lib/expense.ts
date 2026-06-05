@@ -65,6 +65,21 @@ function generalFallback(category: string): SubstantiationRule {
   };
 }
 
+/**
+ * Load the substantiation rule for `category`, falling back to a permissive "general" rule if the
+ * row is missing. The fallback is the failure mode behind "a meal was logged without ever asking
+ * for its §274(d) context": a missing/mismatched rule silently downgrades a STRICT category to
+ * general (no receipt, no required context, complete). Every ALLOWED_CATEGORIES key is seeded with
+ * a rule (migrations 0002/0009/0024 + substantiation-rules.test), so a fallback here means drift —
+ * a category outside the taxonomy, or a migration that never ran. Warn loudly so it's not silent.
+ */
+async function loadRuleOrFallback(category: string): Promise<SubstantiationRule> {
+  const rule = await getSubstantiationRule(category);
+  if (rule) return rule;
+  log.warn('substantiation_rule_missing', { category });
+  return generalFallback(category);
+}
+
 function capturedFrom(r: {
   attendees: string | null;
   business_purpose: string | null;
@@ -104,7 +119,7 @@ async function recomputeDecision(
   hasPhoto: boolean,
   capturedFields: Record<string, unknown>,
 ) {
-  const rule = (await getSubstantiationRule(category)) ?? generalFallback(category);
+  const rule = await loadRuleOrFallback(category);
   const decision = evaluateSubstantiation(rule, {
     amount_cents: amountCents,
     has_photo: hasPhoto,
@@ -160,7 +175,7 @@ export async function processNewExpense(
   // Per-org vendor memory (DEC-070): if the user has previously corrected this vendor's category,
   // honor that over a fresh model guess so they don't have to correct the same vendor twice.
   const cat = await applyVendorMemory(user.organization_id, input.vendor, modelCat);
-  const rule = (await getSubstantiationRule(cat.category)) ?? generalFallback(cat.category);
+  const rule = await loadRuleOrFallback(cat.category);
 
   // Vehicle mileage entries give miles, not dollars — derive the dollar amount from the
   // standard mileage rate (SYSTEM-PROMPTS Example 7).
