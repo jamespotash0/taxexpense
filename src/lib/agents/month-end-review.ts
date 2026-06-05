@@ -44,6 +44,43 @@ function toFlagged(value: unknown): FlaggedItem[] {
     .filter((v) => v.id);
 }
 
+/** A past review run, surfaced as history so the user can revisit earlier drafts. */
+export interface PastRun {
+  runId: string;
+  month: string;
+  status: MonthEndDraft['status'];
+  summary: string;
+  subject: string;
+  body: string;
+  flagged: FlaggedItem[];
+  createdAt: string;
+}
+
+/**
+ * List this org's recent month-end review runs, newest first — the run history shown in the UI.
+ * Read-only; org-scoped. Excludes the per-step trace/token cost (internal observability only).
+ */
+export async function listMonthEndRuns(orgId: string, limit = 12): Promise<PastRun[]> {
+  const { data, error } = await getSupabaseAdmin()
+    .from('agent_runs')
+    .select('id, period, status, summary, draft_subject, draft_body, flagged, created_at')
+    .eq('organization_id', orgId)
+    .eq('agent_type', 'month_end_review')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []).map((r) => ({
+    runId: String(r.id),
+    month: String(r.period ?? ''),
+    status: r.status as MonthEndDraft['status'],
+    summary: String(r.summary ?? ''),
+    subject: String(r.draft_subject ?? ''),
+    body: String(r.draft_body ?? ''),
+    flagged: toFlagged(r.flagged),
+    createdAt: String(r.created_at),
+  }));
+}
+
 /**
  * Run the month-end review agent for one user + month ('YYYY-MM') and persist the result.
  * Returns the draft accountant email for the user to review, edit, and send.

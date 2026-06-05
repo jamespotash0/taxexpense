@@ -6,7 +6,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireUser, jsonError, serverError } from '@/lib/api';
-import { runMonthEndReview } from '@/lib/agents/month-end-review';
+import { runMonthEndReview, listMonthEndRuns } from '@/lib/agents/month-end-review';
 
 // Agent loops over several model calls + image fetches — give it more room than a single call.
 export const maxDuration = 60;
@@ -17,6 +17,18 @@ const BodySchema = z.object({ month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/)
 
 function currentMonth(): string {
   return new Date().toISOString().slice(0, 7);
+}
+
+// GET /api/agents/month-end-review — the org's past review runs (newest first) for the history list.
+export async function GET(): Promise<NextResponse> {
+  const user = await requireUser();
+  if (user instanceof NextResponse) return user;
+  try {
+    const runs = await listMonthEndRuns(user.organization_id);
+    return NextResponse.json({ ok: true, runs });
+  } catch (err) {
+    return serverError('month_end_review_history_failed', err, { user: user.id });
+  }
 }
 
 export async function POST(req: Request): Promise<NextResponse> {

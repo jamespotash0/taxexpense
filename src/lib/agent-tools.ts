@@ -212,7 +212,13 @@ export function buildMonthEndTools(orgId: string, month: string): AgentTool[] {
               type: 'object',
               properties: {
                 id: { type: 'string' },
-                reason: { type: 'string', description: 'Why this one needs attention (e.g. missing receipt over $75).' },
+                reason: {
+                  type: 'string',
+                  description:
+                    'Why this one needs attention, human-readable. Identify the expense by vendor, date, and amount ' +
+                    '(never by id) and name the specific missing fields — e.g. "Joe\'s Diner — Mar 12, $92 meal: no ' +
+                    'receipt and no business purpose, attendees, or business relationship on file." Not "meal over $75."',
+                },
               },
               required: ['id', 'reason'],
               additionalProperties: false,
