@@ -96,6 +96,18 @@ const EXPLAIN_RE = /\b(why|what for|what'?s (the )?(point|reason|purpose)|how co
 // isAffirmative already covers — so a plain "looks right" confirms without spending a correction call.
 const CONFIRM_RE = /\b(correct|right|looks? (good|right|fine)|that'?s right|perfect|spot on|exactly|yep|yup|all good)\b/i;
 
+// "I don't have a receipt" replies while we're awaiting one (DEC-072). Covers not-having-it and
+// "later" deferrals. Used so a text answer to "send a receipt" is acknowledged, not mistaken for a
+// new expense (which would wrongly ask "how much?"). A bare "no"/"nope"/"skip" is caught separately
+// by isNegative on this same path.
+const NO_RECEIPT_RE =
+  /\b(no(?:\s+|t a |t any )?receipt|don'?t have|do not have|didn'?t (?:have|keep|get|save|take)|did not (?:have|keep|get)|haven'?t got|lost (?:it|the receipt|that)|no photo|can'?t (?:get|find|send)|cannot (?:get|find|send)|threw (?:it )?(?:out|away)|not now|later|i'?ll send|will send|send (?:it )?later)\b/i;
+
+/** True when a reply means "I don't / can't give you a receipt (now)" (pure, unit-tested). */
+export function looksLikeNoReceipt(text: string): boolean {
+  return NO_RECEIPT_RE.test(text.trim());
+}
+
 // Post-log correction window (DEC-064): how long after a clean log a follow-up may still edit that
 // receipt. Tight, so a stale receipt never absorbs an unrelated later message (Priya edge c).
 const CORRECTION_WINDOW_MIN = 15;
@@ -128,6 +140,10 @@ const MSG = {
   amountGiveUp:
     "No worries — I didn't catch an amount, so I haven't logged this one. When you have it, send it like \"$45 lunch with a client\" and I'll take it from there.",
   help: 'Send me a business expense — a receipt photo, text like "$30 gas to client site", or "drove 40 miles to Acme".',
+  // Acknowledge a "no receipt" reply while awaiting one (DEC-072): keep it flagged so the photo can
+  // be added later, confirm everything else is captured, and stop asking. Never re-asks the amount.
+  noReceiptAck:
+    "No problem — it's logged. I've kept it flagged for a receipt, so you can snap the photo anytime and it'll attach. Everything else is captured ✓",
   failure: "Hmm, that didn't go through on my end. Mind sending it once more?",
   // Parser failed (not a delivery failure — the message arrived and is saved). Sofia copy.
   couldntRead: "I couldn't quite make that one out. Mind rephrasing it — something like \"$30 gas to client site\" works great.",
@@ -465,6 +481,20 @@ async function handleExpenseFlow(user: AppUser, msg: InboundMessage): Promise<Pr
     const clar = await processClarification(user, pending.receiptId, pending.questionText, msg.body);
     if (clar.receiptId !== null) return clar;
     // pending receipt vanished → fall through to new expense
+  }
+
+  // Text reply while we're awaiting a RECEIPT photo (DEC-072). The user is answering "send a receipt"
+  // in words, not a photo — most often "I don't have one" / "later". Without this it fell through to
+  // new-expense capture and wrongly asked "how much?" for an expense already logged. A "don't have it"
+  // (or bare no/skip) is acknowledged + kept flagged so the photo can still be added later; any other
+  // detail is treated as a correction to THIS receipt rather than a new one.
+  if (pending && pending.contextState === 'awaiting_receipt' && !replyStartsNewExpense(msg.body)) {
+    if (looksLikeNoReceipt(msg.body) || isNegative(msg.body)) {
+      return { smsText: MSG.noReceiptAck, receiptId: pending.receiptId, contextState: null };
+    }
+    const corrected = await processCorrection(user, pending.receiptId, msg.body);
+    if (corrected.receiptId !== null) return corrected;
+    // receipt vanished mid-flight → fall through to new-expense handling
   }
 
   // Conversational router (DEC-029): answer read-only questions ("how much on meals

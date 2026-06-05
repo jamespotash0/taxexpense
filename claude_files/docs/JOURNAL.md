@@ -7,6 +7,31 @@ Format: date, decision, who pushed back, resolution, rationale.
 
 ---
 
+## 2026-06-05 — "No receipt" reply during awaiting_receipt wrongly re-asked the amount
+
+Founder logged a >$75 expense; it asked for who + a receipt (state `awaiting_context`), he gave the
+name (→ `awaiting_receipt`), then replied "I don't have a receipt" — and it asked "how much was it?"
+for an expense already logged with its amount.
+
+Root cause: `handleExpenseFlow` had **no branch for a TEXT reply while in `awaiting_receipt`** (the
+only `awaiting_receipt` handling was inside `explainWhy`). So "I don't have a receipt" fell through
+every pending check to `handleTextAsNewExpense`, which parsed it as a brand-new expense, found no
+amount, and set `awaiting_amount` ("how much?").
+
+### DEC-072 — Handle text replies while awaiting a receipt
+
+- **Decision.** Add an `awaiting_receipt` text branch (after the `awaiting_context` clarification).
+  A "don't have it / can't / later" reply (`looksLikeNoReceipt`, or a bare no/skip via `isNegative`)
+  is acknowledged with `MSG.noReceiptAck` — the receipt stays flagged (`needs_receipt` unchanged) so
+  the photo can be attached later and the dashboard/cron still surface it, and `contextState` clears
+  so we stop asking. Any other detail is routed to `processCorrection` on that same receipt rather
+  than logging a new one. Never re-asks the amount. `looksLikeNoReceipt` is pure + unit-tested.
+- **Why keep the flag (not mark complete):** a $75+ strict expense genuinely needs the receipt for
+  full §274(d) documentation; we don't pretend it's complete, we just stop nagging inline and let the
+  user add it whenever they have it.
+
+---
+
 ## 2026-06-05 — Texted-receipt photos never reached Storage (bucket empty)
 
 Founder texted a Morton's $84 receipt photo; got a mismatch prompt ("…doesn't match your logged

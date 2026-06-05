@@ -5,7 +5,7 @@
 // integration-level (LLM + DB) and not unit-tested, matching router.test.ts.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { replyStartsNewExpense, looksLikeCorrection } from './sms-handler';
+import { replyStartsNewExpense, looksLikeCorrection, looksLikeNoReceipt } from './sms-handler';
 
 test('bare amount answers stay answers (combine with the remembered text)', () => {
   assert.equal(replyStartsNewExpense('$167'), false);
@@ -88,4 +88,29 @@ test('an amount correction is recognized as an edit (limitation A)', () => {
 test('short/common vendor tokens do not false-trigger the vendor match', () => {
   // "a"/"is" etc. are < 4 chars; only meaningful tokens count.
   assert.equal(looksLikeCorrection('coffee this morning', 'A1 Gas'), false);
+});
+
+// looksLikeNoReceipt — a text reply while awaiting a receipt that means "I don't/can't give one"
+// (DEC-072). Must catch the natural phrasings so they're acknowledged, not treated as new expenses.
+test('looksLikeNoReceipt: catches "do not have it" phrasings', () => {
+  assert.equal(looksLikeNoReceipt("I don't have a receipt"), true);
+  assert.equal(looksLikeNoReceipt('dont have one'), true);
+  assert.equal(looksLikeNoReceipt('no receipt'), true);
+  assert.equal(looksLikeNoReceipt("didn't keep it"), true);
+  assert.equal(looksLikeNoReceipt('I lost the receipt'), true);
+  assert.equal(looksLikeNoReceipt('threw it out'), true);
+  assert.equal(looksLikeNoReceipt('no photo of it'), true);
+});
+
+test('looksLikeNoReceipt: catches "later / will send" deferrals', () => {
+  assert.equal(looksLikeNoReceipt("I'll send it later"), true);
+  assert.equal(looksLikeNoReceipt('later'), true);
+  assert.equal(looksLikeNoReceipt('will send tonight'), true);
+});
+
+test('looksLikeNoReceipt: does NOT fire on unrelated replies', () => {
+  assert.equal(looksLikeNoReceipt('it was with John from Acme'), false);
+  assert.equal(looksLikeNoReceipt('$84 dinner'), false);
+  assert.equal(looksLikeNoReceipt('why do you need it?'), false);
+  assert.equal(looksLikeNoReceipt('here you go'), false);
 });
