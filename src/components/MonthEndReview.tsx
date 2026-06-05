@@ -58,6 +58,7 @@ export function MonthEndReview({ hasAccountantEmail }: { hasAccountantEmail: boo
   async function review() {
     setSentTo(null);
     const { ok, data } = await run.submit<{ draft: Draft }>('/api/agents/month-end-review', {
+      body: {}, // current month; a month selector would pass { month } here
       errorMessage: 'The review could not run. Try again.',
     });
     if (ok && data?.draft) {
