@@ -1,13 +1,13 @@
-// Server-side locale resolution (cookie → Accept-Language → default).
-import { cookies, headers } from 'next/headers';
-import { DEFAULT_LOCALE, isLocale, LOCALE_COOKIE, type Locale } from './config';
+// Server-side locale resolution. Spanish is shelved (see getLocale) so this currently always
+// resolves to the default; the cookie/Accept-Language inputs are restored when ES is re-enabled.
+import { DEFAULT_LOCALE, type Locale } from './config';
 import { getDict, type Dict } from './dictionaries';
 
 export async function getLocale(): Promise<Locale> {
-  const cookieLocale = (await cookies()).get(LOCALE_COOKIE)?.value;
-  if (isLocale(cookieLocale)) return cookieLocale;
-  const accept = ((await headers()).get('accept-language') ?? '').toLowerCase();
-  if (accept.startsWith('es')) return 'es';
+  // Spanish locale is SHELVED until the market is validated (CLAUDE.md: V1 is US-only, English,
+  // IRC-based — no international users yet). The `es` dictionary + resolution machinery are kept
+  // intact so this is a one-line revert when there are paying Spanish-speaking users: restore the
+  // cookie/Accept-Language branches below. Until then every request resolves to English.
   return DEFAULT_LOCALE;
 }
 

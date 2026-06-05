@@ -12,8 +12,3 @@ export type HeroVariant = 'A' | 'B' | 'C';
 export function isHeroVariant(v: string | undefined | null): v is HeroVariant {
   return v === 'A' || v === 'B' || v === 'C';
 }
-
-// Which copy a variant renders. C shows A's copy (only its CTA differs).
-export function heroCopyVariant(v: HeroVariant): 'A' | 'B' {
-  return v === 'B' ? 'B' : 'A';
-}

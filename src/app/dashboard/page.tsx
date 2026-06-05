@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/session';
 import { getMonthlySummary, listReceipts, type ReceiptFilter } from '@/lib/receipts';
 import { getOrgEntitlement } from '@/lib/subscription';
-import { SubstantiationBadge } from '@/components/SubstantiationBadge';
+import { StatusIcons } from '@/components/StatusIcons';
 import { LocaleSwitcher } from '@/components/LocaleSwitcher';
 import { formatMoney, formatDate } from '@/lib/format';
 import { formatUsPhone } from '@/lib/phone';
@@ -107,70 +107,69 @@ export default async function DashboardPage({
         </dl>
       </section>
 
-      {/* Filters + export */}
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-1 text-sm">
+      {/* Filters + export — stack on mobile; each group wraps so no button runs off-screen */}
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="flex flex-wrap gap-1 text-sm">
           {FILTERS.map((f) => (
             <Link
               key={f.key}
               href={`/dashboard?filter=${f.key}`}
-              className={`rounded-md px-3 py-1 ${filter === f.key ? 'bg-primary text-white' : 'text-muted hover:bg-primary-50'}`}
+              className={`rounded-md px-3 py-1.5 ${filter === f.key ? 'bg-primary text-white' : 'text-muted hover:bg-primary-50'}`}
             >
               {f.label}
             </Link>
           ))}
         </div>
-        <div className="flex gap-2 text-sm">
-          <Link href="/dashboard/cleanup" className="rounded-md border border-border bg-surface px-3 py-1 hover:bg-neutral-50">{d.cleanupLink}</Link>
+        <div className="flex flex-wrap gap-2 text-sm">
+          <Link href="/dashboard/cleanup" className="rounded-md border border-border bg-surface px-3 py-1.5 hover:bg-neutral-50">{d.cleanupLink}</Link>
           {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- file download, not navigation */}
-          <a href="/api/receipts/export?format=csv" className="rounded-md border border-border bg-surface px-3 py-1 hover:bg-neutral-50">{d.exportCsv}</a>
+          <a href="/api/receipts/export?format=csv" className="rounded-md border border-border bg-surface px-3 py-1.5 hover:bg-neutral-50">{d.exportCsv}</a>
           {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- file download, not navigation */}
-          <a href="/api/receipts/export?format=quickbooks" className="rounded-md border border-border bg-surface px-3 py-1 hover:bg-neutral-50">{d.quickbooks}</a>
+          <a href="/api/receipts/export?format=quickbooks" className="rounded-md border border-border bg-surface px-3 py-1.5 hover:bg-neutral-50">{d.quickbooks}</a>
         </div>
       </div>
 
-      {/* Receipt list */}
-      <section className="mt-4 divide-y divide-border rounded-lg border border-border bg-surface shadow-sm">
+      {/* Receipt list — cards (stack reads cleanly on mobile and desktop alike) */}
+      <section className="mt-4">
         {rows.length === 0 ? (
-          <div className="p-8 text-center text-sm text-muted">
+          <div className="rounded-lg border border-border bg-surface p-8 text-center text-sm text-muted shadow-sm">
             {(() => {
               const [before, after] = d.emptyState.split('{number}');
               return (<>{before}<span className="font-medium text-foreground whitespace-nowrap">{tallyNumber}</span>{after}</>);
             })()}
           </div>
         ) : (
-          rows.map((r) => (
-            <Link
-              key={r.id}
-              href={`/receipts/${r.id}`}
-              className="flex items-center justify-between gap-3 p-3 hover:bg-neutral-50"
-            >
-              <div className="min-w-0">
-                <p className="truncate font-medium">{r.vendor ?? d.unknownVendor}</p>
-                <p className="text-xs text-muted">
-                  {formatDate(r.transaction_date)} · {catLabel(r.category)}
-                  {r.payment_account && r.payment_account !== 'unknown' ? ` · ${r.payment_account}` : ''}
-                </p>
-              </div>
-              <div className="flex shrink-0 items-center gap-3">
-                {r.needs_review && (
-                  <span
-                    title={r.review_reason ?? undefined}
-                    className="inline-flex items-center rounded-md bg-warning-50 px-2 py-0.5 text-xs font-medium text-warning-700 ring-1 ring-inset ring-warning-600/20"
-                  >
-                    {t.app.badge.review}
-                  </span>
-                )}
-                <SubstantiationBadge
-                  substantiationComplete={r.substantiation_complete}
-                  needsReceipt={r.needs_receipt}
-                  missingFields={r.substantiation_missing_fields}
-                  labels={t.app.badge}
-                />
-                <span className="w-20 text-right font-medium">{formatMoney(r.amount_cents)}</span>
-              </div>
-            </Link>
-          ))
+          <ul className="space-y-2">
+            {rows.map((r) => (
+              <li key={r.id}>
+                <Link
+                  href={`/receipts/${r.id}`}
+                  className="block rounded-lg border border-border bg-surface p-3 shadow-sm hover:bg-neutral-50"
+                >
+                  {/* Top line: charge name + amount */}
+                  <div className="flex items-baseline justify-between gap-3">
+                    <p className="truncate font-medium">{r.vendor ?? d.unknownVendor}</p>
+                    <span className="shrink-0 font-semibold tabular-nums">{formatMoney(r.amount_cents)}</span>
+                  </div>
+                  {/* Bottom line: date · category (+ account) and status icons */}
+                  <div className="mt-1 flex items-center justify-between gap-3">
+                    <p className="truncate text-xs text-muted">
+                      {formatDate(r.transaction_date)} · {catLabel(r.category)}
+                      {r.payment_account && r.payment_account !== 'unknown' ? ` · ${r.payment_account}` : ''}
+                    </p>
+                    <StatusIcons
+                      substantiationComplete={r.substantiation_complete}
+                      needsReceipt={r.needs_receipt}
+                      missingFields={r.substantiation_missing_fields}
+                      needsReview={r.needs_review}
+                      reviewReason={r.review_reason}
+                      labels={t.app.badge}
+                    />
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
         )}
       </section>
     </main>

@@ -1,6 +1,6 @@
 -- =============================================================
 -- TaxSnap/Tally — RUN ALL (paste into Supabase SQL editor, run once).
--- Regenerated from supabase/migrations/0001..0012. Idempotent / re-runnable.
+-- Regenerated from supabase/migrations/0001..0022. Idempotent / re-runnable.
 -- =============================================================
 
 -- =============================================================

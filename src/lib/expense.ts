@@ -92,6 +92,54 @@ function nextContextState(decision: {
 }
 
 /**
+ * Shared core of every recompute path (DEC-011): look up the rule for `category`, evaluate the
+ * authoritative substantiation decision, and produce the receipt-column patch that all callers
+ * persist. The merge of WHICH fields changed stays the caller's job; this owns the
+ * rule → decision → columns step that recomputeReceipt / processClarification / processCorrection
+ * each used to duplicate. Returns the raw decision too (for nextContextState).
+ */
+async function recomputeDecision(
+  category: string,
+  amountCents: number,
+  hasPhoto: boolean,
+  capturedFields: Record<string, unknown>,
+) {
+  const rule = (await getSubstantiationRule(category)) ?? generalFallback(category);
+  const decision = evaluateSubstantiation(rule, {
+    amount_cents: amountCents,
+    has_photo: hasPhoto,
+    captured_fields: capturedFields,
+  });
+  return {
+    decision,
+    patch: {
+      irc_section: rule.irc_section,
+      deduction_percentage: decision.deduction_percentage,
+      deductible_amount_cents: decision.deductible_amount_cents,
+      needs_receipt: decision.needs_receipt,
+      receipt_reason: decision.receipt_reason,
+      substantiation_complete: decision.substantiation_complete,
+      substantiation_missing_fields: decision.missing_context_fields,
+    },
+  };
+}
+
+/** Overlay the context fields the user just addressed onto the receipt's current values (a null
+ *  update leaves the existing value). Shared by clarification + correction. */
+function mergeContext(
+  receipt: ReceiptRow,
+  u: ClarificationResponse['updates'],
+) {
+  return {
+    attendees: u.attendees ?? receipt.attendees,
+    business_purpose: u.business_purpose ?? receipt.business_purpose,
+    business_relationship: u.business_relationship ?? receipt.business_relationship,
+    location_city: u.location_city ?? receipt.location_city,
+    business_miles: u.business_miles ?? receipt.business_miles,
+  };
+}
+
+/**
  * New expense (from text or photo OCR) → save + SMS reply.
  * @param photoPath Supabase Storage path if this expense came in with a photo, else null.
  * @param precomputedCategory category from a merged extract+categorize call (DEC-063) — skips
@@ -183,21 +231,8 @@ export async function recomputeReceipt(
   const r = prefetched ?? (await getReceipt(orgId, receiptId));
   if (!r) return null;
   const category = r.category ?? 'personal';
-  const rule = (await getSubstantiationRule(category)) ?? generalFallback(category);
-  const decision = evaluateSubstantiation(rule, {
-    amount_cents: r.amount_cents,
-    has_photo: r.photo_url != null,
-    captured_fields: capturedFrom(r),
-  });
-  return updateReceipt(orgId, receiptId, {
-    irc_section: rule.irc_section,
-    deduction_percentage: decision.deduction_percentage,
-    deductible_amount_cents: decision.deductible_amount_cents,
-    needs_receipt: decision.needs_receipt,
-    receipt_reason: decision.receipt_reason,
-    substantiation_complete: decision.substantiation_complete,
-    substantiation_missing_fields: decision.missing_context_fields,
-  });
+  const { patch } = await recomputeDecision(category, r.amount_cents, r.photo_url != null, capturedFrom(r));
+  return updateReceipt(orgId, receiptId, patch);
 }
 
 interface ClarificationResponse {
@@ -261,36 +296,23 @@ export async function processClarification(
     maxTokens: 512,
   });
 
-  // Merge updates onto the receipt (only fields the user addressed).
+  // Merge updates onto the receipt (only fields the user addressed), then recompute the
+  // authoritative decision in code (DEC-011).
   const u = parsed.updates ?? ({} as ClarificationResponse['updates']);
-  const merged = {
-    attendees: u.attendees ?? receipt.attendees,
-    business_purpose: u.business_purpose ?? receipt.business_purpose,
-    business_relationship: u.business_relationship ?? receipt.business_relationship,
-    location_city: u.location_city ?? receipt.location_city,
-    business_miles: u.business_miles ?? receipt.business_miles,
-  };
-
-  // Recompute the authoritative decision in code (DEC-011).
+  const merged = mergeContext(receipt, u);
   const category = parsed.category_change_needed && parsed.new_category ? parsed.new_category : receipt.category!;
-  const rule = (await getSubstantiationRule(category)) ?? generalFallback(category);
-  const decision = evaluateSubstantiation(rule, {
-    amount_cents: receipt.amount_cents,
-    has_photo: receipt.photo_url != null,
-    captured_fields: capturedFrom(merged),
-  });
+  const { decision, patch } = await recomputeDecision(
+    category,
+    receipt.amount_cents,
+    receipt.photo_url != null,
+    capturedFrom(merged),
+  );
 
   await updateReceipt(user.organization_id, receiptId, {
     ...merged,
     payment_account: u.payment_account ?? receipt.payment_account,
     category,
-    irc_section: rule.irc_section,
-    deduction_percentage: decision.deduction_percentage,
-    deductible_amount_cents: decision.deductible_amount_cents,
-    needs_receipt: decision.needs_receipt,
-    receipt_reason: decision.receipt_reason,
-    substantiation_complete: decision.substantiation_complete,
-    substantiation_missing_fields: decision.missing_context_fields,
+    ...patch,
   });
 
   return {
@@ -344,13 +366,7 @@ export async function processCorrection(
   });
 
   const u = parsed.updates ?? ({} as CorrectionResponse['updates']);
-  const merged = {
-    attendees: u.attendees ?? receipt.attendees,
-    business_purpose: u.business_purpose ?? receipt.business_purpose,
-    business_relationship: u.business_relationship ?? receipt.business_relationship,
-    location_city: u.location_city ?? receipt.location_city,
-    business_miles: u.business_miles ?? receipt.business_miles,
-  };
+  const merged = mergeContext(receipt, u);
 
   // An amount correction changes the $75 substantiation threshold + the deductible, so feed the new
   // amount into the recompute (and persist it). Ignore non-positive/garbage values (DEC-064).
@@ -359,25 +375,19 @@ export async function processCorrection(
 
   const categoryChanged = parsed.category_change_needed === true && !!parsed.new_category;
   const category = categoryChanged ? parsed.new_category! : receipt.category!;
-  const rule = (await getSubstantiationRule(category)) ?? generalFallback(category);
-  const decision = evaluateSubstantiation(rule, {
-    amount_cents: amountCents,
-    has_photo: receipt.photo_url != null,
-    captured_fields: capturedFrom(merged),
-  });
+  const { decision, patch } = await recomputeDecision(
+    category,
+    amountCents,
+    receipt.photo_url != null,
+    capturedFrom(merged),
+  );
 
   await updateReceipt(user.organization_id, receiptId, {
     ...merged,
     amount_cents: amountCents,
     payment_account: u.payment_account ?? receipt.payment_account,
     category,
-    irc_section: rule.irc_section,
-    deduction_percentage: decision.deduction_percentage,
-    deductible_amount_cents: decision.deductible_amount_cents,
-    needs_receipt: decision.needs_receipt,
-    receipt_reason: decision.receipt_reason,
-    substantiation_complete: decision.substantiation_complete,
-    substantiation_missing_fields: decision.missing_context_fields,
+    ...patch,
   });
 
   // Correction-rate metric (DEC-065): each correction is an error-driven extra round trip (a
