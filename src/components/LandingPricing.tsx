@@ -5,35 +5,48 @@
 // after the trial, on /pricing. Prices come from the shared PLANS config.
 import { useState } from 'react';
 import Link from 'next/link';
-import { PLANS } from '@/lib/pricing';
+import { PLANS, type PlanId } from '@/lib/pricing';
 import { formatMoney } from '@/lib/format';
 import { fmt } from '@/i18n/config';
 import type { Dict } from '@/i18n/dictionaries';
 
 export function LandingPricing({ t, trialDays, ctaLabel }: { t: Dict['pricing']; trialDays: number; ctaLabel: string }) {
-  const [annual, setAnnual] = useState(true);
-  const plan = annual ? PLANS.annual : PLANS.weekly;
+  const [selected, setSelected] = useState<PlanId>('annual');
+  const plan = PLANS[selected];
+
+  const tabs: { id: PlanId; label: string }[] = [
+    { id: 'weekly', label: t.planWeekly },
+    { id: 'monthly', label: t.planMonthly },
+    { id: 'annual', label: t.planAnnual },
+  ];
+  const billedLabel =
+    plan.interval === 'year'
+      ? fmt(t.billedYearly, { price: formatMoney(plan.priceCents) })
+      : plan.interval === 'month'
+        ? t.billedMonthly
+        : t.billedWeekly;
 
   return (
     <div className="mx-auto max-w-md">
       {/* Billing-period toggle */}
       <div className="mb-8 flex justify-center">
         <div className="inline-flex rounded-full border border-gray-200 bg-white p-1 text-sm">
-          <button
-            onClick={() => setAnnual(false)}
-            aria-pressed={!annual}
-            className={`rounded-full px-4 py-1.5 font-medium transition-colors ${!annual ? 'bg-primary text-white' : 'text-gray-600 hover:text-gray-900'}`}
-          >
-            {t.planWeekly}
-          </button>
-          <button
-            onClick={() => setAnnual(true)}
-            aria-pressed={annual}
-            className={`flex items-center gap-2 rounded-full px-4 py-1.5 font-medium transition-colors ${annual ? 'bg-primary text-white' : 'text-gray-600 hover:text-gray-900'}`}
-          >
-            {t.planAnnual}
-            <span className={`rounded-full px-2 py-0.5 text-xs ${annual ? 'bg-white/20 text-white' : 'bg-accent-50 text-accent'}`}>{t.save}</span>
-          </button>
+          {tabs.map((tab) => {
+            const active = selected === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setSelected(tab.id)}
+                aria-pressed={active}
+                className={`flex items-center gap-2 rounded-full px-4 py-1.5 font-medium transition-colors ${active ? 'bg-primary text-white' : 'text-gray-600 hover:text-gray-900'}`}
+              >
+                {tab.label}
+                {tab.id === 'annual' && (
+                  <span className={`rounded-full px-2 py-0.5 text-xs ${active ? 'bg-white/20 text-white' : 'bg-accent-50 text-accent'}`}>{t.save}</span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -47,9 +60,7 @@ export function LandingPricing({ t, trialDays, ctaLabel }: { t: Dict['pricing'];
           <span className="text-5xl font-semibold tracking-tight">{formatMoney(plan.displayCents)}</span>
           <span className="text-gray-500">{plan.unit === 'wk' ? t.perWk : t.perMo}</span>
         </p>
-        <p className="mt-1 text-sm text-gray-500">
-          {annual ? fmt(t.billedYearly, { price: formatMoney(plan.priceCents) }) : t.billedWeekly}
-        </p>
+        <p className="mt-1 text-sm text-gray-500">{billedLabel}</p>
 
         <Link
           href="/start"

@@ -136,12 +136,16 @@ export async function composeResponse(args: {
   decision: SubstantiationResult;
   irc: IrcSummary | null;
   user: AppUser;
+  /** Confidence-gated category micro-confirm (DEC-073): when true, the model adds ONE short line
+   *  inviting the user to reply with the right category if it's off. Only set on an otherwise-clean
+   *  log where the categorizer was genuinely unsure — never stacked on a receipt/context question. */
+  categoryUncertain?: boolean;
   /** Override the compose model (eval/AB). Defaults to COMPOSE_MODEL env, else Sonnet. The phrasing
    *  task is post-decision (DEC-011), so it's the safe call to try on Haiku — flip via env to A/B in
    *  prod without a redeploy. */
   model?: string;
 }): Promise<string> {
-  const { input, category, rule, decision, irc, user } = args;
+  const { input, category, rule, decision, irc, user, categoryUncertain } = args;
   const model = args.model ?? optionalEnv('COMPOSE_MODEL') ?? SONNET_MODEL;
 
   const decisionBlock = JSON.stringify(
@@ -154,6 +158,7 @@ export async function composeResponse(args: {
       receipt_reason: decision.receipt_reason,
       missing_context_fields: decision.missing_context_fields,
       substantiation_complete: decision.substantiation_complete,
+      category_uncertain: categoryUncertain ?? false,
       deduction_cap: rule.deduction_cap_cents != null ? `$${rule.deduction_cap_cents / 100}` : null,
     },
     null,

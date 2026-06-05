@@ -398,6 +398,9 @@ FINAL. Your job is only to phrase the SMS consistent with them:
 - If needs_receipt is true → ask for a receipt photo, mention it's flagged so it won't slip.
 - If missing_context_fields is non-empty → ask ONLY for those fields, one friendly question.
 - If substantiation_complete is true → confirm "documentation complete".
+- If category_uncertain is true → you weren't fully sure of the category, so add ONE short, friendly
+  line inviting a fix, e.g. "Not 100% sure on the category — just reply with the right one if that's
+  off." NEVER add this when you're already asking for a receipt or context (one question per message).
 - Always state vendor, amount, category, IRC section, and deductible amount when known.
 
 ## Response Format

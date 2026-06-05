@@ -7,6 +7,59 @@ Format: date, decision, who pushed back, resolution, rationale.
 
 ---
 
+## 2026-06-05 — Pricing reset to 3 tiers, reverse-engineered from a 70% margin floor
+
+### DEC-049 — Three real tiers ($5.99/wk · $12.49/mo · $9.99/mo annual), priced to ~70% gross margin
+
+- **Context.** Founder set two constraints: hit **70% gross margin** and survive a **high-end
+  user of ~2,000 SMS/yr**, later revised to a **~1,500-SMS/yr average** as the basis to price
+  against. This supersedes the weekly-decoy two-tier model ([[DEC-044]]).
+- **COGS model (avg user, ~1,500 SMS/yr).** Twilio SMS/MMS ~$18 + Claude (Haiku OCR + Sonnet
+  categorize, prompt-cached) ~$15 + buffer ~$4 ≈ **~$37/yr**. Margin floor for 70% = $37 / 0.30
+  ≈ **$123/yr**.
+- **Decision.** Founder locked exact prices: **Weekly $5.99/wk**, **Monthly $12.49/mo**,
+  **Annual $119.88/yr (shown as $9.99/mo)**. Margins: weekly ~88%, monthly ~75%, annual ~69%
+  (≈ at target; tips to 70% if real COGS ≤ $36). Annual is the featured plan; "Save 20%" badge
+  reflects annual vs. monthly ($149.88 → $119.88), an honest comparison now that monthly is a
+  real option (not the old decoy framing).
+- **Risk / guardrail.** Pricing to the *average* means heavy users (2,000+ SMS) dip to ~58%
+  margin on annual. Mitigation is a soft **fair-use line (~2,000 captures/yr)**, not a price
+  change — deferred until the real usage distribution is known.
+- **Code.** `src/lib/pricing.ts` is the single source of truth (added `monthly`; `interval`
+  now `week|month|year`). DB CHECK already allowed `('weekly','monthly','annual')` — no
+  migration. **`priceCents`/`displayCents` are display-only; the actual charge is the Stripe
+  Price ID** — Stripe Prices + `STRIPE_PRICE_MONTHLY` env var must be set (see handoff).
+
+---
+
+## 2026-06-05 — Text feedback loop: confidence-gated category micro-confirm
+
+Founder asked for an in-text feedback loop so categorization is "self-updating." Team roundtable
+(Sofia/Marcus/Raj/Jordan/Priya/Alex) converged: a **blanket** "did I get it right?" confirm is wrong
+— it breaks *ask only when required* / *one question max* (Sofia), adds Twilio cost for the weakest,
+most bias-prone signal (Raj/Alex), and risks treating silence as "verified" on a CPA-facing export
+(Jordan). The loop already self-updates: the confirmation states the category (implicit confirm) and
+corrections teach vendor memory ([[DEC-070]]). The only place an explicit nudge earns its keep is the
+genuinely-uncertain case — mirroring DEC-066 (verify the AMOUNT only when the read was shaky).
+
+### DEC-073 — Invite a category fix ONLY when the categorizer was unsure (and the log is otherwise clean)
+
+- **Decision.** In `processNewExpense`, set `categoryUncertain = baseState === null && review.reasonCode
+  === 'low_confidence'` (review floor REVIEW_CONFIDENCE_FLOOR=0.8, DEC-055). When true, `composeResponse`
+  adds ONE short line — "Not 100% sure on the category — reply with the right one if that's off" — and
+  the reply is routed via `awaiting_confirm` to `processCorrection`, which re-categorizes and teaches
+  vendor memory (DEC-070), closing the loop. The flag rides in the decision JSON (DEC-011: code decides,
+  model only phrases), so the nudge is localized.
+- **Scoping (deliberate).** Only the `low_confidence` review reason triggers a prompt. `instruction_shaped`
+  (possible injection) and `category_drift` stay dashboard-only/silent — we never invite a category pick
+  on a suspicious note. Never stacked on a receipt/context question (one question per message, Sofia), and
+  mutually exclusive with the DEC-066 amount-verify. This scopes DEC-055's original "no SMS question" rule
+  to everything-except-low-confidence.
+- **Not built (team-rejected):** blanket per-expense confirmation; learning from positive confirmations
+  (acquiescence bias — corrections remain the only learn signal).
+
+---
+
 ## 2026-06-05 — "No receipt" reply during awaiting_receipt wrongly re-asked the amount
 
 Founder logged a >$75 expense; it asked for who + a receipt (state `awaiting_context`), he gave the

@@ -206,14 +206,24 @@ export async function processNewExpense(
 
   const irc = await getIrcSummary(rule.irc_section);
 
+  // Confidence-gated category micro-confirm (DEC-073). When the categorizer was genuinely unsure
+  // (the review floor's low_confidence reason) AND the log is otherwise clean — we're not already
+  // asking for a receipt/context (baseState null) and the amount read was fine (past the lowConfidence
+  // return above) — invite a one-tap category fix in the reply. The user's correction is routed via
+  // 'awaiting_confirm' to processCorrection, which re-categorizes and teaches vendor memory (DEC-070),
+  // closing the feedback loop. Injection-shaped / drift flags stay dashboard-only (no prompt) by
+  // design — only the honest "which deductible class?" uncertainty earns an SMS nudge (Sofia: friction
+  // only with purpose; this scopes DEC-055's no-question rule to the low_confidence case alone).
+  const categoryUncertain = baseState === null && review.reasonCode === 'low_confidence';
+
   // Save and compose are independent (compose doesn't use the receipt id) — run them
   // concurrently to shave a DB round trip off the reply latency (DEC-063).
   const [receiptId, smsText] = await Promise.all([
     saveReceipt({ user, input, category: cat.category, rule, decision, photoPath, review }),
-    composeResponse({ input, category: cat.category, rule, decision, irc, user }),
+    composeResponse({ input, category: cat.category, rule, decision, irc, user, categoryUncertain }),
   ]);
 
-  return { smsText, receiptId, contextState: baseState };
+  return { smsText, receiptId, contextState: categoryUncertain ? 'awaiting_confirm' : baseState };
 }
 
 /**

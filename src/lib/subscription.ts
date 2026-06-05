@@ -2,6 +2,7 @@
 // unit-testable; the DB loader is the only side effect. "Entitled" = may use the product.
 
 import { getSupabaseAdmin } from './supabase';
+import type { PlanId } from './pricing';
 
 export type SubStatus = 'trialing' | 'active' | 'past_due' | 'canceled' | 'expired' | null;
 
@@ -56,7 +57,7 @@ export async function getOrgEntitlement(orgId: string): Promise<Entitlement> {
 
 export interface OrgBillingPatch {
   subscription_status?: SubStatus;
-  plan?: 'weekly' | 'annual';
+  plan?: PlanId;
   stripe_customer_id?: string;
   stripe_subscription_id?: string;
   current_period_end?: string | null;

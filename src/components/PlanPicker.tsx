@@ -33,11 +33,14 @@ export function PlanPicker({ t }: { t: Dict['pricing'] }) {
     }
   }
 
-  const order: PlanId[] = ['annual', 'weekly'];
+  const order: PlanId[] = ['monthly', 'annual', 'weekly'];
+  const planLabel = (id: PlanId) => (id === 'annual' ? t.planAnnual : id === 'monthly' ? t.planMonthly : t.planWeekly);
+  const billedLabel = (interval: string, price: string) =>
+    interval === 'year' ? fmt(t.billedYearly, { price }) : interval === 'month' ? t.billedMonthly : t.billedWeekly;
 
   return (
     <div>
-      <div className="grid items-start gap-5 sm:grid-cols-2">
+      <div className="grid items-start gap-5 sm:grid-cols-3">
         {order.map((id) => {
           const p = PLANS[id];
           const featured = id === 'annual';
@@ -54,7 +57,7 @@ export function PlanPicker({ t }: { t: Dict['pricing'] }) {
                 </span>
               )}
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold">{featured ? t.planAnnual : t.planWeekly}</h3>
+                <h3 className="font-semibold">{planLabel(id)}</h3>
                 {featured && <span className="rounded-full bg-accent-50 px-2.5 py-1 text-xs font-medium text-accent">{t.save}</span>}
               </div>
 
@@ -62,9 +65,7 @@ export function PlanPicker({ t }: { t: Dict['pricing'] }) {
                 <span className="text-4xl font-semibold tracking-tight">{formatMoney(p.displayCents)}</span>
                 <span className="text-gray-500">{p.unit === 'wk' ? t.perWk : t.perMo}</span>
               </p>
-              <p className="mt-1 text-sm text-gray-500">
-                {p.interval === 'year' ? fmt(t.billedYearly, { price: formatMoney(p.priceCents) }) : t.billedWeekly}
-              </p>
+              <p className="mt-1 text-sm text-gray-500">{billedLabel(p.interval, formatMoney(p.priceCents))}</p>
 
               <button
                 onClick={() => subscribe(id)}
