@@ -4,6 +4,7 @@
 
 import { normalizeToE164 } from './phone';
 import { getOrCreateUserByPhone, touchLastActive, updateUser, type AppUser } from './users';
+import { notifyAdminNewSignup } from './admin-notify';
 import { logConversation, getPendingContext, countRecentInbound, getPendingFlagChoice, type ContextState, type PendingContext } from './conversations';
 import { getSubstantiationRule } from './substantiation';
 import { categoryLabel } from './categories';
@@ -337,6 +338,11 @@ export async function handleInboundSms(msg: InboundMessage): Promise<void> {
   try {
     const result = await getOrCreateUserByPhone(phone);
     user = result.user;
+    // Best-effort founder notification on brand-new signups (abuse monitoring). Never let a
+    // flaky email fail the signup — the helper self-swallows, but guard the call anyway.
+    if (result.isNew) {
+      void notifyAdminNewSignup(user).catch(() => {});
+    }
   } catch (err) {
     log.error('user_lookup_failed', { phone: maskPhone(phone), message: errMsg(err) });
     await safeSend(phone, MSG.failure, msg.channel);
