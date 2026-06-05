@@ -16,10 +16,10 @@ import { HAIKU_MODEL } from './claude';
 import { PUBLIC_ENV } from './env';
 import { log } from './log';
 import { getSupabaseAdmin } from './supabase';
-import { listReceipts, updateReceipt, getReceipt, type ReceiptRow } from './receipts';
+import { listReceipts, updateReceipt, getReceipt, getLatestReceiptSince, type ReceiptRow } from './receipts';
 import { formatMoney, shortDate } from './format';
 import type { AppUser } from './users';
-import type { ProcessResult } from './expense';
+import { processCorrection, type ProcessResult } from './expense';
 import {
   aggregateExpenses,
   categoryBreakdown,
@@ -42,6 +42,7 @@ export type Intent =
   | { kind: 'command'; command: CommandName }
   | { kind: 'advice' }
   | { kind: 'help' }
+  | { kind: 'context_statement' }
   | { kind: 'other' };
 
 const QUERY_TOOLS: QueryTool[] = ['aggregate', 'breakdown', 'recent', 'review_year'];
@@ -76,7 +77,8 @@ Intents:
 - "command": an explicit request to "export" their data or "email my accountant".
 - "advice": asks for TAX ADVICE — what they'll owe, whether something is deductible, what they should do. (Tally does not give advice.)
 - "help": a greeting ("hi", "hey", "thanks"), "help", or "what can you do".
-- "other": the message is off-topic or something Tally can't do — it is NOT an expense, NOT a question about their own logged expenses, NOT a command, NOT tax advice, and NOT a greeting/help. (e.g. "what's the weather", "book me a flight", "write me a poem".) Only use this when the message clearly has nothing to do with logging or reviewing expenses. When unsure whether it's an expense, choose "capture", not "other".
+- "context_statement": a STATEMENT (not a question) that ADDS A BUSINESS DETAIL or correction about an expense the user just logged — who was at a meal, the business purpose, where it was, that it was business or personal, or a clarification about the vendor — WITHOUT stating a new amount and WITHOUT being a fresh expense. (e.g. "that lunch was with a client about the Q3 deal", "the dinner was for my own team", "that one was actually personal", "Tabernacle is a restaurant".) If the message states a NEW dollar amount or miles, it's a "capture", not this. If it asks a question, it's "query"/"advice"/"help", not this.
+- "other": the message is off-topic or something Tally can't do — it is NOT an expense, NOT a question about their own logged expenses, NOT a command, NOT tax advice, NOT a detail about a logged expense, and NOT a greeting/help. (e.g. "what's the weather", "book me a flight", "write me a poem".) Only use this when the message clearly has nothing to do with logging or reviewing expenses. When unsure whether it's an expense, choose "capture", not "other".
 
 For "query", also set:
 - "tool": one of "aggregate" (a total / how much), "breakdown" (spend by category), "recent" (latest/last N charges), "review_year" (review my year / year summary).
@@ -117,6 +119,8 @@ export function sanitizeIntent(raw: RawIntent): Intent {
       return { kind: 'advice' };
     case 'help':
       return { kind: 'help' };
+    case 'context_statement':
+      return { kind: 'context_statement' };
     case 'other':
       return { kind: 'other' };
     case 'capture':
@@ -302,10 +306,37 @@ export async function resolveFlagChoice(user: AppUser, candidateIds: string[], c
   return flagOne(user, r);
 }
 
+// A conversational context statement (DEC-069). The user added a business detail about a recently
+// logged expense ("that lunch was with a client", "that one was personal") WITHOUT restating an
+// amount — the kind of message the old rigid flow dead-ended on ("how much was this?" or "can't
+// help"). We apply it to the most recent receipt in a short window as an EDIT — the same trusted
+// operation the post-log correction window uses, just triggered by a smarter signal (the classifier)
+// than regex markers, and over a slightly wider window. Edits one existing receipt; never logs a new
+// one. If there's no recent expense to attach it to, we acknowledge + steer back rather than logging
+// a phantom or rejecting the message.
+const CONTEXT_STATEMENT_WINDOW_MIN = 120;
+
+async function handleContextStatement(user: AppUser, text: string): Promise<ProcessResult> {
+  const since = new Date(Date.now() - CONTEXT_STATEMENT_WINDOW_MIN * 60 * 1000).toISOString();
+  const recent = await getLatestReceiptSince(user.organization_id, since);
+  if (recent) {
+    const corrected = await processCorrection(user, recent.id, text);
+    if (corrected.receiptId !== null) return corrected; // receipt vanished mid-flight → acknowledge
+  }
+  // Nothing to attach it to. Acknowledge + point back to the one thing we do — and record that we
+  // DELIBERATELY did not log (Alex's silent-non-logging guard: a log-only metric so a classifier
+  // that wrongly diverts real expenses here is auditable, not invisible).
+  log.info('conversational_no_log', { user: user.id, kind: 'context_statement', applied: false });
+  return reply(
+    'Got it. I log business expenses as they happen — send me one (a photo, or a quick note like ' +
+      '"$30 gas to client site") and I\'ll capture the why and any context the IRS needs.',
+  );
+}
+
 /**
  * Try to handle a text message conversationally. Returns a ProcessResult to send, or
  * null to let the caller run the normal expense-capture flow. Read-only except the
- * explicit "flag for CPA" marker.
+ * explicit "flag for CPA" marker and applying a context statement to a recent receipt.
  */
 export async function routeTextMessage(user: AppUser, text: string): Promise<ProcessResult | null> {
   // Obvious expense → straight to capture, no classifier call.
@@ -326,7 +357,11 @@ export async function routeTextMessage(user: AppUser, text: string): Promise<Pro
       return reply(ADVICE_DEFLECTION);
     case 'help':
       return reply(HELP_TEXT);
+    case 'context_statement':
+      return handleContextStatement(user, text);
     case 'other':
+      // Off-topic → can't-help reply. Log-only metric so anything we declined to act on is auditable.
+      log.info('conversational_no_log', { user: user.id, kind: 'other', applied: false });
       return reply(CANT_HELP_TEXT);
   }
 }

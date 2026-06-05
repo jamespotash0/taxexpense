@@ -16,9 +16,10 @@ VALUES
   -- receipt_threshold_cents 7500 = the $75 documentary-evidence rule (Reg §1.274-5(c)(2); fixed, not indexed).
   ('meals_business',        '274',  'strict', 7500, FALSE, ARRAY['attendees', 'business_purpose'],        50,  NULL),
   ('meals_travel',          '274',  'strict', 7500, FALSE, ARRAY['business_purpose'],                     50,  NULL),
-  ('travel_transportation', '162',  'strict', 7500, FALSE, ARRAY['business_purpose'],                     100, NULL),
+  -- Travel also requires "place" (§274(d)) — location_city, extracted up front (DEC-071).
+  ('travel_transportation', '162',  'strict', 7500, FALSE, ARRAY['business_purpose', 'location_city'],    100, NULL),
   -- Lodging always needs a receipt regardless of amount (Reg §1.274-5(c)(2)).
-  ('travel_lodging',        '162',  'strict', 0,    TRUE,  ARRAY['business_purpose'],                     100, NULL),
+  ('travel_lodging',        '162',  'strict', 0,    TRUE,  ARRAY['business_purpose', 'location_city'],    100, NULL),
   -- Business gifts: cite §274(b) (gift-specific summary), $25/recipient/yr cap (2500 cents; fixed, not indexed).
   ('business_gifts',        '274b', 'strict', 7500, FALSE, ARRAY['attendees', 'business_relationship'],   100, 2500),
   -- Vehicle: listed property — cite §280F (vehicle summary); needs a contemporaneous mileage log; no flat receipt threshold.

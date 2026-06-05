@@ -10,7 +10,9 @@
     "test": "node --import tsx --test $(find src -name '*.test.ts')",
     "eval:categorize": "node --import tsx --env-file=.env.local scripts/eval/run.ts",
     "eval:merged": "node --import tsx --env-file=.env.local scripts/eval/merged.ts",
+    "eval:image": "node --import tsx --env-file=.env.local scripts/eval/image.ts",
     "eval:conversation": "node --import tsx --env-file=.env.local scripts/eval/conversation.ts",
+    "eval:intent": "node --import tsx --env-file=.env.local scripts/eval/intent.ts",
     "cache:check": "node --import tsx --env-file=.env.local scripts/eval/cache-check.ts",
     "redteam": "node --import tsx --env-file=.env.local scripts/redteam/run.ts",
     "sim:onboarding": "node --import tsx scripts/onboarding/sim.ts"

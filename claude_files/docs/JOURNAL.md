@@ -7,6 +7,178 @@ Format: date, decision, who pushed back, resolution, rationale.
 
 ---
 
+## 2026-06-05 — Texted-receipt photos never reached Storage (bucket empty)
+
+Founder texted a Morton's $84 receipt photo; got a mismatch prompt ("…doesn't match your logged
+expense [Irish pub $80]… reply YES to replace") and the photo never landed. A read-only check
+(`scripts/diag/storage-check.ts`) confirmed the `receipts` bucket was EMPTY (0 objects) and every
+receipt had `photo_url=NULL` — text capture worked, the photo path did not.
+
+Root cause, two stacked defects in the attachment flow (`processAttachment`, `RECEIPT_ATTACHMENT_PROMPT`):
+- **A. Wrong-target matching.** Any inbound photo, whenever *some* receipt is awaiting one, was
+  matched against the newest awaiting-photo receipt — so a brand-new expense's photo got force-fit
+  onto an unrelated older record.
+- **B. Dead-end mismatch path.** On medium/low match confidence the code asked "reply YES to replace"
+  but (1) never persisted the photo bytes (held only in memory for that request), (2) never stored
+  the Twilio MediaUrl, and (3) had no handler for "YES" in the `awaiting_receipt` state. So the YES
+  did nothing and the image was lost — by design we "don't store until matched," but the confirm
+  branch could never reach a match.
+
+### DEC-071 — A photo that doesn't confidently match a pending receipt is a NEW expense
+
+- **Decision.** `processAttachment` attaches only on HIGH match confidence; medium/low now returns
+  `null`, so the caller (`handleExpenseFlow`) falls through to `handlePhotoAsNewExpense`, which stores
+  the photo and logs it as its own expense. The pending receipt keeps awaiting its real photo. The
+  "reply YES to replace" dead-end is removed entirely.
+- **Founder confirmation.** The two were genuinely separate — the $80 was an older entry whose
+  receipt was never added; the Morton's photo was a new entry. The fix matches that intent.
+- **Trade-off (accepted).** A true same-receipt with noisy OCR (e.g. same vendor, amount off by a
+  few dollars) now logs as a separate entry the user can merge, rather than risk losing the photo.
+- **Note.** The originally-lost photo bytes are unrecoverable (never persisted) — must be re-sent;
+  it will now log as a new expense with the photo stored.
+
+---
+
+## 2026-06-05 — Capture "place" for travel substantiation (§274(d))
+
+Founder asked whether `location_city` should be required, since it was a dead column (in the schema +
+dashboard, but never extracted and never asked). §274(d) lists **place** as a required substantiation
+element for travel and meals — so there's a real compliance argument. But the field was *never
+populated*: neither extraction prompt emitted it, so naively adding it to `required_context_fields`
+would have nagged "what city?" on **every** strict expense (violating "ask only when required" + "one
+question per message"). The right sequencing was extraction first, then require.
+
+### DEC-071 — Extract `location_city` up front; require it for `travel_*` only
+
+- **Decision.** (1) Teach all four extraction prompts (the two merged hot-path prompts + the two
+  standalone ones) to pull `location_city` — from the receipt's address on photos, from the
+  destination on text ("flight to Chicago" → "Chicago"). Threaded through `ocr.ts`
+  (`ExtractedReceipt`/`ParsedTextExpense`) and both `ExpenseInput` construction sites in
+  `sms-handler.ts` (previously hard-coded `null`). (2) Add `location_city` to
+  `required_context_fields` for `travel_transportation` + `travel_lodging` **only** (migration 0022;
+  seeds 0002 + RUN_ALL refreshed). The substantiation engine, `capturedFrom`, the clarification/
+  correction prompts, and the receipt schema already handled the field — only extraction + the seed
+  were missing.
+- **Why travel only, NOT meals.** For meals the `vendor` field (the restaurant's name) already
+  satisfies the "place" element, so a separate city question there is redundant friction. For travel,
+  destination/place is genuinely distinct from the vendor (an airline, a hotel chain) and is the §274(d)
+  element auditors care about. Because the city is now extracted up front, the new required field only
+  triggers an ask when extraction genuinely couldn't find a place — not on every travel expense.
+- **Tests.** `substantiation.test.ts` fixtures updated to match the seed (travel rules now require
+  `location_city`); added cases asserting a missing city is asked for and that purpose+city+photo is
+  complete. Full suite green (195).
+
+---
+
+## 2026-06-05 — "Get better the more people interact" (the learning flywheel)
+
+Founder asked for the system to improve with usage. Team roundtable (Marcus/Raj/Jordan/Alex) on
+*what* "learning" can mean here, since Claude is a fixed model. Mechanisms ranked: (A) offline
+eval flywheel — mine real misses → golden datasets → tune prompts only on reproducible failures;
+(B) per-org vendor→category memory — deterministic personalization; (C) dynamic few-shot retrieval
+(V2); (D) fine-tuning / silent auto-tune (rejected — compounds errors, needs scale).
+
+Consensus, with dissent noted:
+- **Alex/Marcus:** premature as an *automated* build — near-zero traffic, and the cheapest flywheel
+  at this scale is the founder manually reading corrections + `conversational_no_log`. Don't build a
+  combine harvester for a window box.
+- **Raj:** *capturing* the correction signal is cheap and worth it; building the consumer early is a
+  wrong-abstraction risk. Green-lit B specifically because it's a deterministic lookup table (can't
+  drift), not ML.
+- **Jordan:** persisting raw message TEXT for reuse changes the data-handling posture — needs a
+  retention/consent policy (a launch open-item) first. Per-org isolation is non-negotiable.
+- A contaminated `eval:intent` run (rate-limit 429s swallowed into `capture` fallbacks looked like
+  misclassifications) became the cautionary tale: **examples are only as trustworthy as the verified
+  failures that motivate them.** Verify a miss is real before "fixing" it.
+
+Outcome: build **B now** (below); the automated curation pipeline (A) and text-capture wait on the
+retention policy + real volume. New eval `npm run eval:intent` added as the classifier's regression
+guard (it had none).
+
+### DEC-070 — Per-org vendor→category memory (deterministic personalization)
+
+- **Decision.** A per-tenant lookup table `vendor_category_memory (organization_id, vendor_key,
+  category, …)` (migration 0021). LEARN from explicit user category corrections only — the SMS
+  post-log correction (`processCorrection`) and a dashboard category edit (`PATCH /api/receipts/:id`)
+  — never from the model's own guess (that would reinforce its mistakes). APPLY in `processNewExpense`
+  (`applyVendorMemory`): if a learned mapping exists and differs from the model's pick, the learned
+  category wins (it came from the user, so it's correct by construction). Latest correction wins; a
+  category flip resets the confirmation count. Strictly org-scoped; never throws into capture (a
+  memory failure degrades to the model's pick). Logic in `src/lib/vendor-memory.ts`; pure halves
+  (`vendorKey`, `applyMemoryToResult`) unit-tested.
+- **Why this over the model:** it fixes the *confident-but-repeatedly-wrong* vendor (e.g. a venue the
+  model keeps filing as `venue_rental` that the user keeps correcting to `meals_business`) — exactly
+  the case a confidence-threshold approach would miss. Delivers the felt benefit: "stop making me
+  correct the same vendor twice."
+- **Known V1 limitation:** one preferred category per vendor per org. A vendor that legitimately
+  spans categories (Amazon → office_supplies vs equipment) gets overridden to the last-corrected one;
+  the user re-corrects and it updates. Context/amount-aware memory is a deferred V2 idea.
+- **Deferred (not built):** the automated review-queue/curation pipeline (A) and persisting message
+  text for replay — both gated on Jordan's retention/consent policy and real traffic.
+
+---
+
+## 2026-06-05 — Three founder-reported conversation gaps (photo WHY, determinism, IRC link)
+
+Founder hit three issues in live testing: (1) the flow is too deterministic to respond to
+statements / understand context; (2) snapping a meal-receipt photo didn't ask what it's from or
+the business context; (3) the IRC citation + link reads as a detached trailing line, not inline.
+Team roundtable (Marcus/Sofia/Priya/Raj/Jordan/Alex) convened on the determinism question; the
+other two were founder-approved directions. Consensus: **"smarter input, deterministic
+everything-else"** — keep the workflow spine + DEC-011 (decision in code) + DEC-065b-i (disclaimer
+in code); make only the single understanding step richer.
+
+### DEC-068 — A photographed receipt is a BUSINESS-INTENT signal (overrides "default to personal")
+
+- **Problem.** A bare meal-receipt photo (no caption) was categorized `personal` by the merged
+  extract+categorize prompt (`CATEGORY_TAXONOMY` says "a context-less lunch is personal"), so the
+  substantiation tree required nothing and it was logged silently — the product's "capture the WHY"
+  thesis failing exactly when it matters (founder issue #2).
+- **Decision.** For the PHOTO path only (`RECEIPT_EXTRACT_CATEGORIZE_PROMPT`), treat photographing
+  a receipt into a tax tool as business intent: a restaurant→`meals_business`, airfare/hotel/
+  rideshare→`travel_*`, gift vendor→`business_gifts`, even with no note, at a modest
+  category_confidence. The EXISTING substantiation tree then asks who/why (meals require
+  attendees+business_purpose at any amount; ≥$75 w/o photo also asks a receipt — but it has one).
+  No new flow logic. TEXT path keeps the conservative "don't assume" rule (texting "$6 coffee" is
+  genuinely ambiguous). User can override with "that was personal" (correction window).
+- **Pushback (Alex/Jordan).** Could over-claim a genuinely personal snapped receipt. Mitigated:
+  meals are 50%, and it stays `awaiting_context` (NOT documentation-complete) until the user
+  answers, so nothing is silently claimed; override always available.
+- **Guardrail.** `CATEGORY_TAXONOMY` + `CATEGORIZATION_HELPER_PROMPT` left byte-identical so the
+  `eval:categorize` coverage stays valid (only the photo prompt's example + an override section
+  changed).
+
+### DEC-069 — Bounded conversational layer: a `context_statement` intent (no agent)
+
+- **Problem.** The router buckets non-captures into query/command/advice/help/other; a free-form
+  STATEMENT carrying business context ("that lunch was with a client about Q3") fell to `capture`
+  → "how much was this?" or to `other` → "can't help" (founder issue #1).
+- **Decision.** Add one classifier intent, `context_statement` (a statement adding a detail/
+  correction about a recently logged expense, no new amount, not a question). In `routeTextMessage`
+  it applies the detail to the most recent receipt within a 120-min window via the existing
+  `processCorrection` (re-categorize + recompute in code), else acknowledges + steers back. The
+  capture fast-path (`looksLikeExpenseCapture`) stays as the safety net so anything with an
+  amount/miles still logs.
+- **Pushback (Raj/Alex).** No general agent (DEC + AGENTS-VS-WORKFLOWS): control flow, decision
+  tree, side-effects stay in code; only the one understanding step got richer. Alex: the risk is
+  silently NOT logging a real expense. **Guard (founder-approved): a log-only metric**
+  (`conversational_no_log`) fires whenever this layer decides a message is not an expense, so a
+  misrouting classifier is auditable, not invisible. Safe default stays `capture`.
+
+### DEC-067 — IRC citation woven INLINE; drop the detached duplicate line
+
+- **Problem.** `composeResponse` appended `§274 in plain English (...): <link>` as its own
+  paragraph while the body also said "§274" — cited twice, reads disjointed (founder issue #3).
+- **Decision.** Hand the model an exact inline citation string `§274 (https://…/irc/274)` to weave
+  into the body once at the point of citation; drop the trailing re-cite. Only the disclaimer line
+  is appended in code now (`withDisclaimer`). URL stays code-controlled (model forbidden to invent
+  URLs); a code backstop re-inserts the link inline if the model omits it, preserving Jordan's
+  "link always rides along" invariant. `closingLine` replaced by `ircCitation` + `withDisclaimer`
+  (+ tests updated). SMS is plain text, so "§274" itself can't be a hyperlink — only the URL is
+  tappable, now sitting beside the citation.
+
+---
+
 ## 2026-06-05 — Per-user "learning" (deferred to post-V1)
 
 ### DEC-066 — Personalize categorization from a user's own history (RAG, NOT model training)

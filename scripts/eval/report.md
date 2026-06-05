@@ -21,7 +21,7 @@ Model: Haiku via production `categorizeExpense()`. Prompt 6.
 | --- | --- | --- | --- | --- | --- |
 | software-adobe | easy | software | software | 0.99 | ✓ |
 | ads-meta | easy | advertising | advertising | 0.95 | ✓ |
-| legal-fees | easy | professional_services | professional_services | 0.98 | ✓ |
+| legal-fees | easy | professional_services | professional_services | 0.95 | ✓ |
 | equipment-laptop | easy | equipment | equipment | 0.95 | ✓ |
 | office-supplies | easy | office_supplies | office_supplies | 0.99 | ✓ |
 | insurance | easy | insurance | insurance | 0.99 | ✓ |
@@ -33,13 +33,13 @@ Model: Haiku via production `categorizeExpense()`. Prompt 6.
 | client-lunch | edge | meals_business | meals_business | 0.95 | ✓ |
 | team-lunch-with-staff | edge | team_event | team_event | 0.95 | ✓ |
 | solo-party-no-employees | edge,ambiguous | personal | personal | 0.95 | ≈ |
-| gas-to-client | edge | vehicle_business | vehicle_business | 0.95 | ✓ |
+| gas-to-client | edge | vehicle_business | vehicle_business | 0.98 | ✓ |
 | parking-client | edge | vehicle_business | vehicle_business | 0.95 | ✓ |
 | coworking-daypass | edge | rent | rent | 0.95 | ✓ |
 | venue-for-event | edge | venue_rental | venue_rental | 0.95 | ✓ |
 | home-internet | edge | internet_phone | internet_phone | 0.95 | ✓ |
 | home-office-cleaning | edge,ambiguous | home_office | home_office | 0.95 | ≈ |
-| concert-tickets | edge,ambiguous | personal | meals_business | 0.65 | ~ |
+| concert-tickets | edge,ambiguous | personal | meals_business | 0.72 | ~ |
 | equipment-repair | edge | repairs | repairs | 0.95 | ✓ |
 | groceries-personal | easy | personal | personal | 0.95 | ✓ |
 
@@ -48,7 +48,7 @@ Model: Haiku via production `categorizeExpense()`. Prompt 6.
 ### concert-tickets (ambiguous)
 - expected `personal`, got `meals_business`
 - case note: Entertainment is generally NON-deductible post-TCJA (§274(a)). Guideline says use personal unless it is really a meal. Hard case.
-- model reasoning: "Concert tickets taken with a client could constitute business entertainment under IRC §274(a). However, entertainment itself is generally non-deductible. The only way this qualifies is if it's recharacterized as a meal-based client entertainment (e.g., if a meal was included). Given the ambiguity and the lack of meal context, this is a borderline case. 'Meals_business' is the most defensible category if any deduction is claimed, though documentation of business purpose would be critical. If the event was purely entertainment with no meal component, it may not be deductible at all. Conservative approach: flag for review, but if a meal component existed, meals_business is appropriate."
+- model reasoning: "Concert tickets with a client present are entertainment. IRC §274(a) generally disallows entertainment deductions, BUT if the primary purpose is a business meal (eating together), the meal portion may be deductible at 50% under meals_business. However, pure entertainment (ticket cost) is not deductible. Since the ticket itself is the core expense and not incidental to a meal, this is technically non-deductible entertainment. Categorizing as meals_business as the closest allowable category if a meal was involved, but confidence is moderate because concert tickets alone typically fail substantiation under §274."
 
 ---
 _Legend: ✓/✗ scored · ≈/~ ambiguous (excluded from headline). Re-run after prompt/model changes and diff this file._

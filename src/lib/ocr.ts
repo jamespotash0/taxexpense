@@ -48,6 +48,7 @@ export interface ExtractedReceipt {
   transaction_date: string | null;
   items: string[];
   payment_method: string | null;
+  location_city: string | null;
   confidence: number;
 }
 
@@ -62,6 +63,7 @@ export interface ParsedTextExpense {
   attendees: string | null;
   business_purpose: string | null;
   business_miles: number | null;
+  location_city: string | null;
   raw_text: string;
   confidence: number;
 }
@@ -140,6 +142,7 @@ function toOcrResult(parsed: ExtractedReceipt & { error?: string }): OcrResult {
       transaction_date: parsed.transaction_date ?? null,
       items: Array.isArray(parsed.items) ? parsed.items : [],
       payment_method: parsed.payment_method ?? null,
+      location_city: parsed.location_city ?? null,
       confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0,
     },
   };
@@ -206,6 +209,7 @@ export async function parseTextExpense(text: string): Promise<ParsedTextExpense>
     attendees: parsed.attendees ?? null,
     business_purpose: parsed.business_purpose ?? null,
     business_miles: parsed.business_miles ?? null,
+    location_city: parsed.location_city ?? null,
     raw_text: parsed.raw_text ?? text,
     confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0,
   };
@@ -233,6 +237,7 @@ export async function parseAndCategorizeText(
       attendees: raw.attendees ?? null,
       business_purpose: raw.business_purpose ?? null,
       business_miles: raw.business_miles ?? null,
+      location_city: raw.location_city ?? null,
       raw_text: raw.raw_text ?? text,
       confidence: typeof raw.confidence === 'number' ? raw.confidence : 0,
     },

@@ -19,7 +19,12 @@ const rules: Record<string, SubstantiationRule> = {
   travel_lodging: {
     category: 'travel_lodging', irc_section: '162', substantiation_level: 'strict',
     receipt_threshold_cents: 0, always_receipt: true,
-    required_context_fields: ['business_purpose'], deduction_percentage: 100, deduction_cap_cents: null,
+    required_context_fields: ['business_purpose', 'location_city'], deduction_percentage: 100, deduction_cap_cents: null,
+  },
+  travel_transportation: {
+    category: 'travel_transportation', irc_section: '162', substantiation_level: 'strict',
+    receipt_threshold_cents: 7500, always_receipt: false,
+    required_context_fields: ['business_purpose', 'location_city'], deduction_percentage: 100, deduction_cap_cents: null,
   },
   business_gifts: {
     category: 'business_gifts', irc_section: '274', substantiation_level: 'strict',
@@ -88,15 +93,32 @@ test('meal under $75 missing context: asks for missing fields only, not complete
 
 test('lodging always needs a receipt even under $75 (Example 4)', () => {
   const r = evaluateSubstantiation(rules.travel_lodging, {
-    amount_cents: 6700, has_photo: false, captured_fields: { business_purpose: 'client visit' },
+    amount_cents: 6700, has_photo: false, captured_fields: { business_purpose: 'client visit', location_city: 'Chicago' },
   });
   assert.equal(r.needs_receipt, true);
   assert.equal(r.substantiation_complete, false);
 });
 
-test('lodging with photo + purpose: complete', () => {
+test('lodging with photo + purpose + city: complete', () => {
   const r = evaluateSubstantiation(rules.travel_lodging, {
-    amount_cents: 6700, has_photo: true, captured_fields: { business_purpose: 'client visit' },
+    amount_cents: 6700, has_photo: true, captured_fields: { business_purpose: 'client visit', location_city: 'Chicago' },
+  });
+  assert.equal(r.needs_receipt, false);
+  assert.equal(r.substantiation_complete, true);
+});
+
+test('travel requires "place": missing location_city is asked for (§274(d), DEC-071)', () => {
+  // Transportation over $75 with a photo + purpose but no city → still incomplete, asks only the city.
+  const r = evaluateSubstantiation(rules.travel_transportation, {
+    amount_cents: 45000, has_photo: true, captured_fields: { business_purpose: 'client pitch' },
+  });
+  assert.deepEqual(r.missing_context_fields, ['location_city']);
+  assert.equal(r.substantiation_complete, false);
+});
+
+test('travel with purpose + city + photo: complete', () => {
+  const r = evaluateSubstantiation(rules.travel_transportation, {
+    amount_cents: 45000, has_photo: true, captured_fields: { business_purpose: 'client pitch', location_city: 'Chicago' },
   });
   assert.equal(r.needs_receipt, false);
   assert.equal(r.substantiation_complete, true);

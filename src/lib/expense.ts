@@ -4,6 +4,7 @@
 // processAttachment   (TSNAP-024, Prompt 5): match a late photo to a pending receipt
 
 import { categorizeExpense, composeResponse, type ExpenseInput, type CategoryResult } from './categorize';
+import { applyVendorMemory, rememberVendorCategory } from './vendor-memory';
 import {
   getSubstantiationRule,
   evaluateSubstantiation,
@@ -107,7 +108,10 @@ export async function processNewExpense(
   precomputedCategory: CategoryResult | null = null,
   extractionConfidence: number | null = null,
 ): Promise<ProcessResult> {
-  const cat = precomputedCategory ?? (await categorizeExpense(input, user));
+  const modelCat = precomputedCategory ?? (await categorizeExpense(input, user));
+  // Per-org vendor memory (DEC-070): if the user has previously corrected this vendor's category,
+  // honor that over a fresh model guess so they don't have to correct the same vendor twice.
+  const cat = await applyVendorMemory(user.organization_id, input.vendor, modelCat);
   const rule = (await getSubstantiationRule(cat.category)) ?? generalFallback(cat.category);
 
   // Vehicle mileage entries give miles, not dollars — derive the dollar amount from the
@@ -243,6 +247,7 @@ export async function processClarification(
           attendees: receipt.attendees,
           business_purpose: receipt.business_purpose,
           business_relationship: receipt.business_relationship,
+          location_city: receipt.location_city,
           business_miles: receipt.business_miles,
         },
         null,
@@ -326,6 +331,7 @@ export async function processCorrection(
           attendees: receipt.attendees,
           business_purpose: receipt.business_purpose,
           business_relationship: receipt.business_relationship,
+          location_city: receipt.location_city,
           business_miles: receipt.business_miles,
         },
         null,
@@ -384,6 +390,12 @@ export async function processCorrection(
     to_category: categoryChanged ? category : null,
     amount_corrected: amountCorrected,
   });
+
+  // Per-org vendor memory (DEC-070): an explicit category correction is our strongest "right answer"
+  // signal — remember it so future expenses from this vendor categorize correctly the first time.
+  if (categoryChanged) {
+    await rememberVendorCategory(user.organization_id, receipt.vendor, category);
+  }
 
   return {
     smsText: parsed.confirmation_message,
@@ -457,6 +469,13 @@ export async function processAttachment(
     };
   }
 
-  // medium / low confidence — ask the user to confirm; don't attach yet.
-  return { smsText: parsed.confirmation_message, receiptId: target.id, contextState: 'awaiting_receipt' };
+  // No confident match (medium/low). This photo isn't clearly the awaited receipt — most often it's
+  // a DIFFERENT, new expense (e.g. a Morton's $84 photo arriving while an unrelated Irish-pub $80
+  // receipt is still pending). Return null so the caller logs it as a NEW expense (storing the photo)
+  // instead of stapling it to the wrong record. The old behavior here was a dead end (DEC-071): it
+  // asked "reply YES to replace" but never persisted the photo bytes and no handler could fulfill the
+  // YES, so the image was silently lost and the bucket stayed empty. Trade-off: a true same-receipt
+  // with noisy OCR becomes a separate entry the user can merge — acceptable vs. losing the photo.
+  log.info('attachment_no_confident_match', { user: user.id, target: target.id, confidence: parsed.match_confidence });
+  return null;
 }

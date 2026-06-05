@@ -35,6 +35,9 @@ export interface CategoryResult {
   /** True when the raw LLM category was unknown and coerced to the 'other_business' catch-all
    *  (DEC-065). Surfaced to the review floor so a drifted expense gets a human glance. */
   drifted?: boolean;
+  /** True when this category came from per-org vendor memory (DEC-070), overriding the model's
+   *  pick because the user previously corrected this vendor. See lib/vendor-memory.ts. */
+  fromMemory?: boolean;
 }
 
 export function userContextLine(user: AppUser): string {
@@ -68,26 +71,30 @@ export function normalizeCategoryResult(raw: {
 }
 
 // The not-advice + CPA deferral — the LEGAL control (CLAUDE.md rules 5/7). Lives in ONE place so
-// the floor is a single source of truth the test can assert against.
-const NOT_ADVICE = 'suggestion, not advice — confirm with your CPA';
+// the floor is a single source of truth the test can assert against. Appended in code on EVERY
+// tax-guidance reply (DEC-065b-i / Jordan) — never left to the model.
+export const DISCLAIMER_LINE = 'Suggestion, not advice — confirm with your CPA.';
 
 /**
- * The deterministic closing line appended to every tax-guidance SMS (DEC-065b-i / Jordan).
- * INVARIANT: the not-advice disclaimer is present on EVERY return path, by construction — never
- * left to the model. The tap-through IRC link is param-driven (includeLink): the categorized-
- * response path passes true so the link rides along on EVERY expense; the flag stays so callers
- * that don't want a link (or have no section) can omit it. The link carries no legal weight, so
- * including/dropping it needs no legal sign-off; the disclaimer is never dropped here. Pure + testable.
+ * The INLINE IRC citation woven into the body where the section is referenced — e.g.
+ * "§274 (https://tallywhy.com/irc/274)" — rather than a detached trailing line that re-cites the
+ * section (DEC-067). The URL stays code-controlled: the model is handed this exact string and
+ * forbidden from inventing URLs; composeResponse re-inserts it as a backstop if the model drops it.
+ * Returns null when there's no section to cite. Pure + testable.
  */
-export function closingLine(opts: { sectionId: string | null; includeLink: boolean; appUrl?: string }): string {
+export function ircCitation(opts: { sectionId: string | null; appUrl?: string }): string | null {
+  if (!opts.sectionId) return null;
   const base = opts.appUrl || PUBLIC_ENV.appUrl || 'https://tallywhy.com';
-  if (opts.sectionId && opts.includeLink) {
-    return `§${opts.sectionId} in plain English (${NOT_ADVICE}): ${base}/irc/${opts.sectionId}`;
-  }
-  if (opts.sectionId) {
-    return `Per §${opts.sectionId} — ${NOT_ADVICE}.`;
-  }
-  return `Suggestion, not advice — confirm with your CPA.`;
+  return `§${opts.sectionId} (${base}/irc/${opts.sectionId})`;
+}
+
+/**
+ * Append the always-present legal disclaimer (DEC-065b-i / Jordan). INVARIANT: the not-advice +
+ * CPA deferral is present on EVERY tax-guidance reply by construction — never model-dependent.
+ * Single source of truth the test asserts against. Pure + testable.
+ */
+export function withDisclaimer(message: string): string {
+  return `${message.trimEnd()}\n\n${DISCLAIMER_LINE}`;
 }
 
 function expenseSummary(input: ExpenseInput): string {
@@ -98,6 +105,7 @@ function expenseSummary(input: ExpenseInput): string {
     input.items.length ? `Items: ${input.items.join(', ')}` : null,
     input.business_purpose ? `Context: ${input.business_purpose}` : null,
     input.attendees ? `Attendees: ${input.attendees}` : null,
+    input.location_city ? `Location: ${input.location_city}` : null,
     input.business_miles != null ? `Miles: ${input.business_miles}` : null,
     input.raw_text ? `Original text: ${input.raw_text}` : null,
   ]
@@ -156,6 +164,12 @@ export async function composeResponse(args: {
     ? `IRC §${irc.section_id} (${irc.title}): ${irc.short_summary}`
     : 'No IRC summary available.';
 
+  // The section actually applied + its inline citation snippet (section number + tap-through link).
+  // We hand the model the EXACT string to drop in so the link rides along inline at the point of
+  // citation (DEC-067) while the URL stays code-controlled — the model never invents a URL.
+  const sectionId = irc?.section_id ?? rule.irc_section ?? null;
+  const citation = ircCitation({ sectionId });
+
   const userText = [
     `## User Context`,
     `${userContextLine(user)}; Default payment: ${user.default_payment_account ?? 'unknown'}`,
@@ -169,10 +183,13 @@ export async function composeResponse(args: {
     `## IRC Summary`,
     ircBlock,
     ``,
+    `## IRC Citation (include this EXACT text inline where you reference the section — once)`,
+    citation ?? '(no section — do not cite one or write any URL)',
+    ``,
     `Write the SMS now.`,
   ].join('\n');
 
-  const message = await claudeText({
+  let message = await claudeText({
     model,
     system: CATEGORIZATION_RESPONSE_PROMPT,
     userText,
@@ -180,9 +197,12 @@ export async function composeResponse(args: {
     maxTokens: 512,
   });
 
-  // Deterministic closing line (no extra LLM call). The not-advice disclaimer is always present;
-  // the tap-through IRC link rides along on EVERY categorized expense (strict and general alike)
-  // so the user always gets the reference. The URL always matches the section actually applied.
-  const sectionId = irc?.section_id ?? rule.irc_section ?? null;
-  return `${message}\n\n${closingLine({ sectionId, includeLink: true })}`;
+  // Backstop (DEC-067 / Jordan): the inline citation+link rides along on EVERY categorized expense.
+  // The model is instructed to weave the exact citation snippet into the body; if it dropped the
+  // link we re-attach it so the reference is never lost. The URL always matches the section applied.
+  if (citation && !message.includes(`/irc/${sectionId}`)) {
+    message = `${message.trimEnd()} ${citation}`;
+  }
+  // The not-advice + CPA deferral is always appended in code — never model-dependent.
+  return withDisclaimer(message);
 }

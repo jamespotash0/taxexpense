@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { requireUser, parseBody, jsonError } from '@/lib/api';
 import { getReceipt, updateReceipt } from '@/lib/receipts';
 import { recomputeReceipt } from '@/lib/expense';
+import { rememberVendorCategory } from '@/lib/vendor-memory';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { RECEIPTS_BUCKET } from '@/lib/ocr';
 
@@ -34,13 +35,24 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const body = await parseBody(req, Patch);
   if (body instanceof NextResponse) return body;
 
+  // When the edit changes the category, capture the prior value first so vendor memory only learns
+  // a genuine user re-categorization — not a category field carried along unchanged on an amount edit.
+  const priorCategory = body.category !== undefined ? (await getReceipt(user.organization_id, id))?.category ?? null : null;
+
   // updateReceipt applies the patch and returns the row; null means no row matched this
   // org + id (our 404 signal). recomputeReceipt then re-derives substantiation off that
-  // same row (no reload) and returns the final row — 2 queries instead of 5.
+  // same row (no reload) and returns the final row.
   const patched = await updateReceipt(user.organization_id, id, body);
   if (!patched) return jsonError('not_found', 404);
 
   const updated = await recomputeReceipt(user.organization_id, id, patched);
+
+  // Per-org vendor memory (DEC-070): a dashboard category change is an explicit user correction —
+  // remember it so future captures from this vendor categorize correctly the first time. Non-blocking.
+  if (body.category && patched.vendor && body.category !== priorCategory) {
+    await rememberVendorCategory(user.organization_id, patched.vendor, body.category);
+  }
+
   return NextResponse.json({ receipt: updated ?? patched });
 }
 
