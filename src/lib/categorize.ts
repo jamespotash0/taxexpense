@@ -74,10 +74,10 @@ const NOT_ADVICE = 'suggestion, not advice — confirm with your CPA';
 /**
  * The deterministic closing line appended to every tax-guidance SMS (DEC-065b-i / Jordan).
  * INVARIANT: the not-advice disclaimer is present on EVERY return path, by construction — never
- * left to the model. Only the tap-through IRC link is conditional: it rides along on strict
- * categories (where the user is most likely to want the reference and the stakes are highest) and
- * is dropped on routine general logs to save an SMS segment. The link carries no legal weight, so
- * dropping it needs no legal sign-off; the disclaimer is never dropped here. Pure + testable.
+ * left to the model. The tap-through IRC link is param-driven (includeLink): the categorized-
+ * response path passes true so the link rides along on EVERY expense; the flag stays so callers
+ * that don't want a link (or have no section) can omit it. The link carries no legal weight, so
+ * including/dropping it needs no legal sign-off; the disclaimer is never dropped here. Pure + testable.
  */
 export function closingLine(opts: { sectionId: string | null; includeLink: boolean; appUrl?: string }): string {
   const base = opts.appUrl || PUBLIC_ENV.appUrl || 'https://tallywhy.com';
@@ -181,9 +181,8 @@ export async function composeResponse(args: {
   });
 
   // Deterministic closing line (no extra LLM call). The not-advice disclaimer is always present;
-  // the tap-through IRC link rides along only on strict categories — dropped on routine general
-  // logs to save an SMS segment (DEC-065b-i). The URL always matches the section actually applied.
+  // the tap-through IRC link rides along on EVERY categorized expense (strict and general alike)
+  // so the user always gets the reference. The URL always matches the section actually applied.
   const sectionId = irc?.section_id ?? rule.irc_section ?? null;
-  const includeLink = rule.substantiation_level === 'strict';
-  return `${message}\n\n${closingLine({ sectionId, includeLink })}`;
+  return `${message}\n\n${closingLine({ sectionId, includeLink: true })}`;
 }
