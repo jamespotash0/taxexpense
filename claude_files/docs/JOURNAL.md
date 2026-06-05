@@ -7,6 +7,37 @@ Format: date, decision, who pushed back, resolution, rationale.
 
 ---
 
+## 2026-06-05 — First agent shipped: month-end review (workflow→agent Phase 2)
+
+### DEC-074 — Add a bounded month-end review AGENT alongside the workflow (executes the doc's Phase 2)
+
+- **Context.** Everything in Tally is deliberately an AI *workflow*, not an agent
+  ([[AGENTS-VS-WORKFLOWS.md]]). That doc, however, pre-specifies a **Phase 2: "Workflow +
+  Limited Agent"** — explicitly naming `/api/agents/year-end-review` and `/api/agents/audit-prep`
+  as the first agents, to run only on explicit user request for bounded, complex tasks. This
+  builds the first of those: a **month-end review agent**.
+- **Decision.** A real tool-use loop (the model drives, picks tools, iterates) — NOT a workflow
+  with one dressed-up LLM call. New `src/lib/agent.ts` runs the loop; `src/lib/agent-tools.ts`
+  exposes read-only inspectors (`list_month_expenses`, `get_expense`, `view_receipt_photo` — the
+  agent can visually inspect receipts via Claude vision) plus a `finish_review` terminator that
+  returns a **draft** accountant email. Orchestrated by `src/lib/agents/month-end-review.ts`,
+  triggered by `POST /api/agents/month-end-review` (on-demand, auth'd). Runs on Sonnet 4.6.
+- **Raj's guardrails (the agent risk is unbounded behaviour — predictability/cost/liability per
+  the doc).** Hard `maxSteps` cap (8, no "loop until done"); tool allowlist; single terminating
+  tool; **never takes an outward action** — every tool is read-only and the output is a draft a
+  human approves + sends via the existing `/api/email-accountant` path. Full per-step trace +
+  token usage persisted to a new **`agent_runs`** audit table (migration 0023) — this is the
+  observability the doc says agents require. RLS default-deny, service-role only, matching 0001.
+- **Why now / why it fits the signals.** It's a **rare per-user event** (monthly, not per-receipt),
+  so the 5-15× agent cost multiplier the doc warns about is a non-issue; and it's a bounded
+  multi-step task ("review my month, tell me what's missing") — exactly the doc's Signals 1 & 2.
+- **Open / deferred.** Migration 0023 must be applied in the Supabase SQL editor before first run.
+  No dashboard surface yet (Phase C: a "Review my month" button + draft editor + vision wow);
+  monthly Vercel cron deferred until the on-demand path is proven. Behavioural rules (suggest-not-
+  advise, cite IRC, defer to CPA, "documentation complete") are enforced in the agent system prompt.
+
+---
+
 ## 2026-06-05 — Pricing reset to 3 tiers, reverse-engineered from a 70% margin floor
 
 ### DEC-049 — Three real tiers ($5.99/wk · $12.49/mo · $9.99/mo annual), priced to ~70% gross margin

@@ -209,6 +209,23 @@ export async function getReceiptsForYear(orgId: string, year: number): Promise<R
   return (data as unknown as ReceiptRow[]) ?? [];
 }
 
+/**
+ * All receipts whose transaction_date falls in the given calendar month ('YYYY-MM'),
+ * oldest first — for the month-end review agent (Phase 2, AGENTS-VS-WORKFLOWS.md). Org-scoped.
+ */
+export async function getReceiptsForMonth(orgId: string, month: string): Promise<ReceiptRow[]> {
+  // month is 'YYYY-MM'; lte to the next month's first day catches the whole month regardless of length.
+  const [y, m] = month.split('-').map(Number);
+  const nextMonth = m === 12 ? `${y + 1}-01-01` : `${y}-${String(m + 1).padStart(2, '0')}-01`;
+  const { data, error } = await orgTable('receipts', orgId)
+    .select()
+    .gte('transaction_date', `${month}-01`)
+    .lt('transaction_date', nextMonth)
+    .order('transaction_date', { ascending: true });
+  if (error) throw error;
+  return (data as unknown as ReceiptRow[]) ?? [];
+}
+
 export interface MonthlySummary {
   total_cents: number;
   count: number;

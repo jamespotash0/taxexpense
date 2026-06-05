@@ -15,7 +15,8 @@
     "eval:intent": "node --import tsx --env-file=.env.local scripts/eval/intent.ts",
     "cache:check": "node --import tsx --env-file=.env.local scripts/eval/cache-check.ts",
     "redteam": "node --import tsx --env-file=.env.local scripts/redteam/run.ts",
-    "sim:onboarding": "node --import tsx scripts/onboarding/sim.ts"
+    "sim:onboarding": "node --import tsx scripts/onboarding/sim.ts",
+    "agent:smoke": "node --import tsx --env-file=.env.local scripts/agent-smoke.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.100.1",
