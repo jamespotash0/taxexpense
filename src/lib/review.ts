@@ -36,7 +36,7 @@ const INSTRUCTION_MARKERS: RegExp[] = [
   /\boverride\b.*\b(category|deduct|amount)\b/i,
 ];
 
-export type ReviewReasonCode = 'low_confidence' | 'instruction_shaped';
+export type ReviewReasonCode = 'low_confidence' | 'instruction_shaped' | 'category_drift';
 
 export interface ReviewAssessment {
   needsReview: boolean;
@@ -68,14 +68,26 @@ export function assessCategoryReview(args: {
   category: string;
   confidence: number;
   input: ExpenseInput;
+  /** The model returned a category outside the closed taxonomy, coerced to 'other_business'
+   *  (DEC-065). Flagged so the catch-all never becomes a silent, unaudited dumping ground. */
+  drifted?: boolean;
 }): ReviewAssessment {
-  const { category, confidence, input } = args;
+  const { category, confidence, input, drifted } = args;
 
   if (looksInstructionShaped(reviewableText(input))) {
     return {
       needsReview: true,
       reasonCode: 'instruction_shaped',
       reason: 'The note contained instruction-like text, so this category is worth a quick check.',
+      confidence,
+    };
+  }
+
+  if (drifted) {
+    return {
+      needsReview: true,
+      reasonCode: 'category_drift',
+      reason: 'This didn’t match a standard category, so it was filed under "Other Business Expense" — worth a quick check.',
       confidence,
     };
   }

@@ -3,7 +3,7 @@
 // processClarification (TSNAP-023, Prompt 4): apply a context answer, recompute, confirm
 // processAttachment   (TSNAP-024, Prompt 5): match a late photo to a pending receipt
 
-import { categorizeExpense, composeResponse, type ExpenseInput } from './categorize';
+import { categorizeExpense, composeResponse, type ExpenseInput, type CategoryResult } from './categorize';
 import {
   getSubstantiationRule,
   evaluateSubstantiation,
@@ -24,7 +24,7 @@ import type { AppUser } from './users';
 import type { ContextState } from './conversations';
 import { claudeJSON } from './llm';
 import { SONNET_MODEL } from './claude';
-import { CLARIFICATION_PROMPT, RECEIPT_ATTACHMENT_PROMPT } from './prompts';
+import { CLARIFICATION_PROMPT, CORRECTION_PROMPT, RECEIPT_ATTACHMENT_PROMPT } from './prompts';
 import { storePhotoBuffer, type OcrResult } from './ocr';
 
 export interface ProcessResult {
@@ -33,6 +33,22 @@ export interface ProcessResult {
   contextState: ContextState | null;
   /** Structured payload persisted with the outbound (e.g. flag-disambiguation candidate ids). */
   pendingData?: import('./conversations').PendingData | null;
+}
+
+// Below this OCR/parse confidence, the model wasn't sure it read the expense itself right (the
+// amount/vendor it extracted) — distinct from the CATEGORY floor in [[review.ts]], which is about
+// which deduction class. A confident ✓ on a possibly-wrong NUMBER is the worst failure for a
+// system of record (silently corrupts the export the user hands a CPA), so instead of logging
+// quietly we ask the user to verify the amount once (DEC-066). Tunable against scripts/eval like
+// the category floor.
+const EXTRACTION_CONFIDENCE_FLOOR = 0.7;
+
+/** Deterministic "did I read this right?" prompt shown when extraction confidence is low. Surfaces
+ *  the amount (and vendor) so the user can catch a misread; the reply confirms or corrects it. */
+function readCheckMessage(input: ExpenseInput): string {
+  const amount = `$${((input.amount_cents ?? 0) / 100).toFixed(2)}`;
+  const at = input.vendor ? ` at ${input.vendor}` : '';
+  return `Quick check — I read that as ${amount}${at}. Reply YES if that's right, or send the correct amount and I'll fix it.`;
 }
 
 function generalFallback(category: string): SubstantiationRule {
@@ -77,13 +93,21 @@ function nextContextState(decision: {
 /**
  * New expense (from text or photo OCR) → save + SMS reply.
  * @param photoPath Supabase Storage path if this expense came in with a photo, else null.
+ * @param precomputedCategory category from a merged extract+categorize call (DEC-063) — skips
+ *   the standalone Haiku categorize call. Null/omitted → categorize here (recurring-renewal path).
+ * @param extractionConfidence the OCR/parse confidence for how well we READ the expense (amount/
+ *   vendor), 0..1. Below EXTRACTION_CONFIDENCE_FLOOR on an otherwise-clean log we verify the amount
+ *   with the user instead of a silent ✓ (DEC-066). Null/omitted (recurring-renewal, dashboard) →
+ *   trusted, no verify.
  */
 export async function processNewExpense(
   user: AppUser,
   input: ExpenseInput,
   photoPath: string | null = null,
+  precomputedCategory: CategoryResult | null = null,
+  extractionConfidence: number | null = null,
 ): Promise<ProcessResult> {
-  const cat = await categorizeExpense(input, user);
+  const cat = precomputedCategory ?? (await categorizeExpense(input, user));
   const rule = (await getSubstantiationRule(cat.category)) ?? generalFallback(cat.category);
 
   // Vehicle mileage entries give miles, not dollars — derive the dollar amount from the
@@ -102,28 +126,42 @@ export async function processNewExpense(
     captured_fields: capturedFrom(input),
   });
 
-  const irc = await getIrcSummary(rule.irc_section);
-
   // Flag for a quick human glance when the category was uncertain or the note looked
   // instruction-shaped (DEC-055). Deterministic; never blocks logging or adds an SMS question.
-  const review = assessCategoryReview({ category: cat.category, confidence: cat.confidence, input });
+  const review = assessCategoryReview({ category: cat.category, confidence: cat.confidence, input, drifted: cat.drifted });
   if (review.needsReview) {
     log.info('expense_flagged_for_review', { user: user.id, reason: review.reasonCode, confidence: review.confidence });
   }
 
-  const receiptId = await saveReceipt({
-    user,
-    input,
-    category: cat.category,
-    rule,
-    decision,
-    photoPath,
-    review,
-  });
+  const baseState = nextContextState(decision);
 
-  const smsText = await composeResponse({ input, category: cat.category, rule, decision, irc, user });
+  // Low-confidence READ on an otherwise-clean log (DEC-066): we're not sure we got the amount right,
+  // and nothing else is being asked. Verify the amount before moving on rather than ✓-ing a possibly
+  // wrong number. We skip the Sonnet compose entirely (a deterministic verify question replaces the
+  // normal reply) — so this path is actually one model call CHEAPER, not more expensive. The next
+  // reply confirms or corrects it via the awaiting_confirm branch in sms-handler.
+  const lowConfidence =
+    extractionConfidence != null &&
+    extractionConfidence < EXTRACTION_CONFIDENCE_FLOOR &&
+    (input.amount_cents ?? 0) > 0 &&
+    baseState === null;
 
-  return { smsText, receiptId, contextState: nextContextState(decision) };
+  if (lowConfidence) {
+    const receiptId = await saveReceipt({ user, input, category: cat.category, rule, decision, photoPath, review });
+    log.info('expense_low_confidence_verify', { user: user.id, confidence: extractionConfidence });
+    return { smsText: readCheckMessage(input), receiptId, contextState: 'awaiting_confirm' };
+  }
+
+  const irc = await getIrcSummary(rule.irc_section);
+
+  // Save and compose are independent (compose doesn't use the receipt id) — run them
+  // concurrently to shave a DB round trip off the reply latency (DEC-063).
+  const [receiptId, smsText] = await Promise.all([
+    saveReceipt({ user, input, category: cat.category, rule, decision, photoPath, review }),
+    composeResponse({ input, category: cat.category, rule, decision, irc, user }),
+  ]);
+
+  return { smsText, receiptId, contextState: baseState };
 }
 
 /**
@@ -170,6 +208,13 @@ interface ClarificationResponse {
   category_change_needed: boolean;
   new_category: string | null;
   confirmation_message: string;
+}
+
+// Like a clarification, but a correction may also fix the AMOUNT ("actually it was $200") — the
+// one field a context answer never changes. `amount` is in dollars (matches how the receipt is
+// shown to the model); converted to cents + recomputed in code. DEC-064.
+interface CorrectionResponse extends ClarificationResponse {
+  updates: ClarificationResponse['updates'] & { amount: number | null };
 }
 
 /** User answered a pending context question → update receipt, recompute, confirm. */
@@ -241,6 +286,103 @@ export async function processClarification(
     receipt_reason: decision.receipt_reason,
     substantiation_complete: decision.substantiation_complete,
     substantiation_missing_fields: decision.missing_context_fields,
+  });
+
+  return {
+    smsText: parsed.confirmation_message,
+    receiptId,
+    contextState: nextContextState(decision),
+  };
+}
+
+/**
+ * The user texted a correction/addition right after a clean log (DEC-064) — they're editing the
+ * just-logged receipt, not creating a new one. Re-categorize + recompute the authoritative
+ * decision IN CODE (DEC-011), same as processClarification; only the prompt framing differs
+ * (full recategorization + an "Updated ✓" edit confirmation). The detection of WHICH messages
+ * are corrections lives in sms-handler (conservative markers + a tight recent-receipt window).
+ */
+export async function processCorrection(
+  user: AppUser,
+  receiptId: string,
+  userMessage: string,
+): Promise<ProcessResult> {
+  const receipt = await getReceipt(user.organization_id, receiptId);
+  if (!receipt) {
+    // The receipt vanished — let the caller fall through to new-expense handling.
+    return { smsText: '', receiptId: null, contextState: null };
+  }
+
+  const parsed = await claudeJSON<CorrectionResponse>({
+    model: SONNET_MODEL,
+    system: CORRECTION_PROMPT,
+    userText: [
+      `## Just-Logged Receipt (the one being corrected)`,
+      JSON.stringify(
+        {
+          vendor: receipt.vendor,
+          amount: receipt.amount_cents / 100,
+          category: receipt.category,
+          attendees: receipt.attendees,
+          business_purpose: receipt.business_purpose,
+          business_relationship: receipt.business_relationship,
+          business_miles: receipt.business_miles,
+        },
+        null,
+        2,
+      ),
+      `## User's Correction\n${userMessage}`,
+    ].join('\n\n'),
+    cacheSystem: true,
+    maxTokens: 512,
+  });
+
+  const u = parsed.updates ?? ({} as CorrectionResponse['updates']);
+  const merged = {
+    attendees: u.attendees ?? receipt.attendees,
+    business_purpose: u.business_purpose ?? receipt.business_purpose,
+    business_relationship: u.business_relationship ?? receipt.business_relationship,
+    location_city: u.location_city ?? receipt.location_city,
+    business_miles: u.business_miles ?? receipt.business_miles,
+  };
+
+  // An amount correction changes the $75 substantiation threshold + the deductible, so feed the new
+  // amount into the recompute (and persist it). Ignore non-positive/garbage values (DEC-064).
+  const amountCorrected = typeof u.amount === 'number' && u.amount > 0;
+  const amountCents = amountCorrected ? Math.round(u.amount! * 100) : receipt.amount_cents;
+
+  const categoryChanged = parsed.category_change_needed === true && !!parsed.new_category;
+  const category = categoryChanged ? parsed.new_category! : receipt.category!;
+  const rule = (await getSubstantiationRule(category)) ?? generalFallback(category);
+  const decision = evaluateSubstantiation(rule, {
+    amount_cents: amountCents,
+    has_photo: receipt.photo_url != null,
+    captured_fields: capturedFrom(merged),
+  });
+
+  await updateReceipt(user.organization_id, receiptId, {
+    ...merged,
+    amount_cents: amountCents,
+    payment_account: u.payment_account ?? receipt.payment_account,
+    category,
+    irc_section: rule.irc_section,
+    deduction_percentage: decision.deduction_percentage,
+    deductible_amount_cents: decision.deductible_amount_cents,
+    needs_receipt: decision.needs_receipt,
+    receipt_reason: decision.receipt_reason,
+    substantiation_complete: decision.substantiation_complete,
+    substantiation_missing_fields: decision.missing_context_fields,
+  });
+
+  // Correction-rate metric (DEC-065): each correction is an error-driven extra round trip (a
+  // Sonnet call + outbound SMS). Tracking how often we're corrected — and how often the fix flips
+  // the category — is the leading signal for "are mistakes costing us money / data quality."
+  log.info('expense_corrected', {
+    user: user.id,
+    category_changed: categoryChanged,
+    from_category: categoryChanged ? receipt.category : null,
+    to_category: categoryChanged ? category : null,
+    amount_corrected: amountCorrected,
   });
 
   return {

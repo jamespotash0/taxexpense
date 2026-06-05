@@ -11,13 +11,26 @@ export type ContextState =
   | 'awaiting_context'
   | 'awaiting_receipt'
   | 'awaiting_recurring_optin'
-  | 'awaiting_flag_choice';
+  | 'awaiting_flag_choice'
+  | 'awaiting_amount'
+  // A low-confidence read was just logged and we asked the user to verify the amount (DEC-066).
+  // The next reply confirms it ("yes") or corrects it. Carries the logged receipt_id.
+  | 'awaiting_confirm';
 
 const PENDING_WINDOW_HOURS = 24; // pending questions expire after this (TSNAP-023)
+
+// A partial-capture ("how much was this?") expires much faster than the 24h question window:
+// after a few minutes a bare "$167" is almost certainly a fresh expense, not a late answer to a
+// half-parsed one. Keeps a stale priorText from gluing onto an unrelated later message (DEC-064).
+const PENDING_AMOUNT_WINDOW_MIN = 15;
 
 /** Structured payload for a multi-value pending interaction (e.g. flag-disambiguation candidates). */
 export interface PendingData {
   candidateIds?: string[];
+  /** The text we already parsed when we had to ask for the amount (awaiting_amount). */
+  priorText?: string;
+  /** How many times we've re-asked for the amount, to cap the loop (awaiting_amount). */
+  amountAttempts?: number;
 }
 
 export interface LogConversationParams {
@@ -89,6 +102,36 @@ export async function getPendingContext(userId: string): Promise<PendingContext 
     contextState: row.context_state as ContextState,
     questionText: (row.message_text as string | null) ?? null,
   };
+}
+
+export interface PendingAmount {
+  priorText: string;
+  attempts: number;
+}
+
+/**
+ * A partial expense awaiting its amount (an outbound tagged `awaiting_amount` within the short
+ * amount window). Returns the text we'd already parsed + how many times we've re-asked, so the
+ * caller can combine it with the user's reply and re-parse. Null if none — caller treats the
+ * inbound as a fresh message. Receipt-id-independent (no draft receipt; state lives in
+ * pending_data, like the flag-choice flow). DEC-064.
+ */
+export async function getPendingAmount(userId: string): Promise<PendingAmount | null> {
+  const cutoff = new Date(Date.now() - PENDING_AMOUNT_WINDOW_MIN * 60 * 1000).toISOString();
+  const { data, error } = await getSupabaseAdmin()
+    .from('conversations')
+    .select('pending_data, context_state, created_at')
+    .eq('user_id', userId)
+    .eq('direction', 'outbound')
+    .eq('context_state', 'awaiting_amount')
+    .gte('created_at', cutoff)
+    .order('created_at', { ascending: false })
+    .limit(1);
+  if (error) throw error;
+  const pd = data?.[0]?.pending_data as PendingData | null;
+  const priorText = pd?.priorText;
+  if (!priorText) return null;
+  return { priorText, attempts: pd?.amountAttempts ?? 0 };
 }
 
 /**

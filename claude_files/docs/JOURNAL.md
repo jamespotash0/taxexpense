@@ -7,6 +7,206 @@ Format: date, decision, who pushed back, resolution, rationale.
 
 ---
 
+## 2026-06-05 — Per-user "learning" (deferred to post-V1)
+
+### DEC-066 — Personalize categorization from a user's own history (RAG, NOT model training)
+
+- **Question (founder).** "Does my system learn from people, like Wispr Flow — or since I'm
+  not training a model, it doesn't?"
+- **Reframe.** "Learning from people" ≠ "training a model." Wispr Flow doesn't fine-tune on
+  you either — it accumulates a per-user dictionary/context and injects it into each request.
+  That's a product-level feedback loop (retrieval), not weight updates. We can do the same with
+  **zero model training.**
+- **Current state (traced in code).** Categorization is effectively **stateless** per user:
+  - The only per-user signal the model sees is two static fields (business type, entity) via
+    `userContextLine()` (`src/lib/categorize.ts:40-42`) — identical for expense #1 and #500.
+  - Corrections are **stored but not used as signal**: `processCorrection()`
+    (`src/lib/expense.ts:305-338`) overwrites the one receipt; nothing records "user disagreed
+    with category X → Y" for future use.
+  - Only real "memory" today: recurring-expense detection (vendor+amount repeats →
+    `recurring.ts`). No few-shot, no embeddings, no per-user pattern injection.
+  - **Failure mode:** a user who marks "client lunch" → personal 50× still gets expense #51
+    categorized `meals_business` at high confidence, forcing yet another correction. (Also a
+    DEC-065 cost signal: each miss drives a correction round trip.)
+- **What it would take (no training):** (1) persist corrections as structured signal, not just
+  an overwrite; (2) inject the last N relevant past decisions/corrections for this user+vendor
+  into the categorize prompt — the slot already exists at `src/lib/categorize.ts:109`;
+  (3) embeddings for "similar prior expenses" only if simple vendor/category recall proves
+  insufficient (unlikely at V1 scale). This is RAG over the user's own history.
+- **Decision: DEFER to post-V1.** Matches CLAUDE.md "AI WORKFLOW, not an AI AGENT" and "don't
+  add features mid-build." Two real risks argue against doing it naively now:
+  1. A feedback loop can **entrench a user's mis-categorization**, creating tax-compliance
+     exposure — cuts against "suggest, don't advise" / "user has final say" (CLAUDE.md 1/6).
+  2. Scope creep against the V1 budget.
+- **Cheapest no-regret prep (when picked up):** start **persisting corrections as a structured
+  signal** even before consuming them — you can't learn from data you didn't keep. Pairs with
+  the DEC-065 `expense_corrected` log already emitting from/to/category_changed.
+
+---
+
+## 2026-06-05 — Cost of mistakes + category sprawl (team discussion)
+
+### DEC-065 — Enforce the closed taxonomy in code + instrument drift/correction rate
+
+- **Problem (founder).** Two linked concerns: (a) every SMS round trip costs money, and a
+  *mistake* costs extra (a correction = another Sonnet call + outbound SMS); (b) categorization
+  must stay normalized so the product doesn't sprout "a million categories."
+- **Key finding (Priya/Raj).** The taxonomy is a closed set of 20 categories and the prompt says
+  "never invent a category" — but **nothing enforced it**. `normalizeCategoryResult` passed the
+  raw LLM string straight through, and `categoryLabel`/`qboAccount` fall back to the raw value /
+  "Other Business Expenses". So a hallucinated `meals_client` / `subscription` would leak to the
+  dashboard + CSV export as a one-off column. That *is* the sprawl failure mode, and it was
+  unguarded.
+- **Insight (Alex).** The two problems are one: a wrong category isn't just a bad export row — it
+  *drives* a correction round trip. So the metric to optimize is **cost per correctly-captured
+  expense**, and accuracy pays back twice (fewer corrections + cleaner data).
+- **Shipped (the two non-legal wins):**
+  1. **Allowlist enforcement.** `canonicalizeCategory()` in `categories.ts` coerces any LLM
+     category into the closed set: empty → `personal`; exact/format-fixed → that key; **unknown →
+     a new controlled `other_business` catch-all (§162), never `personal`** (so a real deductible
+     expense is never silently zeroed out). Wired into `normalizeCategoryResult` — the single
+     choke point both the standalone categorizer and the merged extract+categorize (hot) path use.
+     `other_business` is a code-only bucket: it is deliberately **NOT** added to the prompt
+     taxonomy, so the categorization eval stays byte-identical and the LLM never *chooses* it —
+     it's purely the safety net.
+  2. **Metrics.** `log.warn('category_drift', …)` fires whenever the fallback triggers (leading
+     indicator of model drift); `log.info('expense_corrected', …)` fires on every post-log
+     correction with `category_changed`/from/to (the error-driven-cost signal). Structured logs,
+     no metrics table — matches Marcus's "don't over-build a capped margin line."
+  - 6 new unit tests (`categories.test.ts`); full suite green (175 tests), typecheck clean.
+- **Deferred — DEC-065b (needs legal).** The single biggest *raw SMS* cost is that
+  `composeResponse` appends the `§… in plain English (suggestion, not advice — confirm with your
+  CPA): <url>` line to **every** reply (~85–95 chars), structurally pushing most confirmations to
+  a 2nd SMS segment — doubling outbound cost. Sofia/Raj want it conditional (full line on strict
+  categories / first-per-category; short "✓ logged §X" otherwise). Held pending a Jordan/lawyer
+  call on whether the suggest-not-advise disclaimer can be condensed/occasional without losing
+  legal cover (CLAUDE.md rules 5/7). Do NOT trim confirmations themselves — the outbound SMS *is*
+  the IRS written record for sub-$75 strict expenses.
+- **Also deferred — confidence-gating (Alex/Marcus compromise).** For low `category_confidence`
+  on a *strict* category only, fold the clarifying question into the same reply (no extra round
+  trip). Not built yet.
+
+---
+
+## 2026-06-05 — Conversation state: stop dropping context on follow-ups
+
+### DEC-064 — Wire `awaiting_amount` + a recent-receipt correction window (two commits)
+
+- **Problem (observed in a real transcript).** The non-photo capture path drops context on
+  follow-ups. Two distinct holes:
+  1. **No partial-capture state.** When a text parses but has no amount, the bot asks
+     "how much was this?" with `contextState: null` (`handleTextAsNewExpense`, the
+     `needAmount` branch) — fire-and-forget. The user's "$167" reply has nothing to attach
+     to, so it's logged as a *new* contextless expense → §262 personal, $0 deductible. And
+     amount-less corrections loop "how much?" forever.
+  2. **No post-log correction handling.** After a *complete* log, a correction
+     ("Tabernacle is a restaurant", "it was a business meal") isn't recognized as editing
+     the last receipt — `getPendingContext` only fires when the prior outbound carried a
+     `context_state`, which a clean log doesn't. So corrections dead-end / re-capture.
+- **Root cause is state plumbing, not model quality.** The categorization eval is 100%;
+  it never exercises these multi-turn paths. The fix is deterministic, not "make the AI
+  perfect" (matches CLAUDE.md "AI WORKFLOW, not AI AGENT").
+- **Team verdict (Raj / Priya / Sofia / Alex).** Build **both** mechanisms as one shippable
+  unit, but as **two separable commits**:
+  - **#1 `awaiting_amount`** — persist the parsed partial text in `pending_data` (no draft
+    receipt → keeps the `receipts` table clean; mirrors the existing `awaiting_flag_choice`
+    pattern). Next reply is combined with the remembered text and re-parsed. Retry-capped
+    (`MAX_AMOUNT_RETRIES = 1`) then a graceful give-up. Pure state-machine fix, low risk.
+  - **#2 recent-receipt correction window** — a short window after a clean log where an
+    amount-less, non-query follow-up routes through `processClarification` against the last
+    receipt (recategorize + recompute), confirmed as an **edit** ("Updated ✓", Sofia) not a
+    second "Logged ✓".
+- **Why not ship #1 alone (Alex, seconded by Raj/Priya).** #1 alone still leaves a silent
+  **duplicate** receipt in the correction case — and for a *tax* product a silent duplicate
+  inflates the deduction total (the "audit-ready" liability we guard everywhere else). A
+  loud loop is honest failure; a quiet double-log is the dangerous kind. So #2 ships with it.
+- **Edge cases to handle (Priya).** (a) a *new* expense with its own amount arriving while
+  `awaiting_amount` (don't corrupt by blindly concatenating); (b) "why?" mid-amount-ask
+  must not drop the partial; (c) the 24h pending window means a stale `priorText` could glue
+  onto an unrelated later message — bound the correction window tightly.
+- **Guardrail (Alex).** Timebox; don't let this balloon into a state-machine refactor, then
+  get back to the 5-user validation. Follow-up: add an eval for the multi-turn paths (#3).
+
+#### Follow-up (same day) — both originally-deferred limitations fixed
+
+- **Amount corrections now supported.** "actually it was $200" / "make it $200" / "should be
+  $200 not $167" edit the last receipt instead of logging a duplicate. The trigger no longer
+  excludes amount-bearing messages; instead `replyStartsNewExpense` is the single
+  fresh-vs-edit discriminator and is now **marker-aware** — it strips correction markers (and
+  "not"/"no") before checking for a surviving description, so an amount-only correction reads
+  as NOT-fresh (→ correction window) while "$50 gas to Acme" stays fresh (→ new expense).
+  `CORRECTION_PROMPT`/`processCorrection` gained an `amount` (dollars) field; the new amount
+  feeds the substantiation recompute (it moves the $75 threshold + the deductible) and is
+  persisted. The marker source is now a single shared string feeding both the test regex and
+  the strip regex, so `looksLikeCorrection` and `replyStartsNewExpense` can't drift.
+- **Photo-as-amount-answer now supported.** A receipt photo sent in reply to "how much?" folds
+  the remembered `priorText` into the OCR caption, so the photo supplies vendor+amount while the
+  typed note supplies the WHY (one merged extract+categorize call) — no more context-less log.
+- **Residual edges (accepted).** An amount correction that *also* renames the vendor in one
+  message ("actually Tabernacle was $200") falls through to a new expense (rare); multi-expense
+  messages aren't split. Tracked, not fixed.
+- **Verification.** Deterministic gates unit-tested (12 cases in `sms-handler.test.ts`). The
+  LLM-dependent behavior (recategorization, amount-fix, the combined re-parse) is covered by a
+  new `eval:conversation` harness — transcript-derived multi-turn scenarios graded against the
+  live model.
+- **Security hardening (injection surface).** The new correction path — like the existing
+  clarification path — feeds the user's own follow-up to Sonnet and can change category/amount,
+  so it's a distinct injection surface from ingestion. Both `CORRECTION_PROMPT` and
+  `CLARIFICATION_PROMPT` previously lacked the "treat as DATA, never instructions / never echo"
+  clause the ingestion prompts carry, and the red-team harness didn't reach them. Fixed: added
+  the clause to both (correction also pinned to "edit only the single receipt shown"), and
+  extended `redteam` with `edit_leak` (prompt-leak via the confirmation, correction +
+  clarification) and `edit_inflate` (embedded-command amount inflation). All three hold; harness
+  now 14/15 (the one ⚠️ is the pre-existing `parseTextExpense` no-local-catch gap). Tenant
+  isolation is unaffected — `processCorrection` only ever loads/updates one receipt by id, and
+  all aggregation stays org-scoped via `organization_id`.
+
+---
+
+## 2026-06-05 — Cut SMS reply latency: merge extract + categorize into one call
+
+### DEC-063 — Merged extract+categorize Haiku call on the new-expense path (latency)
+
+- **Problem.** Users noticed replies "take some time." SMS has no native "typing…" indicator
+  (that's an iMessage/RCS/WhatsApp protocol feature), so the only honest lever for plain SMS is
+  making the reply faster. A new expense ran **3 sequential model calls**: extract (Haiku) →
+  categorize (Haiku) → compose (Sonnet), each a separate round trip.
+- **Decision (chosen over an interim "got it…" ack).** Prompt caching was already on every call,
+  so the remaining win was collapsing the two Haiku calls into **one**: a merged extract+categorize
+  call on both the text and photo new-expense paths. Removes a full round trip per new expense.
+  Also parallelized the independent `saveReceipt` + `composeResponse` (they don't depend on each
+  other) to shave a DB round trip.
+- **How, without prompt drift.** The category taxonomy/guidelines were factored into a single
+  `CATEGORY_TAXONOMY` constant in `prompts.ts`, reproduced **byte-for-byte** from the original
+  Prompt 6 — so the standalone `CATEGORIZATION_HELPER_PROMPT` (graded by `eval:categorize`) is
+  unchanged. Two new prompts (`TEXT_PARSE_CATEGORIZE_PROMPT`, `RECEIPT_EXTRACT_CATEGORIZE_PROMPT`)
+  reuse that constant plus the verbatim extraction halves (incl. the anti-injection + not_a_receipt/
+  unreadable guardrails). New merged fns live in `ocr.ts` (`parseAndCategorizeText`,
+  `extractAndCategorizeReceiptFromImageData`); `processNewExpense` takes an optional precomputed
+  category and falls back to the standalone categorizer when absent (recurring-renewal path).
+- **Kept.** `categorizeExpense` (eval + recurring path) and `parseTextExpense` (redteam harness)
+  remain. Removed the now-dead `extractReceiptFromImageData`.
+- **Verified.** tsc + eslint clean; 159/159 unit tests. New `eval:merged` grades the merged text
+  path on the same golden dataset: standalone **100% (20/20)** (unchanged from baseline — confirms
+  the byte-identical taxonomy), merged **95% (19/20)**. The single, stable miss is `coworking-daypass`
+  → `venue_rental` instead of `rent` on "$35 day pass at WeWork to meet a client" — a genuinely
+  ambiguous edge that fits the taxonomy's own venue_rental definition, and **both categories export
+  to the same QuickBooks account with the same deduction %**, so there's no tax/export impact.
+  (The merged path also got `concert-tickets` right, which the standalone fumbles.)
+- **⚠️ Coverage note (deferred).** The redteam anti-injection harness still tests `parseTextExpense`,
+  not the merged prompt that production now uses. The merged prompt reproduces the guardrail verbatim,
+  so protection is equivalent — but repointing the harness at `parseAndCategorizeText` would close the
+  gap. Left for a follow-up.
+- **Follow-up — onboarding-path round trips trimmed.** The onboarding reply path is fully
+  deterministic (no LLM), so its latency is just the inbound pipeline. In `handleInboundSms`:
+  (1) the inbound `logConversation` + `touchLastActive` writes now run in one `Promise.all`
+  instead of two sequential awaits; (2) the `getOrgEntitlement` paywall lookup is **skipped
+  entirely until `onboarding_completed`** — a brand-new user is always inside the trial, so it
+  was a wasted round trip on every setup message, and we never want to paywall someone mid-signup.
+  No change to the questions asked. 159/159 tests, tsc + eslint clean.
+
+---
+
 ## 2026-06-04 — One-tap subscribe magic link + RUN_ALL refresh
 
 ### DEC-062 — Signed magic link drops an SMS user straight into Stripe Checkout (no login)

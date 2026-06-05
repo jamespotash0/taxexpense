@@ -5,15 +5,22 @@
 import { normalizeToE164 } from './phone';
 import { getOrCreateUserByPhone, touchLastActive, updateUser, type AppUser } from './users';
 import { notifyAdminNewSignup } from './admin-notify';
-import { logConversation, getPendingContext, countRecentInbound, getPendingFlagChoice, type ContextState, type PendingContext } from './conversations';
+import { logConversation, getPendingContext, countRecentInbound, getPendingFlagChoice, getPendingAmount, type ContextState, type PendingContext } from './conversations';
 import { getSubstantiationRule } from './substantiation';
 import { categoryLabel } from './categories';
 import { handleOnboarding } from './onboarding';
-import { fetchTwilioMedia, extractReceiptFromImageData, storePhotoBuffer, parseTextExpense, type OcrResult } from './ocr';
-import { processNewExpense, processClarification, processAttachment, type ProcessResult } from './expense';
-import { routeTextMessage, resolveFlagChoice } from './router';
+import {
+  fetchTwilioMedia,
+  extractAndCategorizeReceiptFromImageData,
+  storePhotoBuffer,
+  parseAndCategorizeText,
+  type OcrResult,
+} from './ocr';
+import { processNewExpense, processClarification, processCorrection, processAttachment, type ProcessResult } from './expense';
+import type { CategoryResult } from './categorize';
+import { routeTextMessage, resolveFlagChoice, looksLikeExpenseCapture } from './router';
 import { subscribeUrl } from './subscribe-link';
-import { getReceipt } from './receipts';
+import { getReceipt, getLatestReceiptSince } from './receipts';
 import { todayISO } from './format';
 import {
   isAffirmative,
@@ -52,15 +59,74 @@ const INBOUND_WINDOW_MIN = 10;
 const INBOUND_MAX = 25;
 const INBOUND_MAX_PER_DAY = 200;
 
+// Partial-capture ("how much was this?") retry cap (DEC-064). After this many re-asks with
+// still no amount, give up cleanly rather than loop. 1 = at most two prompts total.
+const MAX_AMOUNT_RETRIES = 1;
+
+// Post-log correction / addendum markers (DEC-064). Shared by `looksLikeCorrection` (does this
+// follow-up edit the prior receipt?) and `replyStartsNewExpense` (which strips them, so a marker
+// word is never mistaken for the "description" that makes a message a fresh expense). One source
+// string → a test regex + a global strip regex, so the two never drift.
+const _CORRECTION_MARKER_SRC =
+  "actually|instead|correction|i meant|nope|wrong|change|fix|that'?s not|it'?s not|not (a|an|the|business|personal)|should be|make (it|that)|set (it|that)|mark (it|that)|it'?s (a|an|the|actually|for|not)|that'?s (a|an|the|actually|for|not)|it was|that was|these were|those were|is (a|an|the)|was (a|an|the)|add ";
+const CORRECTION_MARKER_RE = new RegExp(`\\b(${_CORRECTION_MARKER_SRC})`, 'i');
+const _CORRECTION_MARKER_G = new RegExp(`\\b(${_CORRECTION_MARKER_SRC})`, 'gi');
+
+// A reply that on its OWN names an expense (an amount/miles PLUS a real description) is the user
+// starting a fresh capture, not answering "how much?" or correcting the last one — so we log it
+// alone instead of gluing it onto a partial or editing the prior receipt (DEC-064, Priya edge a).
+// A bare "$167", or a pure amount-correction like "actually it was $200" (only a marker survives
+// the strip), has no description left → NOT fresh.
+const _AMOUNT_TOKEN_RE = /\$?\s*\d+(?:\.\d{1,2})?/g;
+export function replyStartsNewExpense(text: string): boolean {
+  if (!looksLikeExpenseCapture(text)) return false; // no $-amount/miles, or it's a question → not fresh
+  const rest = text
+    .replace(_AMOUNT_TOKEN_RE, ' ')
+    .replace(_CORRECTION_MARKER_G, ' ') // marker words aren't "new expense" content
+    .replace(/\b(it|that|this|was|were|is|no|not|nope|yes|about|around|roughly|like|just|the|a|an|for|of|approx|approximately|dollars|bucks|mi|mile|miles)\b/gi, ' ')
+    .trim();
+  return /[a-z]{3,}/i.test(rest); // a real descriptive word survives → self-contained capture
+}
+
 // "Why / what's the purpose" questions → answered DETERMINISTICALLY from the substantiation
 // rule + IRC summary (no LLM call, so explaining can't drive up charges — DEC-036).
 const EXPLAIN_RE = /\b(why|what for|what'?s (the )?(point|reason|purpose)|how come|explain|what do you (need|mean)|why (do|are|would) you|the purpose)\b/i;
+
+// Confirmations to a "did I read that right?" verify (DEC-066), beyond the yes/yeah that
+// isAffirmative already covers — so a plain "looks right" confirms without spending a correction call.
+const CONFIRM_RE = /\b(correct|right|looks? (good|right|fine)|that'?s right|perfect|spot on|exactly|yep|yup|all good)\b/i;
+
+// Post-log correction window (DEC-064): how long after a clean log a follow-up may still edit that
+// receipt. Tight, so a stale receipt never absorbs an unrelated later message (Priya edge c).
+const CORRECTION_WINDOW_MIN = 15;
+
+/** True when a follow-up reads like an edit to the just-logged receipt: it carries a correction/
+ *  addendum marker (incl. amount fixes like "actually it was $200"), or it names the receipt's
+ *  vendor (e.g. "Tabernacle is a restaurant"). The caller only reaches this for non-fresh messages
+ *  (see replyStartsNewExpense), so a self-contained new expense never lands here. */
+export function looksLikeCorrection(text: string, vendor: string | null): boolean {
+  if (CORRECTION_MARKER_RE.test(text)) return true;
+  if (vendor) {
+    const lower = text.toLowerCase();
+    // Match on a meaningful vendor token (≥4 chars) so short/common words don't false-trigger.
+    const hit = vendor
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .some((tok) => tok.length >= 4 && lower.includes(tok));
+    if (hit) return true;
+  }
+  return false;
+}
 
 // User-facing error/help copy (TSNAP-026 / Sofia — human, not technical).
 const MSG = {
   notReceipt: "That doesn't look like a receipt. Want to describe the expense in text instead?",
   unreadable: "That photo's a bit blurry. Can you snap another, or just text me the details?",
   needAmount: 'Got it — quick: how much was this?',
+  // After re-asking once with no amount, stop the loop gracefully (DEC-064). Don't log a $0
+  // phantom — just invite a clean resend so the next message starts fresh.
+  amountGiveUp:
+    "No worries — I didn't catch an amount, so I haven't logged this one. When you have it, send it like \"$45 lunch with a client\" and I'll take it from there.",
   help: 'Send me a business expense — a receipt photo, text like "$30 gas to client site", or "drove 40 miles to Acme".',
   failure: "Hmm, that didn't go through on my end. Mind sending it once more?",
   // Parser failed (not a delivery failure — the message arrived and is saved). Sofia copy.
@@ -87,6 +153,7 @@ function ocrToInput(data: Extract<OcrResult, { ok: true }>['data'], bodyText: st
 async function handlePhotoAsNewExpense(
   user: AppUser,
   ocr: OcrResult,
+  category: CategoryResult | null,
   bodyText: string,
   buffer: Buffer,
   contentType: string,
@@ -101,7 +168,9 @@ async function handlePhotoAsNewExpense(
   }
   // Confirmed a receipt → persist the image now and link it.
   const { path } = await storePhotoBuffer(buffer, contentType, user.id);
-  return processNewExpense(user, ocrToInput(ocr.data, bodyText), path);
+  // Pass the OCR confidence so a shaky read (blurry photo → wrong amount) gets verified instead
+  // of silently logged (DEC-066).
+  return processNewExpense(user, ocrToInput(ocr.data, bodyText), path, category, ocr.data.confidence);
 }
 
 async function handleTextAsNewExpense(user: AppUser, body: string): Promise<ProcessResult> {
@@ -109,16 +178,25 @@ async function handleTextAsNewExpense(user: AppUser, body: string): Promise<Proc
 
   // The inbound text is already persisted by handleInboundSms before we parse, so a parser
   // failure loses nothing — reply helpfully instead of letting it throw to the generic
-  // failure path (red-team graceful_fail; team DEC). parseTextExpense has no internal fallback.
-  let parsed: Awaited<ReturnType<typeof parseTextExpense>>;
+  // failure path (red-team graceful_fail; team DEC). The merged call has no internal fallback.
+  let parsed: Awaited<ReturnType<typeof parseAndCategorizeText>>['parsed'];
+  let category: CategoryResult;
   try {
-    parsed = await parseTextExpense(body);
+    ({ parsed, category } = await parseAndCategorizeText(body, user));
   } catch (err) {
     log.warn('text_parse_failed', { user: user.id, message: errMsg(err) });
     return { smsText: MSG.couldntRead, receiptId: null, contextState: null };
   }
   if (parsed.amount == null && parsed.business_miles == null) {
-    return { smsText: MSG.needAmount, receiptId: null, contextState: null };
+    // Don't fire-and-forget: remember what we already parsed so the user's "$167" reply can be
+    // combined + re-parsed into THIS expense instead of being logged as a new contextless one
+    // (the §262/$0 phantom + "how much?" loop). DEC-064. Completion is owned by handleExpenseFlow.
+    return {
+      smsText: MSG.needAmount,
+      receiptId: null,
+      contextState: 'awaiting_amount',
+      pendingData: { priorText: body, amountAttempts: 0 },
+    };
   }
 
   const input: ExpenseInput = {
@@ -134,7 +212,9 @@ async function handleTextAsNewExpense(user: AppUser, body: string): Promise<Proc
     raw_text: parsed.raw_text,
     items: [],
   };
-  return processNewExpense(user, input, null);
+  // Pass the parse confidence so an ambiguous text read (e.g. conflicting amounts) gets verified
+  // instead of silently logged (DEC-066).
+  return processNewExpense(user, input, null, category, parsed.confidence);
 }
 
 /** Recurring (DEC-033): after a COMPLETE log, offer to track it monthly when it's
@@ -191,6 +271,21 @@ function cappedReply(decision: Extract<UsageDecision, { kind: 'block_daily' | 'b
       ? `That's a lot of expenses in one day — I've saved every one. I'll catch up on new ones shortly so nothing gets garbled; everything so far is on your dashboard: ${appBase()}.`
       : `You've reached your plan's expense limit for the year — everything's saved and exportable. If you're logging this much, let's get you on a plan that fits: email support@tallywhy.com.`;
   return { smsText, receiptId: null, contextState: null };
+}
+
+/** A user can attach several photos to one MMS, but the conversation + substantiation flow is
+ *  per-receipt (one live question at a time). We process the first photo and, instead of silently
+ *  dropping the rest — invisible data loss, the worst failure for a records product — tell the user
+ *  to resend them one at a time (DEC-066). Full batch logging is a larger follow-up (cost + per-
+ *  receipt state). */
+function withExtraPhotosNote(result: ProcessResult, extraPhotos: number): ProcessResult {
+  if (extraPhotos <= 0) return result;
+  const them = extraPhotos === 1 ? 'it' : 'them';
+  const noun = extraPhotos === 1 ? 'one more photo' : `${extraPhotos} more photos`;
+  return {
+    ...result,
+    smsText: `${result.smsText}\n\nI also saw ${noun} in that message — I log them one at a time, so send ${them} again separately and I'll catch each one.`,
+  };
 }
 
 /** Append a one-line annual-quota nudge to an otherwise-normal reply (only fires at milestones). */
@@ -266,19 +361,50 @@ async function handleExpenseFlow(user: AppUser, msg: InboundMessage): Promise<Pr
     // an expense that already counted, so it's allowed.)
     if (!pending && blocked) return cappedReply(decision);
 
-    // OCR from the bytes FIRST; we only write to Storage once we know the image links
-    // to a receipt (prevents orphaned uploads from non-receipt / unmatched photos).
+    // Several photos in one MMS: we process only the first (the substantiation flow is per-receipt)
+    // and tell the user about the rest rather than dropping them silently (DEC-066).
+    const extraPhotos = Math.max(0, msg.mediaUrls.length - 1);
+
+    // A photo can be the ANSWER to "how much was this?" — if a partial is awaiting its amount, fold
+    // the text we already had into the caption so the photo supplies vendor+amount while the prior
+    // note supplies the WHY, instead of logging a context-less new expense (DEC-064, limitation B).
+    // (awaiting_amount carries no receipt_id, so getPendingContext above is null on this path.)
+    const pendingAmt = pending ? null : await getPendingAmount(user.id);
+    const caption = pendingAmt ? `${pendingAmt.priorText} ${msg.body}`.trim() : msg.body;
+
+    // OCR + categorize from the bytes FIRST (one merged Haiku call, DEC-063); we only write
+    // to Storage once we know the image links to a receipt (prevents orphaned uploads from
+    // non-receipt / unmatched photos). On the attachment path below the category is unused.
     const { buffer, contentType } = await fetchTwilioMedia(msg.mediaUrls[0]);
-    const ocr = await extractReceiptFromImageData(buffer, contentType);
+    const { ocr, category } = await extractAndCategorizeReceiptFromImageData(buffer, contentType, user, caption);
 
     // If a receipt is awaiting a photo, try to attach this one first (stores on match).
     if (pending) {
       const attached = await processAttachment(user, ocr, buffer, contentType);
-      if (attached) return attached;
+      if (attached) return withExtraPhotosNote(attached, extraPhotos);
     }
     // Fell through to a new expense (no match) → re-check the cap before logging.
     if (blocked) return cappedReply(decision);
-    return withAnnualNudge(decision, await maybeOfferRecurring(user, await handlePhotoAsNewExpense(user, ocr, msg.body, buffer, contentType)));
+    return withExtraPhotosNote(
+      withAnnualNudge(decision, await maybeOfferRecurring(user, await handlePhotoAsNewExpense(user, ocr, category, caption, buffer, contentType))),
+      extraPhotos,
+    );
+  }
+
+  // Verify reply to a low-confidence read (DEC-066). "yes"/"looks right" confirms as-is
+  // (deterministic, no LLM); a "why?" falls through to the explain branch (keeps it open); anything
+  // else that isn't a fresh self-contained expense is a correction → fix the receipt in place. If
+  // they ignore it and send a new expense, fall through and log that (the verify expires in 24h).
+  // Checked before the recurring Y/N below so a verify "yes" isn't taken as a renewal confirmation.
+  if (pending?.contextState === 'awaiting_confirm') {
+    if (isAffirmative(msg.body) || CONFIRM_RE.test(msg.body)) {
+      return { smsText: '✓ Great — locked it in.', receiptId: pending.receiptId, contextState: null };
+    }
+    if (!replyStartsNewExpense(msg.body) && !EXPLAIN_RE.test(msg.body)) {
+      const corrected = await processCorrection(user, pending.receiptId, msg.body);
+      if (corrected.receiptId !== null) return corrected;
+      // receipt vanished mid-flight → fall through to new-expense handling
+    }
   }
 
   // Y/N answer to a monthly recurring nudge (DEC-033). Only query when the reply is a bare
@@ -301,6 +427,33 @@ async function handleExpenseFlow(user: AppUser, msg: InboundMessage): Promise<Pr
     if (candidateIds) return resolveFlagChoice(user, candidateIds, parseInt(msg.body.trim(), 10));
   }
 
+  // Partial expense awaiting its amount (DEC-064). We asked "how much?" and stashed the text we'd
+  // already parsed. Combine it with this reply and re-parse so "$167" completes THIS expense
+  // instead of being logged as a new contextless one. Skipped when the reply is itself a fresh,
+  // self-contained capture (Priya edge a) — then we just log that and let the stale partial expire.
+  const pendingAmt = await getPendingAmount(user.id);
+  if (pendingAmt && !replyStartsNewExpense(msg.body)) {
+    // "Why do you need it?" mid-ask → explain but KEEP the partial (Priya edge b); don't drop it.
+    if (EXPLAIN_RE.test(msg.body)) {
+      return {
+        smsText: `I just need the amount to log it — what did it come to?\n\n${CPA_NOTE}`,
+        receiptId: null,
+        contextState: 'awaiting_amount',
+        pendingData: { priorText: pendingAmt.priorText, amountAttempts: pendingAmt.attempts },
+      };
+    }
+    if (blocked) return cappedReply(decision);
+    const combined = `${pendingAmt.priorText} ${msg.body}`.trim();
+    const result = await maybeOfferRecurring(user, await handleTextAsNewExpense(user, combined));
+    // Got an amount → it logged normally (contextState is no longer awaiting_amount).
+    if (result.contextState !== 'awaiting_amount') return withAnnualNudge(decision, result);
+    // Still no amount. Re-ask once more, then give up cleanly — never log a $0 phantom.
+    if (pendingAmt.attempts >= MAX_AMOUNT_RETRIES) {
+      return { smsText: MSG.amountGiveUp, receiptId: null, contextState: null };
+    }
+    return { ...result, pendingData: { priorText: combined, amountAttempts: pendingAmt.attempts + 1 } };
+  }
+
   // "Why / what's the purpose" → explain deterministically (no LLM), keeping any open
   // question intact. Checked before clarification so a "why?" isn't taken as the answer.
   if (EXPLAIN_RE.test(msg.body)) {
@@ -319,6 +472,22 @@ async function handleExpenseFlow(user: AppUser, msg: InboundMessage): Promise<Pr
   // when the message is an expense to capture, so the workflow path below still runs.
   const routed = await routeTextMessage(user, msg.body);
   if (routed) return routed;
+
+  // Post-log correction window (DEC-064): a follow-up right after a clean log that reads like an
+  // edit ("Tabernacle is a restaurant", "that was a client meal", "actually it was $200") edits the
+  // last receipt instead of creating a duplicate. We only get here for non-fresh messages — a
+  // self-contained new expense ("$50 gas to Acme") is filtered by replyStartsNewExpense, which also
+  // routes amount-only corrections here. Then we need a recent receipt + a correction marker / vendor
+  // mention. Uncapped: it edits an existing receipt, it doesn't log a new one.
+  if (!replyStartsNewExpense(msg.body)) {
+    const since = new Date(Date.now() - CORRECTION_WINDOW_MIN * 60 * 1000).toISOString();
+    const recent = await getLatestReceiptSince(user.organization_id, since);
+    if (recent && looksLikeCorrection(msg.body, recent.vendor)) {
+      const corrected = await processCorrection(user, recent.id, msg.body);
+      if (corrected.receiptId !== null) return corrected;
+      // receipt vanished mid-flight → fall through to new-expense handling
+    }
+  }
 
   // New text expense → subject to the usage caps (checked after the router so read-only
   // queries above are never blocked, and before parse/categorize so a blocked user costs nothing).
@@ -349,15 +518,19 @@ export async function handleInboundSms(msg: InboundMessage): Promise<void> {
     return;
   }
 
-  // Log inbound + bump activity (best-effort).
-  await logConversation({
-    userId: user.id,
-    organizationId: user.organization_id,
-    direction: 'inbound',
-    messageText: msg.body || null,
-    mediaUrl: msg.mediaUrls[0] ?? null,
-  });
-  await touchLastActive(user.id);
+  // Log inbound + bump activity (best-effort). Two independent writes — run them together
+  // so every reply (the deterministic onboarding path especially) pays one round trip, not
+  // two (DEC-063).
+  await Promise.all([
+    logConversation({
+      userId: user.id,
+      organizationId: user.organization_id,
+      direction: 'inbound',
+      messageText: msg.body || null,
+      mediaUrl: msg.mediaUrls[0] ?? null,
+    }),
+    touchLastActive(user.id),
+  ]);
 
   // TCPA opt-out / opt-in keywords (EPIC-7). Twilio also handles STOP at the carrier
   // level; we record state so reminders/outbound respect it.
@@ -406,20 +579,25 @@ export async function handleInboundSms(msg: InboundMessage): Promise<void> {
     return;
   }
 
-  // Hybrid paywall (DEC-021): after the 21-day trial (and no active subscription),
-  // gate continued use. New users are always within trial, so onboarding is unaffected.
-  const entitlement = await getOrgEntitlement(user.organization_id);
-  if (!entitlement.entitled) {
-    // One-tap magic link (falls back to /pricing if SUBSCRIBE_LINK_SECRET isn't set) — DEC-062.
-    const paywall = `Your Tally trial has ended. Subscribe to keep logging expenses: ${subscribeUrl(user.organization_id)}`;
-    await safeSend(phone, paywall, msg.channel);
-    await logConversation({
-      userId: user.id,
-      organizationId: user.organization_id,
-      direction: 'outbound',
-      messageText: paywall,
-    });
-    return;
+  // Hybrid paywall (DEC-021): after the 21-day trial (and no active subscription), gate
+  // continued use. Skipped entirely until onboarding is finished (DEC-063): a brand-new user
+  // is always inside the trial, so the entitlement lookup would just be a wasted round trip on
+  // the latency-sensitive, LLM-free setup path — and we'd never want to paywall someone partway
+  // through signup anyway.
+  if (user.onboarding_completed) {
+    const entitlement = await getOrgEntitlement(user.organization_id);
+    if (!entitlement.entitled) {
+      // One-tap magic link (falls back to /pricing if SUBSCRIBE_LINK_SECRET isn't set) — DEC-062.
+      const paywall = `Your Tally trial has ended. Subscribe to keep logging expenses: ${subscribeUrl(user.organization_id)}`;
+      await safeSend(phone, paywall, msg.channel);
+      await logConversation({
+        userId: user.id,
+        organizationId: user.organization_id,
+        direction: 'outbound',
+        messageText: paywall,
+      });
+      return;
+    }
   }
 
   let reply: ProcessResult;

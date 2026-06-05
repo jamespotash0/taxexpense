@@ -6,7 +6,9 @@
 import { claudeJSON, claudeText } from './llm';
 import { HAIKU_MODEL, SONNET_MODEL } from './claude';
 import { CATEGORIZATION_HELPER_PROMPT, CATEGORIZATION_RESPONSE_PROMPT } from './prompts';
-import { PUBLIC_ENV } from './env';
+import { canonicalizeCategory } from './categories';
+import { log } from './log';
+import { PUBLIC_ENV, optionalEnv } from './env';
 import type { AppUser } from './users';
 import type { SubstantiationRule, SubstantiationResult } from './substantiation';
 import type { IrcSummary } from './irc';
@@ -30,10 +32,62 @@ export interface CategoryResult {
   category: string;
   confidence: number;
   reasoning: string;
+  /** True when the raw LLM category was unknown and coerced to the 'other_business' catch-all
+   *  (DEC-065). Surfaced to the review floor so a drifted expense gets a human glance. */
+  drifted?: boolean;
 }
 
-function userContextLine(user: AppUser): string {
+export function userContextLine(user: AppUser): string {
   return `Business type: ${user.business_type ?? 'unknown'}; Entity: ${user.entity_type ?? 'unknown'}`;
+}
+
+/** Coerce a raw LLM category payload into a safe CategoryResult (shared by the standalone
+ *  categorizer and the merged extract+categorize calls so defaults stay consistent). */
+export function normalizeCategoryResult(raw: {
+  category?: string;
+  confidence?: number;
+  reasoning?: string;
+}): CategoryResult {
+  // Enforce the closed taxonomy (DEC-065). The model is told never to invent a category, but
+  // nothing structurally stopped a hallucinated label from leaking to the dashboard + CSV export
+  // as a one-off column. canonicalizeCategory coerces any unknown value into the controlled
+  // 'other_business' bucket; we emit a metric so drift is visible instead of silent.
+  const canon = canonicalizeCategory(raw.category);
+  const drifted = canon.status === 'drift';
+  if (drifted) {
+    // Warn-level + structured so it's an alertable abuse signal, not just noise: a spike in drift
+    // is a leading indicator of prompt-injection trying to escape the closed taxonomy (Jordan).
+    log.warn('category_drift', { raw_category: raw.category ?? null, coerced_to: canon.category });
+  }
+  return {
+    category: canon.category,
+    confidence: typeof raw.confidence === 'number' ? raw.confidence : 0,
+    reasoning: raw.reasoning ?? '',
+    drifted,
+  };
+}
+
+// The not-advice + CPA deferral — the LEGAL control (CLAUDE.md rules 5/7). Lives in ONE place so
+// the floor is a single source of truth the test can assert against.
+const NOT_ADVICE = 'suggestion, not advice — confirm with your CPA';
+
+/**
+ * The deterministic closing line appended to every tax-guidance SMS (DEC-065b-i / Jordan).
+ * INVARIANT: the not-advice disclaimer is present on EVERY return path, by construction — never
+ * left to the model. Only the tap-through IRC link is conditional: it rides along on strict
+ * categories (where the user is most likely to want the reference and the stakes are highest) and
+ * is dropped on routine general logs to save an SMS segment. The link carries no legal weight, so
+ * dropping it needs no legal sign-off; the disclaimer is never dropped here. Pure + testable.
+ */
+export function closingLine(opts: { sectionId: string | null; includeLink: boolean; appUrl?: string }): string {
+  const base = opts.appUrl || PUBLIC_ENV.appUrl || 'https://tallywhy.com';
+  if (opts.sectionId && opts.includeLink) {
+    return `§${opts.sectionId} in plain English (${NOT_ADVICE}): ${base}/irc/${opts.sectionId}`;
+  }
+  if (opts.sectionId) {
+    return `Per §${opts.sectionId} — ${NOT_ADVICE}.`;
+  }
+  return `Suggestion, not advice — confirm with your CPA.`;
 }
 
 function expenseSummary(input: ExpenseInput): string {
@@ -60,11 +114,7 @@ export async function categorizeExpense(input: ExpenseInput, user: AppUser): Pro
     cacheSystem: true,
     maxTokens: 256,
   });
-  return {
-    category: result.category ?? 'personal',
-    confidence: typeof result.confidence === 'number' ? result.confidence : 0,
-    reasoning: result.reasoning ?? '',
-  };
+  return normalizeCategoryResult(result);
 }
 
 /**
@@ -78,8 +128,13 @@ export async function composeResponse(args: {
   decision: SubstantiationResult;
   irc: IrcSummary | null;
   user: AppUser;
+  /** Override the compose model (eval/AB). Defaults to COMPOSE_MODEL env, else Sonnet. The phrasing
+   *  task is post-decision (DEC-011), so it's the safe call to try on Haiku — flip via env to A/B in
+   *  prod without a redeploy. */
+  model?: string;
 }): Promise<string> {
   const { input, category, rule, decision, irc, user } = args;
+  const model = args.model ?? optionalEnv('COMPOSE_MODEL') ?? SONNET_MODEL;
 
   const decisionBlock = JSON.stringify(
     {
@@ -118,19 +173,17 @@ export async function composeResponse(args: {
   ].join('\n');
 
   const message = await claudeText({
-    model: SONNET_MODEL,
+    model,
     system: CATEGORIZATION_RESPONSE_PROMPT,
     userText,
     cacheSystem: true,
     maxTokens: 512,
   });
 
-  // Append a "view the code in plain English" link for the cited section. Deterministic —
-  // no extra LLM call, and the URL always matches the section actually applied.
-  const sectionId = irc?.section_id ?? rule.irc_section;
-  const base = PUBLIC_ENV.appUrl || 'https://tallywhy.com';
-  // Always close with the suggest-not-advise + CPA deferral, plus the tap-through link.
-  // Folded into one line so it's guaranteed on every reply without ballooning the SMS.
-  if (!sectionId) return `${message}\n\nSuggestion, not tax advice — confirm specifics with your CPA.`;
-  return `${message}\n\n§${sectionId} in plain English (suggestion, not advice — confirm with your CPA): ${base}/irc/${sectionId}`;
+  // Deterministic closing line (no extra LLM call). The not-advice disclaimer is always present;
+  // the tap-through IRC link rides along only on strict categories — dropped on routine general
+  // logs to save an SMS segment (DEC-065b-i). The URL always matches the section actually applied.
+  const sectionId = irc?.section_id ?? rule.irc_section ?? null;
+  const includeLink = rule.substantiation_level === 'strict';
+  return `${message}\n\n${closingLine({ sectionId, includeLink })}`;
 }

@@ -121,6 +121,22 @@ export async function updateReceipt(
   return (data as ReceiptRow | null) ?? null;
 }
 
+/**
+ * The org's most recent receipt if it was created since `sinceIso`, else null — for the
+ * post-log correction window (DEC-064). A tight window so an old receipt never absorbs an
+ * unrelated later message. One-row query (newest first).
+ */
+export async function getLatestReceiptSince(orgId: string, sinceIso: string): Promise<ReceiptRow | null> {
+  const { data, error } = await orgTable('receipts', orgId)
+    .select()
+    .gte('created_at', sinceIso)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as ReceiptRow | null) ?? null;
+}
+
 export type ReceiptFilter = 'all' | 'needs_attention' | 'this_month';
 
 /** List receipts for the dashboard (org-scoped, newest first, paginated + filtered). */
