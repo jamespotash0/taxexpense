@@ -862,3 +862,24 @@ ALTER TABLE organizations ADD COLUMN IF NOT EXISTS trial_ended_reminder_at TIMES
 CREATE INDEX IF NOT EXISTS idx_orgs_trialing_ends
   ON organizations(trial_ends_at)
   WHERE subscription_status = 'trialing';
+
+
+-- =============================================================
+-- 0020_scale_indexes.sql
+-- =============================================================
+
+-- Tally — indexes for two hot-path queries that were scanning wider than necessary,
+-- so they stay cheap as the receipts table grows toward 10k+ users.
+-- On an already-populated prod table, run each with CREATE INDEX CONCURRENTLY
+-- (outside a transaction) to avoid locking writes during the build.
+
+-- findReceiptsAwaitingPhoto(): org-scoped + needs_receipt, ordered by created_at.
+-- The existing idx_receipts_needs_receipt leads on user_id, so it couldn't serve this.
+CREATE INDEX IF NOT EXISTS idx_receipts_org_needs_receipt
+  ON receipts(organization_id, created_at DESC)
+  WHERE needs_receipt = TRUE;
+
+-- priorOccurrenceCount(): runs on every new expense; org + amount equality before the
+-- case-insensitive vendor match.
+CREATE INDEX IF NOT EXISTS idx_receipts_org_amount
+  ON receipts(organization_id, amount_cents);

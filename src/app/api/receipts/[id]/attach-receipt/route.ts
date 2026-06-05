@@ -41,10 +41,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       }
     }
 
-    await updateReceipt(user.organization_id, id, { photo_url: path, needs_receipt: false, receipt_reason: null });
-    await recomputeReceipt(user.organization_id, id);
-    const updated = await getReceipt(user.organization_id, id);
-    return NextResponse.json({ receipt: updated });
+    const patched = await updateReceipt(user.organization_id, id, { photo_url: path, needs_receipt: false, receipt_reason: null });
+    const updated = await recomputeReceipt(user.organization_id, id, patched ?? undefined);
+    return NextResponse.json({ receipt: updated ?? patched });
   } catch (err) {
     return serverError('attach_receipt_failed', err, { user: user.id });
   }

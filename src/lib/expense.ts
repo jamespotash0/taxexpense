@@ -18,6 +18,7 @@ import {
   getReceipt,
   updateReceipt,
   findReceiptsAwaitingPhoto,
+  type ReceiptRow,
 } from './receipts';
 import type { AppUser } from './users';
 import type { ContextState } from './conversations';
@@ -127,11 +128,17 @@ export async function processNewExpense(
 
 /**
  * Reload a receipt and recompute its substantiation flags + deductible from its current
- * fields (DEC-011). Use after any edit (dashboard) or photo attach. Returns the updated
- * substantiation_complete, or null if the receipt is missing.
+ * fields (DEC-011). Use after any edit (dashboard) or photo attach. Returns the fully
+ * updated receipt row, or null if the receipt is missing. Pass `prefetched` when the
+ * caller already holds the current row (e.g. straight from updateReceipt) to skip the
+ * reload query.
  */
-export async function recomputeReceipt(orgId: string, receiptId: string): Promise<boolean | null> {
-  const r = await getReceipt(orgId, receiptId);
+export async function recomputeReceipt(
+  orgId: string,
+  receiptId: string,
+  prefetched?: ReceiptRow,
+): Promise<ReceiptRow | null> {
+  const r = prefetched ?? (await getReceipt(orgId, receiptId));
   if (!r) return null;
   const category = r.category ?? 'personal';
   const rule = (await getSubstantiationRule(category)) ?? generalFallback(category);
@@ -140,7 +147,7 @@ export async function recomputeReceipt(orgId: string, receiptId: string): Promis
     has_photo: r.photo_url != null,
     captured_fields: capturedFrom(r),
   });
-  await updateReceipt(orgId, receiptId, {
+  return updateReceipt(orgId, receiptId, {
     irc_section: rule.irc_section,
     deduction_percentage: decision.deduction_percentage,
     deductible_amount_cents: decision.deductible_amount_cents,
@@ -149,7 +156,6 @@ export async function recomputeReceipt(orgId: string, receiptId: string): Promis
     substantiation_complete: decision.substantiation_complete,
     substantiation_missing_fields: decision.missing_context_fields,
   });
-  return decision.substantiation_complete;
 }
 
 interface ClarificationResponse {

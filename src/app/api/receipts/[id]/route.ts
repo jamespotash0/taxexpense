@@ -34,13 +34,14 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const body = await parseBody(req, Patch);
   if (body instanceof NextResponse) return body;
 
-  const existing = await getReceipt(user.organization_id, id);
-  if (!existing) return jsonError('not_found', 404);
+  // updateReceipt applies the patch and returns the row; null means no row matched this
+  // org + id (our 404 signal). recomputeReceipt then re-derives substantiation off that
+  // same row (no reload) and returns the final row — 2 queries instead of 5.
+  const patched = await updateReceipt(user.organization_id, id, body);
+  if (!patched) return jsonError('not_found', 404);
 
-  await updateReceipt(user.organization_id, id, body);
-  await recomputeReceipt(user.organization_id, id); // re-derive substantiation after edit
-  const updated = await getReceipt(user.organization_id, id);
-  return NextResponse.json({ receipt: updated });
+  const updated = await recomputeReceipt(user.organization_id, id, patched);
+  return NextResponse.json({ receipt: updated ?? patched });
 }
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }): Promise<NextResponse> {

@@ -102,14 +102,23 @@ export async function countReceiptsSince(orgId: string, sinceIso: string): Promi
   return count ?? 0;
 }
 
-/** Patch a receipt (org-scoped). */
+/**
+ * Patch a receipt (org-scoped). Returns the updated row (or null if no row matched
+ * this org + id), so callers can skip a follow-up getReceipt. The null return also
+ * serves as the existence/404 signal on edit paths.
+ */
 export async function updateReceipt(
   orgId: string,
   receiptId: string,
   patch: Partial<ReceiptRow>,
-): Promise<void> {
-  const { error } = await orgTable('receipts', orgId).update(patch).eq('id', receiptId);
+): Promise<ReceiptRow | null> {
+  const { data, error } = await orgTable('receipts', orgId)
+    .update(patch)
+    .eq('id', receiptId)
+    .select()
+    .maybeSingle();
   if (error) throw error;
+  return (data as ReceiptRow | null) ?? null;
 }
 
 export type ReceiptFilter = 'all' | 'needs_attention' | 'this_month';
