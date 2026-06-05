@@ -43,14 +43,15 @@ test('every taxonomy category has a substantiation rule', () => {
   );
 });
 
-test('business meals require the §274(d) business relationship', () => {
-  // The specific gap this suite was added for: a meal must capture the relationship of the person
-  // entertained, or substantiation_complete can flip true without it.
+test('business meals require the full §274(d) context fields', () => {
+  // §274(d) for a meal = amount + time + place + business purpose + relationship of the person
+  // entertained (IRC-SUMMARIES §274). amount/time come from the dollar amount + transaction_date;
+  // the rest are required context fields. Missing any → substantiation_complete could flip true
+  // without it (the bug this suite was added for).
   const seed = readFileSync(join(migrationsDir, '0002_seed_substantiation_rules.sql'), 'utf8');
   const row = seed.split('\n').find((l) => l.includes("'meals_business'") && l.includes("'strict'"));
   assert.ok(row, 'meals_business strict rule not found in 0002 seed');
-  assert.ok(
-    row.includes('business_relationship'),
-    'meals_business required_context_fields must include business_relationship',
-  );
+  for (const field of ['attendees', 'business_purpose', 'business_relationship', 'location_city']) {
+    assert.ok(row.includes(field), `meals_business required_context_fields must include ${field}`);
+  }
 });
