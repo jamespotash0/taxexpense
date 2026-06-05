@@ -2,14 +2,14 @@
 import type { ReceiptRow } from './receipts';
 import { categoryLabel, qboAccount } from './categories';
 
-/** RFC-4180 field escaping. */
-function cell(value: unknown): string {
-  const s = value == null ? '' : String(value);
+/** RFC-4180 field escaping. `emptyAs` is substituted for null/empty values (e.g. '-'). */
+function cell(value: unknown, emptyAs = ''): string {
+  const s = value == null || value === '' ? emptyAs : String(value);
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
-function row(cells: unknown[]): string {
-  return cells.map(cell).join(',');
+function row(cells: unknown[], emptyAs = ''): string {
+  return cells.map((c) => cell(c, emptyAs)).join(',');
 }
 
 function dollars(cents: number | null | undefined): string {
@@ -22,6 +22,7 @@ export function toStandardCsv(receipts: ReceiptRow[]): string {
     'Date', 'Vendor', 'Amount', 'Category', 'IRC Section', 'Deductible Amount',
     'Payment Account', 'Business Purpose', 'Attendees', 'Notes', 'Documentation Complete', 'Flagged for CPA', 'Needs Review',
   ];
+  // Empty fields render as '-' so blank cells read as "intentionally empty" in a spreadsheet.
   const lines = receipts.map((r) =>
     row([
       r.transaction_date ?? '',
@@ -37,7 +38,7 @@ export function toStandardCsv(receipts: ReceiptRow[]): string {
       r.substantiation_complete ? 'Yes' : 'No',
       r.flagged_for_cpa ? 'Yes' : '',
       r.needs_review ? 'Yes' : '',
-    ]),
+    ], '-'),
   );
   return [row(header), ...lines].join('\n');
 }

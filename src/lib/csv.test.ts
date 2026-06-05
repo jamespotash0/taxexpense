@@ -29,6 +29,16 @@ test('standard CSV: header + escaped fields + dollar formatting', () => {
   assert.match(row, /Yes,Yes,Yes$/); // documentation complete + flagged for CPA + needs review
 });
 
+test('standard CSV: empty fields render as a dash', () => {
+  const csv = toStandardCsv([
+    receipt({ business_purpose: null, attendees: null, notes: null, flagged_for_cpa: false, needs_review: false }),
+  ]);
+  const row = csv.split('\n')[1];
+  // Business Purpose, Attendees, Notes, Flagged for CPA, Needs Review are all empty → '-'.
+  assert.match(row, /,-,-,/); // consecutive empty fields become dashes
+  assert.match(row, /Yes,-,-$/); // documentation complete = Yes, then flagged + needs-review dashes
+});
+
 test('QuickBooks CSV: maps category to QBO account', () => {
   const csv = toQuickbooksCsv([receipt({})]);
   const [header, row] = csv.split('\n');
