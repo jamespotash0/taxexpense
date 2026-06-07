@@ -218,10 +218,12 @@ These are non-negotiable for any change touching the AI:
 
 ## Documentation
 
-Deeper docs live in [`claude_files/`](./claude_files/):
+Start with these, then dive into [`claude_files/`](./claude_files/):
 
 | Topic | File |
 |------|------|
+| **System architecture** (flows, data model, AI pipeline, security) | [`ARCHITECTURE.md`](./ARCHITECTURE.md) |
+| **End-user help site** (VitePress) | [`docs-site/`](./docs-site/) |
 | Product overview & positioning | [`claude_files/docs/CONTEXT.md`](./claude_files/docs/CONTEXT.md) |
 | Technical spec + DB schema + decision tree | [`claude_files/docs/SPEC.md`](./claude_files/docs/SPEC.md) |
 | AI prompts (verbatim) | [`claude_files/docs/SYSTEM-PROMPTS.md`](./claude_files/docs/SYSTEM-PROMPTS.md) |
