@@ -3,6 +3,10 @@
 // "Did it? Reply Y to log it, N to skip." Nothing is logged until they confirm (never auto-
 // creates a tax record). Also auto-skips nudges that went unanswered past the window so a
 // template can't get stuck. Secured by CRON_SECRET. Run daily via Vercel Cron.
+//
+// ⚠️ NOT SCHEDULED on the Vercel Hobby plan (cron limit = 2; we keep trial-reminders +
+// receipt-reminders). Code is kept for reference and still runs if hit directly with the
+// CRON_SECRET. To re-enable, add it back to vercel.json "crons" ("0 15 * * *") on Vercel Pro.
 
 import { NextResponse } from 'next/server';
 import { requireCron } from '@/lib/api';

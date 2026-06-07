@@ -212,14 +212,19 @@ Security checklist lives with the Jordan persona and EPIC-7 tickets in `claude_f
 ## 9. Scheduled jobs (cron)
 
 Vercel Cron hits the routes under [`src/app/api/cron/`](./src/app/api/cron/), each gated by a
-`CRON_SECRET` bearer check:
+`CRON_SECRET` bearer check.
 
-| Route | Job |
-|-------|-----|
-| `cron/receipt-reminders` | Nudge users for receipts on expenses that still need one |
-| `cron/recurring-reminders` | Detect/handle recurring expenses ([`lib/recurring.ts`](./src/lib/recurring.ts)) |
-| `cron/tax-deadlines` | Tax-deadline alerts ([`lib/tax-deadlines.ts`](./src/lib/tax-deadlines.ts)) |
-| `cron/trial-reminders` | Trial-expiry nudges ([`lib/trial-reminders.test.ts`](./src/lib/trial-reminders.test.ts)) |
+**Plan note:** the Vercel **Hobby** tier allows only **2 cron jobs, daily cadence only**. We keep
+the two highest-value jobs scheduled and leave the other two in the codebase (still runnable
+directly with the `CRON_SECRET`) but unscheduled. To restore all four, add them back to
+[`vercel.json`](./vercel.json) on **Vercel Pro**.
+
+| Route | Job | Scheduled? |
+|-------|-----|------------|
+| `cron/trial-reminders` | Trial-expiry nudges — the #1 conversion moment | ✅ daily (`0 16 * * *`) |
+| `cron/receipt-reminders` | Nudge users for receipts still missing | ✅ daily schedule, **gated to Mondays in code** to keep its weekly intent (Hobby can't express weekly) |
+| `cron/recurring-reminders` | Recurring-expense renewal nudges ([`lib/recurring.ts`](./src/lib/recurring.ts)) | ⏸️ parked (Pro: `0 15 * * *`) |
+| `cron/tax-deadlines` | Tax-deadline alerts ([`lib/tax-deadlines.ts`](./src/lib/tax-deadlines.ts)) | ⏸️ parked (Pro: `0 14 * * *`) |
 
 The agentic **month-end review** is exposed at `api/agents/month-end-review`.
 

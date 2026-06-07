@@ -3,6 +3,11 @@
 // Secured by CRON_SECRET so it can't be triggered by the public.
 //
 // Priya's flag: 30-50% of users forget to send the receipt — this closes that loop.
+//
+// CADENCE NOTE (Hobby plan): Vercel's Hobby tier only runs crons once per day and
+// can't express a weekly schedule, so vercel.json schedules this DAILY ("0 17 * * *")
+// and we gate to Mondays here to preserve the intended weekly cadence. On Pro, set the
+// schedule back to "0 17 * * 1" and the guard becomes a no-op (it'll still only run Mon).
 
 import { NextResponse } from 'next/server';
 import { requireCron, jsonError } from '@/lib/api';
@@ -12,10 +17,17 @@ import { log, maskPhone } from '@/lib/log';
 
 // Only remind about receipts at least this old (don't nag the same day).
 const MIN_AGE_HOURS = 24;
+// Weekly cadence preserved on a daily cron: only send on Mondays (UTC). The cron fires
+// at 17:00 UTC, so the day never straddles a boundary here.
+const WEEKLY_RUN_DAY = 1; // 0=Sun … 1=Mon
 
 export async function GET(req: Request): Promise<NextResponse> {
   const denied = requireCron(req);
   if (denied) return denied;
+
+  if (new Date().getUTCDay() !== WEEKLY_RUN_DAY) {
+    return NextResponse.json({ ok: true, reminded: 0, skipped: 'not_weekly_run_day' });
+  }
 
   const admin = getSupabaseAdmin();
   const cutoff = new Date(Date.now() - MIN_AGE_HOURS * 3600 * 1000).toISOString();

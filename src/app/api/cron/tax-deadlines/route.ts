@@ -3,6 +3,10 @@
 // forward. Secured by CRON_SECRET (same as the receipt-reminders cron).
 //
 // NOT tax advice — every message defers to a CPA. Respects STOP (sms_opted_out_at).
+//
+// ⚠️ NOT SCHEDULED on the Vercel Hobby plan (cron limit = 2; we keep trial-reminders +
+// receipt-reminders). Code is kept for reference and still runs if hit directly with the
+// CRON_SECRET. To re-enable, add it back to vercel.json "crons" ("0 14 * * *") on Vercel Pro.
 import { NextResponse } from 'next/server';
 import { requireCron } from '@/lib/api';
 import { getSupabaseAdmin } from '@/lib/supabase';
