@@ -33,7 +33,7 @@ export function PlanPicker({ t }: { t: Dict['pricing'] }) {
     }
   }
 
-  const order: PlanId[] = ['monthly', 'annual', 'weekly'];
+  const order: PlanId[] = ['weekly', 'monthly', 'annual'];
   const planLabel = (id: PlanId) => (id === 'annual' ? t.planAnnual : id === 'monthly' ? t.planMonthly : t.planWeekly);
   const billedLabel = (interval: string, price: string) =>
     interval === 'year' ? fmt(t.billedYearly, { price }) : interval === 'month' ? t.billedMonthly : t.billedWeekly;

@@ -18,6 +18,12 @@ test('round-trips a valid token back to the org id', () => {
   assert.equal(verifySubscribeToken(token, NOW + 1000), ORG);
 });
 
+test('token is deterministic within a UTC day (same org → identical token, so the paywall link is cacheable)', () => {
+  const a = makeSubscribeToken(ORG, NOW)!;
+  const b = makeSubscribeToken(ORG, NOW + 60_000)!; // a minute later, same UTC day
+  assert.equal(a, b);
+});
+
 test('rejects a tampered token', () => {
   const token = makeSubscribeToken(ORG, NOW)!;
   const flipped = token.slice(0, -2) + (token.endsWith('A') ? 'B' : 'A') + token.slice(-1);

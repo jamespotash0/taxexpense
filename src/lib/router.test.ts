@@ -75,6 +75,7 @@ test('parseFlagTarget: bare flag → no target (caller flags latest)', () => {
 test('sanitize: advice / help / capture / unknown', () => {
   assert.deepEqual(sanitizeIntent({ intent: 'advice' }), { kind: 'advice' });
   assert.deepEqual(sanitizeIntent({ intent: 'help' }), { kind: 'help' });
+  assert.deepEqual(sanitizeIntent({ intent: 'capability' }), { kind: 'capability' }); // "can it do X" / how it works
   assert.deepEqual(sanitizeIntent({ intent: 'capture' }), { kind: 'capture' });
   assert.deepEqual(sanitizeIntent({ intent: 'other' }), { kind: 'other' }); // off-topic → can't-help reply
   assert.deepEqual(sanitizeIntent({ intent: 'context_statement' }), { kind: 'context_statement' }); // detail about a logged expense

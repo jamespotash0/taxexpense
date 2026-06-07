@@ -15,6 +15,7 @@ import {
   storePhotoBuffer,
   parseAndCategorizeText,
   type OcrResult,
+  type ParsedTextExpense,
 } from './ocr';
 import { processNewExpense, processClarification, processCorrection, processAttachment, type ProcessResult } from './expense';
 import type { CategoryResult } from './categorize';
@@ -189,6 +190,26 @@ async function handlePhotoAsNewExpense(
   return processNewExpense(user, ocrToInput(ocr.data, bodyText), path, category, ocr.data.confidence);
 }
 
+/** Did the parser extract ANY expense signal — an amount, miles, vendor, purpose, attendees, or
+ *  place? When none of these are present the message isn't an expense description (gibberish, a
+ *  stray fragment, a misfired text), so we ask the user to rephrase rather than assuming an expense
+ *  and asking "how much?" Pure + exported for tests. */
+export function hasExpenseSignal(
+  parsed: Pick<
+    ParsedTextExpense,
+    'amount' | 'business_miles' | 'vendor' | 'business_purpose' | 'attendees' | 'location_city'
+  >,
+): boolean {
+  return Boolean(
+    parsed.amount != null ||
+      parsed.business_miles != null ||
+      parsed.vendor?.trim() ||
+      parsed.business_purpose?.trim() ||
+      parsed.attendees?.trim() ||
+      parsed.location_city?.trim(),
+  );
+}
+
 async function handleTextAsNewExpense(user: AppUser, body: string): Promise<ProcessResult> {
   if (!body.trim()) return { smsText: MSG.help, receiptId: null, contextState: null };
 
@@ -204,9 +225,18 @@ async function handleTextAsNewExpense(user: AppUser, body: string): Promise<Proc
     return { smsText: MSG.couldntRead, receiptId: null, contextState: null };
   }
   if (parsed.amount == null && parsed.business_miles == null) {
-    // Don't fire-and-forget: remember what we already parsed so the user's "$167" reply can be
-    // combined + re-parsed into THIS expense instead of being logged as a new contextless one
-    // (the §262/$0 phantom + "how much?" loop). DEC-064. Completion is owned by handleExpenseFlow.
+    // No amount AND no other expense signal (vendor/purpose/attendees/place) → this isn't an expense
+    // description (gibberish, a stray fragment). Ask the user to rephrase instead of assuming an
+    // expense and arming an awaiting_amount wait on a phantom. Metric tracks the unanticipated-
+    // message rate so we can tell whether this needs more than a rephrase nudge (Priya).
+    if (!hasExpenseSignal(parsed)) {
+      log.info('inbound_unrecognized', { user: user.id, confidence: parsed.confidence });
+      return { smsText: MSG.couldntRead, receiptId: null, contextState: null };
+    }
+    // A real expense missing only its amount ("lunch with a client at Mortons"). Don't fire-and-
+    // forget: remember what we already parsed so the user's "$167" reply can be combined + re-parsed
+    // into THIS expense instead of a new contextless one (the §262/$0 phantom + "how much?" loop).
+    // DEC-064. Completion is owned by handleExpenseFlow.
     return {
       smsText: MSG.needAmount,
       receiptId: null,
@@ -618,6 +648,8 @@ export async function handleInboundSms(msg: InboundMessage): Promise<void> {
     const entitlement = await getOrgEntitlement(user.organization_id);
     if (!entitlement.entitled) {
       // One-tap magic link (falls back to /pricing if SUBSCRIBE_LINK_SECRET isn't set) — DEC-062.
+      // The subscribe token is deterministic per UTC day (subscribe-link.ts), so a repeatedly-
+      // blocked user gets the identical paywall message — no caching layer needed here.
       const paywall = `Your Tally trial has ended. Subscribe to keep logging expenses: ${subscribeUrl(user.organization_id)}`;
       await safeSend(phone, paywall, msg.channel);
       await logConversation({

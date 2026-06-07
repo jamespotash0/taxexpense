@@ -79,6 +79,16 @@ const CASES: IntentCase[] = [
   { id: 'help-what', text: 'what can you do?', expect: 'help', tags: ['easy'], check: isKind('help') },
   { id: 'help-thanks', text: 'thanks!', expect: 'help', tags: ['ambiguous'], check: isKind('help') },
 
+  // ---- capability (how Tally works / "can it do X" — answered, not the generic help block) ----
+  { id: 'cap-date-specific', text: 'can you log an expense and date it to a certain day?', expect: 'capability',
+    tags: ['edge'], check: isKind('capability'), note: 'Product-feature question (dates), not their data or advice.' },
+  { id: 'cap-only-today', text: 'when you log something does it only do it for that day?', expect: 'capability',
+    tags: ['edge'], check: isKind('capability') },
+  { id: 'cap-receipts', text: 'can you read receipt photos?', expect: 'capability',
+    tags: ['edge'], check: isKind('capability') },
+  { id: 'cap-quickbooks', text: 'can I export to QuickBooks?', expect: 'capability',
+    tags: ['ambiguous'], check: isKind('capability'), note: 'How-it-works phrasing; "export my data" (imperative) is a command.' },
+
   // ---- other (off-topic; must NOT be captured as a phantom expense) ----
   { id: 'other-weather', text: "what's the weather tomorrow?", expect: 'other', tags: ['edge'], check: isKind('other') },
   { id: 'other-flight', text: 'book me a flight to Denver', expect: 'other',

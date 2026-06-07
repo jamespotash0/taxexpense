@@ -5,7 +5,36 @@
 // integration-level (LLM + DB) and not unit-tested, matching router.test.ts.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { replyStartsNewExpense, looksLikeCorrection, looksLikeNoReceipt } from './sms-handler';
+import { replyStartsNewExpense, looksLikeCorrection, looksLikeNoReceipt, hasExpenseSignal } from './sms-handler';
+
+// hasExpenseSignal — the gibberish guard. A parsed text with NO amount/miles/vendor/purpose/
+// attendees/place isn't an expense (→ ask to rephrase, not "how much?").
+const PARSED_EMPTY = {
+  amount: null,
+  business_miles: null,
+  vendor: null,
+  business_purpose: null,
+  attendees: null,
+  location_city: null,
+};
+
+test('hasExpenseSignal: gibberish / empty parse has no signal', () => {
+  assert.equal(hasExpenseSignal(PARSED_EMPTY), false);
+  assert.equal(hasExpenseSignal({ ...PARSED_EMPTY, vendor: '   ' }), false); // whitespace-only ≠ signal
+});
+
+test('hasExpenseSignal: an amount or miles is a signal', () => {
+  assert.equal(hasExpenseSignal({ ...PARSED_EMPTY, amount: 30 }), true);
+  assert.equal(hasExpenseSignal({ ...PARSED_EMPTY, business_miles: 40 }), true);
+  assert.equal(hasExpenseSignal({ ...PARSED_EMPTY, amount: 0 }), true); // explicit $0 is still a stated amount
+});
+
+test('hasExpenseSignal: a vendor/purpose/attendee/place (no amount) is a real expense missing its amount', () => {
+  assert.equal(hasExpenseSignal({ ...PARSED_EMPTY, vendor: 'Starbucks' }), true);
+  assert.equal(hasExpenseSignal({ ...PARSED_EMPTY, business_purpose: 'lunch with a client' }), true);
+  assert.equal(hasExpenseSignal({ ...PARSED_EMPTY, attendees: 'John from Acme' }), true);
+  assert.equal(hasExpenseSignal({ ...PARSED_EMPTY, location_city: 'Chicago' }), true);
+});
 
 test('bare amount answers stay answers (combine with the remembered text)', () => {
   assert.equal(replyStartsNewExpense('$167'), false);

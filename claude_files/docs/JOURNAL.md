@@ -7,6 +7,74 @@ Format: date, decision, who pushed back, resolution, rationale.
 
 ---
 
+## 2026-06-07 — Substantiation gaps, conversational capability answers, paywall determinism
+
+### DEC-077 — Subscription-limit (paywall) reply: deterministic subscribe token, NO caching layer
+
+- **Context.** When a user hits the SUBSCRIPTION limit (trial ended, no active subscription), the
+  inbound SMS handler returns a paywall message containing a one-tap subscribe link
+  ([[subscribe-link.ts]], DEC-062). `makeSubscribeToken` minted the expiry as `now + TTL`, so a
+  repeatedly-blocked user got a *different* link/message on every text. Founder asked it to
+  "produce the same (and cache it)."
+- **First pass (reverted).** Made the token deterministic per UTC day AND added a per-org
+  in-process `Map` cache of the paywall string in `sms-handler.ts`.
+- **Team review (Raj / Jordan / Alex) — strong convergence to drop the cache.**
+  - **Raj:** on Vercel each Twilio webhook can hit a cold/different instance, so the per-process
+    cache hit rate for a given org is ~0; and all it memoizes is an HMAC + string concat
+    (microseconds). Per-process state to save microseconds = premature optimization, wrong
+    abstraction for serverless. A DB-backed cache is *also* unjustified — determinism already
+    guarantees sameness, so there is nothing worth a write.
+  - **Jordan:** reusing one token per UTC day vs. per message doesn't change the blast radius
+    (HMAC-signed, expires, org id comes only from the token; worst case is "someone pays for that
+    org with their own card"). Acceptable.
+  - **Alex:** caching a paywall message is gold-plating an edge of an edge (trial-ended +
+    unsubscribed + keeps texting + same warm process) with zero validated users. Ship the cheap
+    correctness win, drop the rest.
+- **Decision.** KEEP the deterministic per-day token (expiry bucketed to UTC day start in
+  `makeSubscribeToken`); REMOVE the `paywallMessage` per-process cache. The determinism alone
+  delivers the founder's goal — identical message every time, no per-message variance — with no
+  state. Token stays bounded (≤14-day TTL) and rotates daily.
+- **Conflict surfaced.** Founder's literal ask was "cache it"; the team's point (accepted) is that
+  the deterministic token already achieves the *outcome* (same message, no recompute drift), so the
+  cache was redundant in this environment. The usage-cap replies (`cappedReply`, DEC-050) were
+  already deterministic constants — unchanged.
+
+### DEC-076 — Conversational "capability" intent: answer "how does Tally work / can it do X"
+
+- **Context.** Founder asked TallyAI product-capability questions ("can you date-code an expense to
+  a certain day?", "does it only log for that day?") and both returned the generic help block. The
+  router ([[router.ts]], DEC-029) had no intent for product/feature questions — they fell into
+  `help`.
+- **Decision.** New `capability` intent. Answered by `answerCapability()` via a **grounded fact
+  sheet** (`CAPABILITY_PROMPT`) so the model answers only from real features and cannot invent
+  capabilities; if a question isn't covered, it says "I can't answer that" rather than guessing or
+  padding with help. Verified the date behaviour against code first (receipts default
+  `transaction_date` to today; the parser honours a stated date), so the answer is accurate.
+  Also shortened the `help`/block reply from a 4-line bulleted list to two succinct sentences.
+  Added 4 capability cases (incl. the founder's two messages) to the intent eval.
+
+### DEC-075 — Business meals must capture the full §274(d) context (relationship + place)
+
+- **Context.** A business meal was logged without ever being asked for its substantiation context.
+  Root cause: the `meals_business` rule required only `['attendees', 'business_purpose']`, while the
+  §274 IRC summary (and the statute) require amount + time + **place** + business purpose +
+  **business relationship** of the person entertained. The decision tree only asks for a rule's
+  `required_context_fields`, so relationship and place were never collected — yet the month-end
+  review agent referenced "business relationship," producing a mismatch.
+- **Decision.** Add `business_relationship` (migration 0024) and `location_city`/place (migration
+  0025) to `meals_business` required context fields; seed 0002 updated to match for fresh installs.
+  amount + time come from the dollar amount + `transaction_date` at extraction; the four context
+  questions are attendees, purpose, relationship, place. Now matches the §274 summary exactly.
+- **Robustness backstop.** `getSubstantiationRule(cat) ?? generalFallback(cat)` silently downgraded
+  any ruleless category to "general / complete / no questions" with no log — the failure mode that
+  hides a missing/mismatched rule. Added `loadRuleOrFallback()` (warns `substantiation_rule_missing`
+  on fallback), gave the `other_business` catch-all an explicit rule (0024), and added a test
+  asserting every `ALLOWED_CATEGORIES` key has a rule row (no silent drift).
+- **Deferred / watch.** A bare meal photo can now trigger up to four context asks (who / relationship
+  / why / where). The composer batches them into one question, but watch in real use that it doesn't
+  feel like an interrogation; if so, capture `place` from the receipt image during OCR to drop it
+  from the asked set.
+
 ## 2026-06-05 — First agent shipped: month-end review (workflow→agent Phase 2)
 
 ### DEC-074 — Add a bounded month-end review AGENT alongside the workflow (executes the doc's Phase 2)

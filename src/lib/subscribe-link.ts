@@ -14,6 +14,7 @@ import { optionalEnv, PUBLIC_ENV } from './env';
 
 // Long enough to act on a trial-ending nudge and the follow-up "ended" message.
 const TOKEN_TTL_MS = 14 * 24 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 function secret(): string | null {
   return optionalEnv('SUBSCRIBE_LINK_SECRET') || null;
@@ -23,11 +24,16 @@ function sign(payload: string, key: string): string {
   return crypto.createHmac('sha256', key).update(payload).digest('base64url');
 }
 
-/** Mint a signed token for an org, or null if no signing secret is configured. */
+/** Mint a signed token for an org, or null if no signing secret is configured.
+ *  The expiry is bucketed to the start of the UTC day so the SAME org yields the SAME token (and
+ *  thus the same subscribe URL / paywall message) for every call that day, instead of a new token
+ *  per message — a blocked user who keeps texting sees an identical, cacheable response. The token
+ *  is still bounded (≤ TOKEN_TTL_MS) and rotates daily. */
 export function makeSubscribeToken(orgId: string, now: number = Date.now()): string | null {
   const key = secret();
   if (!key) return null;
-  const payload = `${orgId}.${now + TOKEN_TTL_MS}`; // orgId is a UUID (no dots) → safe to split on "."
+  const exp = Math.floor(now / DAY_MS) * DAY_MS + TOKEN_TTL_MS; // deterministic within the UTC day
+  const payload = `${orgId}.${exp}`; // orgId is a UUID (no dots) → safe to split on "."
   return Buffer.from(`${payload}.${sign(payload, key)}`).toString('base64url');
 }
 

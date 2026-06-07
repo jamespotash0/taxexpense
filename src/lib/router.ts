@@ -11,7 +11,7 @@
 //   • Tax-advice / tax-owed questions are refused with a CPA deferral (CLAUDE.md #1/#7).
 //   • On any classifier failure or low confidence → treat as capture (the core path).
 
-import { claudeJSON } from './llm';
+import { claudeJSON, claudeText } from './llm';
 import { HAIKU_MODEL } from './claude';
 import { PUBLIC_ENV } from './env';
 import { log } from './log';
@@ -42,6 +42,7 @@ export type Intent =
   | { kind: 'command'; command: CommandName }
   | { kind: 'advice' }
   | { kind: 'help' }
+  | { kind: 'capability' }
   | { kind: 'context_statement' }
   | { kind: 'other' };
 
@@ -76,7 +77,8 @@ Intents:
 - "query": the user ASKS about expenses they already logged — totals, how much they spent, their latest/recent charges, a category breakdown, or a year review.
 - "command": an explicit request to "export" their data or "email my accountant".
 - "advice": asks for TAX ADVICE — what they'll owe, whether something is deductible, what they should do. (Tally does not give advice.)
-- "help": a greeting ("hi", "hey", "thanks"), "help", or "what can you do".
+- "capability": asks HOW TALLY WORKS or whether it CAN DO something — a question about the product/feature itself, not their data and not tax advice. (e.g. "can I set the date on an expense?", "does it only log for today?", "can you read receipts?", "do you handle mileage?", "how do I correct one?", "can I export to QuickBooks?")
+- "help": a greeting ("hi", "hey", "thanks"), bare "help", or the open-ended "what can you do".
 - "context_statement": a STATEMENT (not a question) that ADDS A BUSINESS DETAIL or correction about an expense the user just logged — who was at a meal, the business purpose, where it was, that it was business or personal, or a clarification about the vendor — WITHOUT stating a new amount and WITHOUT being a fresh expense. (e.g. "that lunch was with a client about the Q3 deal", "the dinner was for my own team", "that one was actually personal", "Tabernacle is a restaurant".) If the message states a NEW dollar amount or miles, it's a "capture", not this. If it asks a question, it's "query"/"advice"/"help", not this.
 - "other": the message is off-topic or something Tally can't do — it is NOT an expense, NOT a question about their own logged expenses, NOT a command, NOT tax advice, NOT a detail about a logged expense, and NOT a greeting/help. (e.g. "what's the weather", "book me a flight", "write me a poem".) Only use this when the message clearly has nothing to do with logging or reviewing expenses. When unsure whether it's an expense, choose "capture", not "other".
 
@@ -117,6 +119,8 @@ export function sanitizeIntent(raw: RawIntent): Intent {
     }
     case 'advice':
       return { kind: 'advice' };
+    case 'capability':
+      return { kind: 'capability' };
     case 'help':
       return { kind: 'help' };
     case 'context_statement':
@@ -163,10 +167,25 @@ const ADVICE_DEFLECTION =
   'But I can tell you what you\'ve logged: try "how much on meals this year?" or "review my year".';
 
 const HELP_TEXT =
-  'Text me an expense to log it (e.g. "$30 gas to client site"). Or ask me things like:\n' +
-  '• "how much have I spent on meals this year?"\n' +
-  '• "what are my last 3 charges?"\n' +
-  '• "review my year"';
+  'Text me an expense — a photo or a note like "$30 gas to client site" — and I\'ll log it. ' +
+  'You can also ask things like "how much on meals this year?" or "review my year".';
+
+// Grounded facts the capability answerer may rely on — keep accurate to the actual product so the
+// model never invents a feature. If behavior changes, update this list.
+const CAPABILITY_PROMPT = `You are Tally, an assistant people text to log business expenses. A user asked how Tally works or whether it can do something. Answer ONLY from the facts below, in ONE short, friendly SMS (under 320 characters, plain text, no bullet lists). If the question is NOT covered by the facts, do NOT guess — reply simply that you can't answer that one (e.g. "I can't answer that — I'm built to log business expenses.") and stop there. Never give tax advice; for what's deductible or owed, defer to a CPA.
+
+What Tally can do:
+- Log expenses you text — a photo of a receipt, or a quick note like "$30 gas to client site". Reading receipt photos and mileage ("drove 22 miles to client") both work.
+- Dates: if you mention a date or the receipt shows one, Tally uses that date; otherwise it defaults to the day you send the message. So yes, an expense can be dated to a specific day — just include the date (e.g. "$40 lunch on June 1"). It is NOT locked to "today".
+- Categorize each expense under the right IRC section, and ask for extra context only when IRS substantiation rules require it (meals, travel, lodging, business gifts, vehicle).
+- Corrections: text a correction right after and Tally updates that expense (e.g. "that lunch was with a client about Q3", "that one was personal", "the date was actually May 2").
+- Answer questions about what you've logged: totals, category breakdowns, recent charges, a year review.
+- Flag an expense for your CPA by text ("flag the $48 lunch").
+- Export CSV or QuickBooks files, and email your accountant — both from your dashboard.
+
+What Tally does NOT do: give tax advice, file taxes, or link to your bank.
+
+Answer the user's question directly and concisely.`;
 
 // Off-topic / unprocessable message (DEC-029): say plainly we can't do it, then point back to
 // the one thing we do. Distinct from HELP_TEXT, which still greets a "hi" / "what can you do".
@@ -333,6 +352,25 @@ async function handleContextStatement(user: AppUser, text: string): Promise<Proc
   );
 }
 
+/** Answer a "how does Tally work / can it do X" question from the grounded fact sheet. On any LLM
+ *  failure, fall back to the succinct help text rather than dead-ending. */
+async function answerCapability(text: string): Promise<ProcessResult> {
+  try {
+    const answer = await claudeText({
+      model: HAIKU_MODEL,
+      system: CAPABILITY_PROMPT,
+      userText: text,
+      cacheSystem: true,
+      maxTokens: 200,
+    });
+    const trimmed = answer.trim();
+    return reply(trimmed || HELP_TEXT);
+  } catch (err) {
+    log.warn('router_capability_failed', { message: err instanceof Error ? err.message : 'unknown' });
+    return reply(HELP_TEXT);
+  }
+}
+
 /**
  * Try to handle a text message conversationally. Returns a ProcessResult to send, or
  * null to let the caller run the normal expense-capture flow. Read-only except the
@@ -357,6 +395,8 @@ export async function routeTextMessage(user: AppUser, text: string): Promise<Pro
       return reply(ADVICE_DEFLECTION);
     case 'help':
       return reply(HELP_TEXT);
+    case 'capability':
+      return answerCapability(text);
     case 'context_statement':
       return handleContextStatement(user, text);
     case 'other':
