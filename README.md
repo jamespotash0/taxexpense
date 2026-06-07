@@ -1,342 +1,241 @@
-# Tally MVP — Claude Code Handoff Package
+# Tally
 
-This folder contains everything needed to build Tally V1 in 10 working days using Claude Code.
+**Your bank knows _what_ you spent — but not _why_. Tally captures both.**
 
-**33 files total.** Don't be overwhelmed — you don't read them all at once. CLAUDE.md loads automatically, and the rest get pulled in as you work on specific things.
+Tally is a text-based AI assistant that captures business-expense context — the **WHY** — in real time for self-employed people. You text an expense to a phone number (a photo of a receipt, or just a few words), and Tally:
+
+1. Extracts the data (vendor, amount, date) from the photo or text.
+2. Categorizes it under the correct IRC (tax code) section.
+3. Asks for additional context **only when IRS substantiation rules actually require it** — never more.
+
+The result is a clean, exportable, documentation-complete record of business expenses, built up effortlessly over the year instead of scrambled together every April.
+
+> **Who it's for:** Sole proprietors and single-member LLCs who pay business expenses from a mix of personal and business cards and have *nothing* organized for tax time — people who don't use Mercury/Brex/Ramp, QuickBooks, or a dedicated accountant.
 
 ---
 
-## Quick Start
+## How it works
 
-### 1. Install Claude Code
+Tally is an **AI workflow, not an autonomous agent** — the code controls the flow and calls Claude for specific, bounded tasks. The core loop:
 
-Visit [claude.com/code](https://claude.com/code) and follow installation instructions. You'll need Node.js 20+ installed first.
+```
+Inbound SMS/MMS (Twilio webhook)
+        │
+        ▼
+  Classify intent ──────────────► (login, question, command, expense capture…)
+        │
+        ▼  (expense)
+  OCR the photo (Claude Haiku)  +  Extract & categorize (Claude Sonnet)
+        │
+        ▼
+  Look up substantiation rules for the category
+        │
+        ├─ Not a strict category ──► log it, done.
+        └─ Strict category ────────► ask for receipt/context only if required
+                                      (meals, travel, lodging, gifts, vehicle)
+        │
+        ▼
+  Reply over SMS · store in Supabase · viewable/exportable in the web dashboard
+```
 
-### 2. Create Your Project Directory
+The **substantiation decision tree** is the heart of the product — it's what lets Tally ask *one* question only when the IRS genuinely requires it, and stay silent otherwise. See [`claude_files/docs/SPEC.md`](./claude_files/docs/SPEC.md).
+
+Beyond capture, Tally also runs scheduled jobs (receipt reminders, recurring-expense nudges, tax-deadline alerts, trial reminders) and an agentic **month-end review**.
+
+---
+
+## Features
+
+- 📲 **SMS/MMS capture** — text or photo, no app to install
+- 🧠 **AI categorization** with cited IRC sections
+- ✅ **Smart substantiation** — asks for context only when tax rules require it
+- 🔐 **Phone OTP login** (custom, via Twilio)
+- 🖥️ **Web dashboard** to review, edit, and export expenses
+- 📤 **CSV export** (standard + QuickBooks-compatible)
+- 📧 **"Email my accountant"** export
+- 💳 **Stripe subscriptions** — Weekly ($5.99/wk), Monthly ($12.49/mo), and Annual ($119.88/yr ≈ $9.99/mo) plans, after a 21-day trial
+- 📆 **Cron jobs** — reminders, recurring detection, tax-deadline + trial nudges
+- 🤖 **Month-end review agent**
+
+---
+
+## Tech stack
+
+| Layer | Choice |
+|------|--------|
+| Framework | Next.js 16 (App Router), React 19, TypeScript |
+| Styling | Tailwind CSS v4 |
+| Database | Supabase (managed Postgres) |
+| Storage | Supabase Storage (private bucket, signed URLs) |
+| SMS/MMS | Twilio |
+| AI | Claude Haiku 4.5 (OCR) + Claude Sonnet 4.6 (reasoning) |
+| Auth | Custom phone OTP via Twilio |
+| Payments | Stripe |
+| Email | Resend |
+| Monitoring | Sentry |
+| Hosting | Vercel |
+
+> **Framework rules:** This repo targets Next.js 16 / React 19 / Tailwind v4. See [`AGENTS.md`](./AGENTS.md) before writing framework code.
+
+---
+
+## Project structure
+
+```
+src/
+├── app/
+│   ├── api/                 # Route handlers
+│   │   ├── sms/inbound/     # Twilio webhook — the main capture entrypoint
+│   │   ├── auth/            # Phone OTP request/verify/logout
+│   │   ├── receipts/        # CRUD + CSV export
+│   │   ├── billing/         # Stripe checkout, portal, webhook
+│   │   ├── cron/            # Scheduled reminders & deadline jobs
+│   │   ├── agents/          # Month-end review agent
+│   │   ├── email-accountant/, settings/, account/, hero-optin/
+│   ├── dashboard/, login/, start/, settings/, receipts/, pricing/
+│   ├── irc/                 # Public IRC summary pages
+│   └── privacy/, terms/     # Legal pages
+├── lib/                     # Core logic (categorize, substantiation, ocr,
+│                            #   sms-handler, router, agents, billing, csv…)
+│                            #   — most have colocated *.test.ts files
+supabase/migrations/         # SQL schema & migrations (run RUN_ALL.sql to set up)
+scripts/                     # Evals, red-team harness, screenshot tooling
+claude_files/                # Product docs, specs, prompts, team personas
+```
+
+Key modules in [`src/lib/`](./src/lib/):
+- [`sms-handler.ts`](./src/lib/sms-handler.ts) / [`router.ts`](./src/lib/router.ts) — inbound message handling & intent routing
+- [`categorize.ts`](./src/lib/categorize.ts) / [`ocr.ts`](./src/lib/ocr.ts) — Claude extraction & categorization
+- [`substantiation.ts`](./src/lib/substantiation.ts) — the IRS substantiation decision tree
+- [`agent.ts`](./src/lib/agent.ts), [`agents/`](./src/lib/agents/) — month-end review agent
+- [`csv.ts`](./src/lib/csv.ts) — exports
+
+---
+
+## Getting started
+
+### Prerequisites
+
+- Node.js 20+
+- A Supabase project, a Twilio account (phone number), an Anthropic API key, a Stripe account, and a Resend account
+
+### 1. Install
 
 ```bash
-mkdir tally-mvp
-cd tally-mvp
+npm install
 ```
 
-### 3. Copy All Files Into Your Project
+### 2. Configure environment
 
-Place this entire `tally-handoff/` folder contents into your `tally-mvp/` directory:
-
-```
-tally-mvp/
-├── CLAUDE.md            ← Auto-loaded by Claude Code
-├── README.md            ← This file
-├── PLAN.md
-├── CONTEXT.md
-├── SPEC.md
-├── ... (all other .md files)
-├── team/
-└── tickets/
-```
-
-### 4. Start Claude Code
+Create a `.env.local` in the project root. Required variables:
 
 ```bash
-claude
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+
+# App
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+# Anthropic
+ANTHROPIC_API_KEY=
+
+# Twilio
+TWILIO_ACCOUNT_SID=
+TWILIO_AUTH_TOKEN=
+TWILIO_PHONE_NUMBER=
+# TWILIO_WHATSAPP_FROM=        # optional
+
+# Stripe
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+
+# Email (Resend)
+RESEND_API_KEY=
+RESEND_FROM=
+
+# Cron / internal secrets
+CRON_SECRET=
+SUBSCRIBE_LINK_SECRET=
+ADMIN_NOTIFY_EMAIL=
+
+# Monitoring (optional)
+NEXT_PUBLIC_SENTRY_DSN=
 ```
 
-Claude Code automatically reads `CLAUDE.md` on startup — it now knows the project.
+### 3. Set up the database
 
-### 5. Kick Off Day 1
+Run the SQL migrations against your Supabase project. The consolidated script is at
+[`supabase/migrations/RUN_ALL.sql`](./supabase/migrations/RUN_ALL.sql) (or apply the numbered
+migrations in order).
 
-Paste this:
+### 4. Run the dev server
 
+```bash
+npm run dev
 ```
-I'm starting Day 1 of the Tally build. Read tickets/01-foundation.md 
-and walk me through TSNAP-001. After we complete it, suggest the next 
-ticket.
-```
 
-That's it. Claude Code has everything it needs.
+Open [http://localhost:3000](http://localhost:3000).
+
+To exercise the SMS pipeline locally, point your Twilio number's webhook (or a tunnel like
+ngrok) at `/api/sms/inbound`.
 
 ---
 
-## File Map (33 Files)
+## Scripts
 
-### Auto-loaded Context (Read this FIRST)
-
-| File | Purpose |
-|------|---------|
-| **CLAUDE.md** | Project memory — Claude Code reads this every session |
-
-### Strategy & Context (7 files)
-
-| File | Purpose |
-|------|---------|
-| **README.md** | This file — package overview |
-| **CONTEXT.md** | Product vision, positioning, target user |
-| **PLAN.md** | 10-day execution roadmap |
-| **BRAND.md** | Brand name decision framework (TODO: pick a name) |
-| **JOURNAL.md** | Decisions log (track what & why) |
-| **VALIDATION.md** | How to validate with 5 real users before building |
-| **AGENTS-VS-WORKFLOWS.md** | Why V1 is workflow, not agent |
-
-### Technical Reference (3 files)
-
-| File | Purpose |
-|------|---------|
-| **SPEC.md** | Database schema, API contracts, decision tree |
-| **SYSTEM-PROMPTS.md** | All AI prompts (verbatim) |
-| **IRC-SUMMARIES.md** | 7 IRC code summaries + SQL seed script |
-
-### Team Personas (11 files)
-
-| File | When to Invoke |
-|------|----------------|
-| **TEAM.md** | Index for the team folder |
-| team/marcus-chen.md | Strategy, prioritization, positioning |
-| team/priya-sharma.md | Specs, edge cases, metrics |
-| team/sofia-reyes.md | Flows, conversation design, copy |
-| team/david-park.md | Visual design, components |
-| team/raj-patel.md | Architecture, database, scaling |
-| team/emma-larsson.md | Next.js, frontend, performance |
-| team/jordan-kim.md | Security, compliance, testing |
-| team/alex-moreno.md | Pressure-testing, devil's advocate |
-| team/maya-okafor.md | Content, distribution, growth |
-| team/ethan-vance.md | Long-term positioning, acquisition |
-
-### Tickets (9 files, 80 tickets)
-
-| File | Days | Owner |
-|------|------|-------|
-| tickets/README.md | — | How to use tickets |
-| tickets/00-EPICS.md | All | Master overview + dependencies |
-| tickets/01-foundation.md | 1-2 | Raj |
-| tickets/02-sms-pipeline.md | 3-5 | Raj + Sofia |
-| tickets/03-substantiation.md | 4-5 | Priya + Raj |
-| tickets/04-web-app.md | 6-8 | Emma + David |
-| tickets/05-landing-legal.md | 9 | David + Jordan |
-| tickets/06-testing-launch.md | 10 | Jordan + Priya |
-| tickets/07-security-crosscutting.md | Throughout | Jordan |
-
-### Go-To-Market (2 files)
-
-| File | Purpose |
-|------|---------|
-| **OUTREACH.md** | First 10 customer acquisition templates |
-| **CONTENT-STRATEGY.md** | 2026 content marketing playbook with Trial Reels |
+| Command | What it does |
+|---------|--------------|
+| `npm run dev` | Start the Next.js dev server |
+| `npm run build` / `npm start` | Production build / serve |
+| `npm run lint` | ESLint |
+| `npm test` | Run unit tests (`*.test.ts` under `src/`) |
+| `npm run eval:categorize` | Eval categorization accuracy |
+| `npm run eval:merged` | Eval merged extraction+categorization |
+| `npm run eval:image` | Eval OCR on receipt images |
+| `npm run eval:conversation` | Eval multi-turn conversation flow |
+| `npm run eval:intent` | Eval intent classification |
+| `npm run redteam` | Red-team prompt-safety harness |
+| `npm run sim:onboarding` | Simulate the onboarding conversation |
+| `npm run agent:smoke` | Smoke-test the month-end review agent |
 
 ---
 
-## How to Use This Package with Claude Code
+## Behavioral rules (when working on AI logic)
 
-### Daily Workflow
+These are non-negotiable for any change touching the AI:
 
-**Morning (5 min):**
-```
-"What's on the plan for today? 
-Read PLAN.md and the relevant 
-ticket file."
-```
-
-**During work:**
-```
-"Let's tackle TSNAP-013. Read 
-tickets/02-sms-pipeline.md for 
-context, then walk me through 
-the implementation."
-```
-
-**For domain expertise:**
-```
-"Read team/raj-patel.md and 
-help me design this database 
-schema as Raj would."
-```
-
-**For multi-perspective review:**
-```
-"Read team/jordan-kim.md, 
-team/alex-moreno.md, and 
-team/priya-sharma.md. Review 
-my auth flow. One concern 
-from each. Don't soften them."
-```
-
-**End of day:**
-```
-"Today I completed TSNAP-001 
-through TSNAP-005. Mark them 
-done in my notes. What's 
-tomorrow's first ticket?"
-```
-
-### When Stuck
-
-```
-"I'm stuck on TSNAP-XXX. Here's 
-what I tried: [explanation]. 
-Read SPEC.md section [X] and 
-help me debug."
-```
-
-### For Big Decisions
-
-```
-"Before I commit to [decision], 
-read team/alex-moreno.md and 
-pressure-test it. What am I 
-missing?"
-```
+1. **Suggest, don't advise** — "typically falls under," not "you should."
+2. **Cite IRC sections** on every categorization.
+3. **Ask only when required** — the substantiation tree decides; never add questions.
+4. **The SMS is the written record** — for sub-$75 strict-category expenses, the user's text *is* the IRS-compliant documentation.
+5. Say **"documentation complete," not "audit-ready"** (legal liability).
+6. **The user has final say** — every AI decision is overridable.
+7. **Defer to professionals** — recommend a CPA for specific advice.
 
 ---
 
-## What's Already Decided
+## Documentation
 
-The strategy work is DONE. These are locked:
+Deeper docs live in [`claude_files/`](./claude_files/):
 
-✅ Target market: Self-employed people WITHOUT modern banking
-✅ Core value prop: Capture WHY (not just WHAT) in real-time
-✅ Tech stack: Next.js + Supabase + Twilio + Claude
-✅ Architecture: AI workflow (not agent) for V1
-✅ Pricing tiers: $9/$19/$39 (sole prop / LLC Essentials / LLC Pro)
-✅ Substantiation logic: Smart questioning per IRS rules
-✅ 2-week MVP scope: 8 epics, 80 tickets
-✅ Distribution: Instagram Trial Reels primary, repurpose to TikTok later
-
-Don't relitigate these mid-build. If you must change a major decision, log it in JOURNAL.md with reasoning.
-
----
-
-## What's Still Pending
-
-⏳ **Brand name** — Working name is "Tally." Use BRAND.md to pick a real one before Day 9 (when it appears on landing page).
-
-⏳ **User validation** — Talk to 5 real unsophisticated self-employed people before Day 1 (or in parallel with build). Use VALIDATION.md for the structure.
-
-⏳ **Lawyer review** — Disclaimer/privacy/terms before paying users. ~$1,500-2,500. Not blocking for beta.
-
-⏳ **CPA review** — Spot-check IRC summaries post-launch when revenue justifies.
+| Topic | File |
+|------|------|
+| Product overview & positioning | [`claude_files/docs/CONTEXT.md`](./claude_files/docs/CONTEXT.md) |
+| Technical spec + DB schema + decision tree | [`claude_files/docs/SPEC.md`](./claude_files/docs/SPEC.md) |
+| AI prompts (verbatim) | [`claude_files/docs/SYSTEM-PROMPTS.md`](./claude_files/docs/SYSTEM-PROMPTS.md) |
+| IRC summaries | [`claude_files/docs/IRC-SUMMARIES.md`](./claude_files/docs/IRC-SUMMARIES.md) |
+| Why workflow, not agent | [`claude_files/docs/AGENTS-VS-WORKFLOWS.md`](./claude_files/docs/AGENTS-VS-WORKFLOWS.md) |
+| Decisions & conflict log | [`claude_files/docs/JOURNAL.md`](./claude_files/docs/JOURNAL.md) |
+| Project memory for Claude Code | [`CLAUDE.md`](./CLAUDE.md) |
 
 ---
 
-## Total Cost to Launch
+## Status
 
-```
-ONE-TIME:
-- Domain                  $15
-- Twilio credit           $10
-- Anthropic credit        $20
-- Other services          $0 (free tiers)
-                          ────
-                          $45
-
-MONTHLY (at 1-10 users):
-- Twilio phone            $1
-- API costs               ~$5
-                          ────
-                          ~$6/month
-```
-
----
-
-## Setup Tips
-
-### DO:
-
-- ✅ Share full files when asking for help ("Read CONTEXT.md, then...")
-- ✅ Reference specific spec sections by name
-- ✅ Use git commits frequently (every working feature)
-- ✅ Test locally before deploying
-- ✅ Let Claude Code write tests for critical paths
-- ✅ Take breaks — burnout in week 1 = failure in week 2
-
-### DON'T:
-
-- ❌ Skip reading code Claude Code generates
-- ❌ Deploy without testing
-- ❌ Add features not in the spec (resist scope creep)
-- ❌ Try to do all 10 days in one session
-- ❌ Commit secrets or API keys to git
-- ❌ Spend more than 1 hour/day on content during build
-
----
-
-## Common Issues & Solutions
-
-**"Claude Code isn't aware of project context"**
-- Verify CLAUDE.md is in your project root
-- Restart Claude Code session
-
-**"I'm getting overwhelmed by all these files"**
-- Just open today's ticket file
-- CLAUDE.md auto-loads — you don't need to read everything else
-- Use team personas only when needed
-
-**"Strategy seems to change every conversation"**
-- Read JOURNAL.md to see what's actually locked
-- If strategy feels unstable, you're overthinking — start building
-
-**"I'm not sure which ticket to work on"**
-- Read tickets/00-EPICS.md for the dependency graph
-- Today's epic is named in PLAN.md
-- Always start with P0 tickets
-
-**"Claude Code is generating code that doesn't match the spec"**
-- Tell it explicitly: "Read SPEC.md section [X], then redo this"
-- The specs are right; Claude sometimes guesses when it shouldn't
-
----
-
-## The Team's Parting Wisdom
-
-When you read these files, you'll meet 10 team personas. Here's their advice condensed:
-
-**Alex:** "Ship the embarrassing first version. The MVP isn't about pride — it's about learning."
-
-**Marcus:** "Your first 10 users will teach you more than the next 10 weeks of planning."
-
-**Raj:** "When you get stuck, the answer is usually in the spec. Re-read before improvising."
-
-**Priya:** "Build the core loop perfectly. Everything else comes later."
-
-**Jordan:** "Get the disclaimer template lawyer-reviewed once you have paying users."
-
-**Maya:** "Make 1 Trial Reel per day during the build. Worst case you have content for launch."
-
-**Sofia:** "If a user has to think for more than 3 seconds, we've failed."
-
-**David:** "Less, but better."
-
-**Emma:** "Will this work on a 2-year-old Android phone over 3G? If not, fix it."
-
-**Ethan:** "Build it as if Intuit might want to acquire it in 3 years. They might."
-
----
-
-## Success Criteria
-
-### By End of Day 10:
-- [ ] V1 launched to first 10 beta users
-- [ ] No P0 bugs in production
-- [ ] All legal pages live
-- [ ] Sentry shows minimal errors
-
-### By End of Week 3:
-- [ ] 10 active beta users
-- [ ] 5+ users sending 3+ receipts per week
-- [ ] At least 1 "I'd be sad if this disappeared" answer
-
----
-
-## When You're Ready
-
-```
-1. Make sure CLAUDE.md is in 
-   your project root
-   
-2. Run: claude
-   
-3. Say: "I'm starting Day 1. 
-   Help me with TSNAP-001."
-   
-4. Build.
-```
-
-Good luck. Go ship.
+V1 / beta. Working name **Tally**, beta domain **tallywhy.com**. The name is treated as
+rebrandable — see `JOURNAL.md` for the branding rationale and open items (name lock, user
+validation, legal review, CPA spot-check of IRC summaries).
+</content>
+</invoke>
