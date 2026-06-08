@@ -41,7 +41,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       }
     }
 
-    const patched = await updateReceipt(user.organization_id, id, { photo_url: path, needs_receipt: false, receipt_reason: null });
+    const patched = await updateReceipt(user.organization_id, id, { photo_url: path, needs_receipt: false, receipt_reason: null, receipt_waived_at: null });
     const updated = await recomputeReceipt(user.organization_id, id, patched ?? undefined);
     return NextResponse.json({ receipt: updated ?? patched });
   } catch (err) {

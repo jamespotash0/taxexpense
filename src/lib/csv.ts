@@ -16,11 +16,19 @@ function dollars(cents: number | null | undefined): string {
   return ((cents ?? 0) / 100).toFixed(2);
 }
 
+/** Receipt status for the export so a CPA can see un-receipted gaps at a glance (DEC-078). A
+ *  "waived" expense (user has no receipt) is called out distinctly from one still being chased. */
+function receiptStatus(r: ReceiptRow): string {
+  if (r.photo_url) return 'On file';
+  if (!r.needs_receipt) return 'Not required';
+  return r.receipt_waived_at ? 'None (no receipt available)' : 'Missing';
+}
+
 /** Standard Tally CSV (TSNAP-042). */
 export function toStandardCsv(receipts: ReceiptRow[]): string {
   const header = [
     'Date', 'Vendor', 'Amount', 'Category', 'IRC Section', 'Deductible Amount',
-    'Payment Account', 'Business Purpose', 'Attendees', 'Notes', 'Documentation Complete', 'Flagged for CPA', 'Needs Review',
+    'Payment Account', 'Business Purpose', 'Attendees', 'Notes', 'Receipt', 'Documentation Complete', 'Flagged for CPA', 'Needs Review',
   ];
   // Empty fields render as '-' so blank cells read as "intentionally empty" in a spreadsheet.
   const lines = receipts.map((r) =>
@@ -35,6 +43,7 @@ export function toStandardCsv(receipts: ReceiptRow[]): string {
       r.business_purpose ?? '',
       r.attendees ?? '',
       r.notes ?? '',
+      receiptStatus(r),
       r.substantiation_complete ? 'Yes' : 'No',
       r.flagged_for_cpa ? 'Yes' : '',
       r.needs_review ? 'Yes' : '',

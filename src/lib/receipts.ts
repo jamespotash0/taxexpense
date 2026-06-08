@@ -30,6 +30,11 @@ export interface ReceiptRow {
   photo_url: string | null;
   needs_receipt: boolean;
   receipt_reason: string | null;
+  // Suppression (DEC-078): set when the user says "no receipt available". The reminder cron
+  // skips these; needs_receipt stays true so a late photo still attaches and the gap still
+  // shows on export. receipt_reminder_count is the per-receipt weekly-nudge counter (auto-cap).
+  receipt_waived_at: string | null;
+  receipt_reminder_count: number;
   substantiation_complete: boolean;
   substantiation_missing_fields: string[] | null;
   raw_extracted_data: unknown;
@@ -294,4 +299,52 @@ export async function findReceiptsAwaitingPhoto(orgId: string, limit = 5): Promi
     .limit(limit);
   if (error) throw error;
   return (data as ReceiptRow[]) ?? [];
+}
+
+/**
+ * Mark a receipt "no receipt available" (DEC-078) — stops the weekly reminder cron from nudging
+ * it. Deliberately does NOT clear needs_receipt (a late photo still attaches via the attachment
+ * flow) and does NOT set substantiation_complete (a waived ≥$75 strict expense is still an audit
+ * gap; it stays visible in the dashboard cleanup list and on the export). Idempotent: re-waiving
+ * keeps the original timestamp via COALESCE-like guard at the call site is unnecessary — the
+ * cron only cares that it's non-null.
+ */
+export async function waiveReceipt(orgId: string, receiptId: string): Promise<ReceiptRow | null> {
+  return updateReceipt(orgId, receiptId, { receipt_waived_at: new Date().toISOString() });
+}
+
+/** A flagged receipt the weekly reminder cron may nudge about (DEC-078). */
+export interface ReminderCandidate {
+  id: string;
+  user_id: string;
+  amount_cents: number;
+  receipt_reminder_count: number;
+}
+
+/**
+ * Receipts due for a weekly receipt-reminder nudge (DEC-078): still flagged, NOT waived, under
+ * the per-receipt reminder cap, and at least `minAgeHours` old (don't nag same-day). System-wide
+ * (the cron isn't org-scoped). Returns the per-receipt counter so the caller can cap + increment.
+ */
+export async function listReceiptsNeedingReminder(cap: number, minAgeHours = 24): Promise<ReminderCandidate[]> {
+  const cutoff = new Date(Date.now() - minAgeHours * 3600 * 1000).toISOString();
+  const { data, error } = await getSupabaseAdmin()
+    .from('receipts')
+    .select('id, user_id, amount_cents, receipt_reminder_count')
+    .eq('needs_receipt', true)
+    .is('receipt_waived_at', null)
+    .lt('receipt_reminder_count', cap)
+    .lte('created_at', cutoff);
+  if (error) throw error;
+  return (data as ReminderCandidate[]) ?? [];
+}
+
+/** Increment the weekly-nudge counter for the given receipts after a successful send (DEC-078). */
+export async function bumpReceiptReminderCounts(rows: ReminderCandidate[]): Promise<void> {
+  const admin = getSupabaseAdmin();
+  await Promise.all(
+    rows.map((r) =>
+      admin.from('receipts').update({ receipt_reminder_count: r.receipt_reminder_count + 1 }).eq('id', r.id),
+    ),
+  );
 }

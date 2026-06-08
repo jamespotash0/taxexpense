@@ -5,7 +5,7 @@
 // integration-level (LLM + DB) and not unit-tested, matching router.test.ts.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { replyStartsNewExpense, looksLikeCorrection, looksLikeNoReceipt, hasExpenseSignal } from './sms-handler';
+import { replyStartsNewExpense, looksLikeCorrection, looksLikeNoReceipt, looksLikeNoReceiptEver, hasExpenseSignal } from './sms-handler';
 
 // hasExpenseSignal — the gibberish guard. A parsed text with NO amount/miles/vendor/purpose/
 // attendees/place isn't an expense (→ ask to rephrase, not "how much?").
@@ -142,4 +142,28 @@ test('looksLikeNoReceipt: does NOT fire on unrelated replies', () => {
   assert.equal(looksLikeNoReceipt('$84 dinner'), false);
   assert.equal(looksLikeNoReceipt('why do you need it?'), false);
   assert.equal(looksLikeNoReceipt('here you go'), false);
+});
+
+// looksLikeNoReceiptEver — the PERMANENT "there is no receipt" signal that WAIVES future reminders
+// (DEC-078). Must catch "lost it / never had one / only the bill" but NOT "later" deferrals, so a
+// "I'll send it" reply keeps getting nudged while a genuine "I don't have it" stops.
+test('looksLikeNoReceiptEver: fires on permanent "no receipt" phrasings', () => {
+  assert.equal(looksLikeNoReceiptEver("I don't have a receipt"), true);
+  assert.equal(looksLikeNoReceiptEver('lost it'), true);
+  assert.equal(looksLikeNoReceiptEver('threw it out'), true);
+  assert.equal(looksLikeNoReceiptEver("didn't keep it"), true);
+  assert.equal(looksLikeNoReceiptEver('never got one'), true);
+  assert.equal(looksLikeNoReceiptEver('no receipt'), true);
+  assert.equal(looksLikeNoReceiptEver('I only have the bill'), true);
+  assert.equal(looksLikeNoReceiptEver("can't find it"), true);
+});
+
+test('looksLikeNoReceiptEver: does NOT fire on "later" deferrals (those stay flagged)', () => {
+  assert.equal(looksLikeNoReceiptEver("I'll send it later"), false);
+  assert.equal(looksLikeNoReceiptEver('later'), false);
+  assert.equal(looksLikeNoReceiptEver('will send tonight'), false);
+  assert.equal(looksLikeNoReceiptEver('not now'), false);
+  // ...and not on unrelated replies
+  assert.equal(looksLikeNoReceiptEver('it was with John from Acme'), false);
+  assert.equal(looksLikeNoReceiptEver('here you go'), false);
 });

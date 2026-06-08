@@ -38,6 +38,8 @@ function row(over: Partial<ReceiptRow> = {}): ReceiptRow {
     photo_url: null,
     needs_receipt: false,
     receipt_reason: null,
+    receipt_waived_at: null,
+    receipt_reminder_count: 0,
     substantiation_complete: true,
     substantiation_missing_fields: null,
     raw_extracted_data: null,

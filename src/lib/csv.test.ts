@@ -39,6 +39,19 @@ test('standard CSV: empty fields render as a dash', () => {
   assert.match(row, /Yes,-,-$/); // documentation complete = Yes, then flagged + needs-review dashes
 });
 
+test('standard CSV: Receipt column reflects on-file / missing / waived (DEC-078)', () => {
+  const onFile = toStandardCsv([receipt({ photo_url: 'path/x.jpg', needs_receipt: false })]).split('\n')[1];
+  assert.match(onFile, /,On file,/);
+
+  const missing = toStandardCsv([receipt({ photo_url: null, needs_receipt: true, receipt_waived_at: null })]).split('\n')[1];
+  assert.match(missing, /,Missing,/);
+
+  const waived = toStandardCsv([
+    receipt({ photo_url: null, needs_receipt: true, receipt_waived_at: '2026-06-01T00:00:00Z' }),
+  ]).split('\n')[1];
+  assert.match(waived, /,None \(no receipt available\),/);
+});
+
 test('QuickBooks CSV: maps category to QBO account', () => {
   const csv = toQuickbooksCsv([receipt({})]);
   const [header, row] = csv.split('\n');

@@ -21,7 +21,7 @@ import { processNewExpense, processClarification, processCorrection, processAtta
 import type { CategoryResult } from './categorize';
 import { routeTextMessage, resolveFlagChoice, looksLikeExpenseCapture } from './router';
 import { subscribeUrl } from './subscribe-link';
-import { getReceipt, getLatestReceiptSince } from './receipts';
+import { getReceipt, getLatestReceiptSince, waiveReceipt } from './receipts';
 import { todayISO } from './format';
 import {
   isAffirmative,
@@ -109,6 +109,20 @@ export function looksLikeNoReceipt(text: string): boolean {
   return NO_RECEIPT_RE.test(text.trim());
 }
 
+// PERMANENT "there is no receipt" — distinct from a "later" deferral (DEC-078). These mean the
+// receipt doesn't / won't exist (lost it, threw it out, never got one, never will), so we WAIVE the
+// reminder rather than keep nagging weekly. "Later"/"I'll send it" deliberately does NOT match —
+// that stays flagged so the next nudge still fires. A bare "no"/"skip" is also treated as a "later"
+// (kept flagged), since it's ambiguous and waiving should be a deliberate signal (Alex).
+const RECEIPT_NONE_RE =
+  /\b(don'?t have|do not have|didn'?t (?:keep|get|save|take|have)|did not (?:keep|get|have)|haven'?t got|never (?:got|kept|had|saved)|no receipt|don'?t have (?:a|any|the) receipt|lost (?:it|the receipt|that)|threw (?:it )?(?:out|away)|tossed (?:it)?|can'?t find|cannot find|there (?:is|isn'?t|'?s) no receipt|no (?:paper|physical) receipt|only (?:have )?the (?:bill|statement|charge))\b/i;
+
+/** True when a reply means "there is no receipt and there won't be" → waive, not defer (pure,
+ *  unit-tested). Narrower than looksLikeNoReceipt: excludes "later"/"I'll send it". */
+export function looksLikeNoReceiptEver(text: string): boolean {
+  return RECEIPT_NONE_RE.test(text.trim());
+}
+
 // Post-log correction window (DEC-064): how long after a clean log a follow-up may still edit that
 // receipt. Tight, so a stale receipt never absorbs an unrelated later message (Priya edge c).
 const CORRECTION_WINDOW_MIN = 15;
@@ -141,10 +155,15 @@ const MSG = {
   amountGiveUp:
     "No worries — I didn't catch an amount, so I haven't logged this one. When you have it, send it like \"$45 lunch with a client\" and I'll take it from there.",
   help: 'Send me a business expense — a receipt photo, text like "$30 gas to client site", or "drove 40 miles to Acme".',
-  // Acknowledge a "no receipt" reply while awaiting one (DEC-072): keep it flagged so the photo can
-  // be added later, confirm everything else is captured, and stop asking. Never re-asks the amount.
+  // Acknowledge a "later / I'll send it" reply while awaiting a receipt (DEC-072): keep it flagged
+  // so the photo can be added later, confirm everything else is captured. The weekly nudge still
+  // fires until it arrives (or the user waives it). Never re-asks the amount.
   noReceiptAck:
     "No problem — it's logged. I've kept it flagged for a receipt, so you can snap the photo anytime and it'll attach. Everything else is captured ✓",
+  // Acknowledge a PERMANENT "there's no receipt" reply (DEC-078): waive future reminders, keep the
+  // expense, and be honest that it's an un-receipted gap for the CPA. Never marks it complete.
+  noReceiptWaived:
+    "No problem — I won't ask again about this one. Your text is the record, and I've noted there's no receipt so it's clear for your accountant. Everything else is captured ✓",
   failure: "Hmm, that didn't go through on my end. Mind sending it once more?",
   // Parser failed (not a delivery failure — the message arrived and is saved). Sofia copy.
   couldntRead: "I couldn't quite make that one out. Mind rephrasing it — something like \"$30 gas to client site\" works great.",
@@ -519,6 +538,13 @@ async function handleExpenseFlow(user: AppUser, msg: InboundMessage): Promise<Pr
   // (or bare no/skip) is acknowledged + kept flagged so the photo can still be added later; any other
   // detail is treated as a correction to THIS receipt rather than a new one.
   if (pending && pending.contextState === 'awaiting_receipt' && !replyStartsNewExpense(msg.body)) {
+    // "There is no receipt" (lost it / threw it out / only have the bill) → waive future reminders
+    // (DEC-078). Distinct from "later", which stays flagged so the weekly nudge keeps trying.
+    if (looksLikeNoReceiptEver(msg.body)) {
+      await waiveReceipt(user.organization_id, pending.receiptId);
+      log.info('receipt_waived', { user: user.id, receipt: pending.receiptId, source: 'sms' });
+      return { smsText: MSG.noReceiptWaived, receiptId: pending.receiptId, contextState: null };
+    }
     if (looksLikeNoReceipt(msg.body) || isNegative(msg.body)) {
       return { smsText: MSG.noReceiptAck, receiptId: pending.receiptId, contextState: null };
     }

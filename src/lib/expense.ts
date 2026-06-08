@@ -493,6 +493,7 @@ export async function processAttachment(
       photo_url: path,
       needs_receipt: false,
       receipt_reason: null,
+      receipt_waived_at: null, // a photo arrived → un-waive (DEC-078); the gap is closed
       ...(parsed.use_ocr_data ? parsed.updates : {}),
       substantiation_complete: decision.substantiation_complete,
       substantiation_missing_fields: decision.missing_context_fields,
