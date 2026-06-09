@@ -28,7 +28,7 @@ type Scene = {
 const SCENES: Scene[] = [
   { id: 'coffee', clip: '/hero/story/montage_coffee.mp4', receipt: { merchant: 'BLUE BOTTLE', total: '$11.20' }, why: 'Coffee w/ a referral partner' },
   { id: 'gas', clip: '/hero/story/montage_gas.mp4', receipt: { merchant: 'SHELL', total: '$54.10' }, why: 'Drove to the Tahoe job site' },
-  { id: 'lunch', clip: '/hero/story/montage_lunch.mp4', receipt: { merchant: 'SWEETGREEN', total: '$92.40' }, why: 'Client lunch — Sarah @ Acme' },
+  { id: 'lunch', clip: '/hero/story/montage_lunch.mp4', receipt: { merchant: 'SWEETGREEN', total: '$92.40' }, why: 'Client lunch, Sarah @ Acme' },
   { id: 'payoff', clip: '/hero/story/payoff.mp4' },
 ];
 

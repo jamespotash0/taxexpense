@@ -16,7 +16,7 @@ const BodySchema = z.object({
 function toHtml(text: string): string {
   const esc = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   return `<div style="font-family:system-ui,sans-serif;max-width:560px;white-space:pre-wrap;font-size:14px;line-height:1.5">${esc}
-    <p style="color:#999;font-size:12px;margin-top:16px">Prepared with Tally — a recordkeeping export, not tax advice.</p>
+    <p style="color:#999;font-size:12px;margin-top:16px">Prepared with Tally. A recordkeeping export, not tax advice.</p>
   </div>`;
 }
 

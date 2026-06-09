@@ -7,7 +7,7 @@ import { TRIAL_DAYS } from '@/lib/pricing';
 import { getI18n } from '@/i18n/server';
 import { fmt } from '@/i18n/config';
 
-export const metadata = { title: 'Pricing — Tally' };
+export const metadata = { title: 'Pricing · Tally' };
 
 export default async function PricingPage() {
   const { locale, t } = await getI18n();

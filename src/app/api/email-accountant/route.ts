@@ -30,8 +30,8 @@ export async function POST(): Promise<NextResponse> {
 
     const html = `
       <div style="font-family:system-ui,sans-serif;max-width:560px">
-        <h2 style="margin:0 0 8px">Tally — Monthly Expense Summary</h2>
-        <p style="color:#555">${who} — ${monthLabel}</p>
+        <h2 style="margin:0 0 8px">Tally · Monthly Expense Summary</h2>
+        <p style="color:#555">${who} · ${monthLabel}</p>
         <table style="border-collapse:collapse;font-size:14px;margin-top:12px">
           <tr><td style="padding:4px 12px 4px 0;color:#555">Total this month</td><td><b>${formatMoney(summary.total_cents)}</b></td></tr>
           <tr><td style="padding:4px 12px 4px 0;color:#555">Deductible</td><td>${formatMoney(summary.deductible_cents)}</td></tr>
@@ -40,7 +40,7 @@ export async function POST(): Promise<NextResponse> {
         </table>
         <p style="color:#555;font-size:14px;margin-top:16px">A full CSV of all expenses is attached.${
           flaggedCount > 0
-            ? ` <b>${flaggedCount} item${flaggedCount === 1 ? '' : 's'} flagged for your review</b> — see the "Flagged for CPA" column.`
+            ? ` <b>${flaggedCount} item${flaggedCount === 1 ? '' : 's'} flagged for your review</b>. See the "Flagged for CPA" column.`
             : ''
         }</p>
         <p style="color:#999;font-size:12px;margin-top:16px">This is a recordkeeping export, not tax advice.</p>
@@ -48,7 +48,7 @@ export async function POST(): Promise<NextResponse> {
 
     await sendEmail({
       to: user.accountant_email,
-      subject: `Tally Monthly Summary — ${who} — ${monthLabel}`,
+      subject: `Tally Monthly Summary · ${who} · ${monthLabel}`,
       html,
       attachments: [{ filename: `tally-${monthLabel.replace(/\s/g, '-').toLowerCase()}.csv`, content: Buffer.from(csv, 'utf8') }],
     });

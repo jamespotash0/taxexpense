@@ -4,8 +4,8 @@
 export const CATEGORY_LABELS: Record<string, string> = {
   meals_business: 'Business Meals',
   meals_travel: 'Travel Meals',
-  travel_transportation: 'Travel — Transportation',
-  travel_lodging: 'Travel — Lodging',
+  travel_transportation: 'Travel: Transportation',
+  travel_lodging: 'Travel: Lodging',
   business_gifts: 'Business Gifts',
   vehicle_business: 'Vehicle / Mileage',
   software: 'Software',

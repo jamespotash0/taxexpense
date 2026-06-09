@@ -266,17 +266,17 @@ export function formatAggregate(r: AggregateResult): string {
     return `No expenses${scope} ${r.periodLabel} yet.`;
   }
   const noun = r.count === 1 ? 'expense' : 'expenses';
-  return `You've logged ${formatMoney(r.total_cents)} across ${r.count} ${noun}${scope} ${r.periodLabel} — ${formatMoney(
+  return `You've logged ${formatMoney(r.total_cents)} across ${r.count} ${noun}${scope} ${r.periodLabel} (${formatMoney(
     r.deductible_cents,
-  )} deductible.`;
+  )} deductible).`;
 }
 
-/** "Your last N: • $54 Uber — Vehicle (Jun 1) • …" */
+/** "Your last N: • $54 Uber · Vehicle (Jun 1) • …" */
 export function formatRecent(rows: RecentExpense[]): string {
   if (rows.length === 0) return "You haven't logged any expenses yet.";
   const lines = rows.map((r) => {
     const vendor = r.vendor ?? 'Unknown vendor';
-    return `• ${formatMoney(r.amount_cents)} ${vendor} — ${categoryLabel(r.category)}${shortDate(r.transaction_date)}`;
+    return `• ${formatMoney(r.amount_cents)} ${vendor} · ${categoryLabel(r.category)}${shortDate(r.transaction_date)}`;
   });
   return `Your last ${rows.length}:\n${lines.join('\n')}`;
 }

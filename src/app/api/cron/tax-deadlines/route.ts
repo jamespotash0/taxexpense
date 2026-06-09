@@ -35,8 +35,8 @@ export async function GET(req: Request): Promise<NextResponse> {
   const base = PUBLIC_ENV.appUrl || 'https://tallywhy.com';
   const messages = due.map(
     (r) =>
-      `📅 Heads up — ${joinLabels(r.labels)} ${r.daysUntil === 1 ? 'is due tomorrow' : `due in ${r.daysUntil} days`} (${niceDate(r.dateISO)}). ` +
-      `Good time to review your expenses in Tally: ${base}/dashboard. Not tax advice — confirm with your CPA.`,
+      `📅 Heads up: ${joinLabels(r.labels)} ${r.daysUntil === 1 ? 'is due tomorrow' : `due in ${r.daysUntil} days`} (${niceDate(r.dateISO)}). ` +
+      `Good time to review your expenses in Tally: ${base}/dashboard. Not tax advice. Confirm with your CPA.`,
   );
 
   // Recipients: onboarded users who haven't opted out.

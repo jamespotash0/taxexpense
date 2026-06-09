@@ -17,7 +17,7 @@ const FAIL_MESSAGES: Record<string, string> = {
   expired: 'That code expired. Request a new one.',
   too_many_attempts: 'Too many attempts. Request a new code.',
   mismatch: "That code doesn't match. Try again.",
-  no_account: 'No account for this number yet — text Tally first to get started.',
+  no_account: 'No account for this number yet. Text Tally first to get started.',
 };
 
 export async function POST(req: Request): Promise<NextResponse> {

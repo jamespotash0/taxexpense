@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { getI18n } from '@/i18n/server';
 import { formatUsPhone } from '@/lib/phone';
 
-export const metadata = { title: 'Get started — Tally' };
+export const metadata = { title: 'Get started · Tally' };
 
 export default async function StartPage() {
   const { t } = await getI18n();

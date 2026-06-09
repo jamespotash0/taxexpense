@@ -4,7 +4,7 @@ import { PWARegister } from '@/components/PWARegister';
 import { MotionProvider } from '@/components/MotionProvider';
 import { SITE_URL } from '@/lib/site';
 
-const TITLE = 'Tally — capture the why';
+const TITLE = 'Tally · capture the why';
 const DESCRIPTION = 'Text your business expenses. Tally captures the why, the IRS way.';
 
 // TSNAP-034 (David): system font stack — no custom web fonts. PWA wiring per DEC-019.

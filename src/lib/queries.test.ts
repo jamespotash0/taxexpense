@@ -95,7 +95,7 @@ test('formatAggregate: numbers come straight from the struct', () => {
   };
   assert.equal(
     formatAggregate(r),
-    "You've logged $3,418.22 across 22 expenses on Business Meals this quarter — $1,709.11 deductible.",
+    "You've logged $3,418.22 across 22 expenses on Business Meals this quarter ($1,709.11 deductible).",
   );
 });
 
@@ -106,7 +106,7 @@ test('formatAggregate: zero count is graceful', () => {
 
 test('formatAggregate: singular noun + no category scope', () => {
   const r: AggregateResult = { total_cents: 4900, deductible_cents: 4900, count: 1, periodLabel: 'in 2026', categoryLabel: null };
-  assert.equal(formatAggregate(r), "You've logged $49.00 across 1 expense in 2026 — $49.00 deductible.");
+  assert.equal(formatAggregate(r), "You've logged $49.00 across 1 expense in 2026 ($49.00 deductible).");
 });
 
 test('formatRecent: lists vendor, category, amount', () => {
@@ -115,8 +115,8 @@ test('formatRecent: lists vendor, category, amount', () => {
     { vendor: null, amount_cents: 4900, category: 'software', transaction_date: null },
   ]);
   assert.match(out, /Your last 2:/);
-  assert.match(out, /\$54\.00 Uber — Vehicle \/ Mileage \(Jun 1\)/);
-  assert.match(out, /\$49\.00 Unknown vendor — Software/);
+  assert.match(out, /\$54\.00 Uber · Vehicle \/ Mileage \(Jun 1\)/);
+  assert.match(out, /\$49\.00 Unknown vendor · Software/);
 });
 
 test('formatRecent: empty', () => {

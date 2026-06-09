@@ -38,17 +38,17 @@ const WEEKLY_RUN_DAY = 1; // 0=Sun … 1=Mon
 /** Compose the per-user nudge. `lastNudge` switches to the explicit "I'll stop asking" copy when
  *  any of the user's receipts will hit the cap on this send (pure — easy to eyeball/test). */
 function reminderMessage(firstName: string | null, n: number, lastNudge: boolean): string {
-  const lead = firstName ? `Hey ${firstName} — ` : 'Hey — ';
+  const lead = firstName ? `Hey ${firstName}, ` : 'Hey, ';
   const noun = n === 1 ? 'expense is' : 'expenses are';
   if (lastNudge) {
     return (
-      `${lead}last receipt nudge: ${n} ${noun} still missing a photo. I'll stop asking after this — ` +
-      `add one anytime from your dashboard. Note: expenses over $75 need a receipt for your taxes.`
+      `${lead}last receipt nudge: ${n} ${noun} still missing a photo. I'll stop asking after this. ` +
+      `Add one anytime from your dashboard. Note: expenses over $75 need a receipt for your taxes.`
     );
   }
   return (
     `${lead}quick nudge from Tally: ${n} ${noun} still missing a receipt photo. Snap & send when you ` +
-    `can and I'll match it up — or reply "no receipt" if you don't have it and I'll stop asking.`
+    `can and I'll match it up, or reply "no receipt" if you don't have it and I'll stop asking.`
   );
 }
 

@@ -36,7 +36,7 @@ export function StatusIcons({ substantiationComplete, needsReceipt, missingField
   return (
     <span className="flex shrink-0 items-center gap-1.5">
       {needsReview && (
-        <Icon label={reviewReason ? `${labels.review} — ${reviewReason}` : labels.review} className="text-warning-700">
+        <Icon label={reviewReason ? `${labels.review}: ${reviewReason}` : labels.review} className="text-warning-700">
           {/* eye */}
           <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
           <circle cx="12" cy="12" r="3" />

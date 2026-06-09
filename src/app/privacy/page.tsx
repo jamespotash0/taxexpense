@@ -2,7 +2,7 @@
 // charging users (CLAUDE.md Critical Open Item). Plain-language, CCPA disclosure included.
 import Link from 'next/link';
 
-export const metadata = { title: 'Privacy Policy — Tally' };
+export const metadata = { title: 'Privacy Policy · Tally' };
 
 export default function PrivacyPage() {
   return (
@@ -13,7 +13,7 @@ export default function PrivacyPage() {
 
       <section className="mt-6 space-y-4 text-sm leading-6">
         <p><b>What we collect.</b> Your phone number; the expense messages and receipt photos you send us; details you add in the dashboard (name, email, business name, accountant email); and basic usage logs. We do not ask for or store full card numbers.</p>
-        <p><b>How we use it.</b> To categorize and store your expenses, reply over SMS, show your dashboard, send reminders about missing receipts, and — only when you ask — email a summary to your accountant.</p>
+        <p><b>How we use it.</b> To categorize and store your expenses, reply over SMS, show your dashboard, send reminders about missing receipts, and (only when you ask) email a summary to your accountant.</p>
         <p><b>SMS / TCPA.</b> By submitting your number on our site or texting Tally you consent to receive SMS messages from us. Message &amp; data rates may apply. Reply STOP to opt out; reply HELP for help. We log your consent. <b>We do not share your mobile opt-in information, phone number, or SMS consent with third parties or affiliates for their marketing purposes.</b> No mobile information is shared for promotional or marketing purposes.</p>
         <p><b>AI processing.</b> Receipt images and expense text are sent to our AI provider (Anthropic) solely to extract and categorize the expense. We do not sell your data.</p>
         <p><b>Storage &amp; security.</b> Data is stored with our infrastructure providers (Supabase, Vercel). Receipt photos are kept in a private store and served only via short-lived signed links. Access is restricted to our application.</p>

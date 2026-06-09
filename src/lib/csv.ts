@@ -58,7 +58,7 @@ export function toQuickbooksCsv(receipts: ReceiptRow[]): string {
   const lines = receipts.map((r) =>
     row([
       r.transaction_date ?? '',
-      [r.vendor, r.business_purpose].filter(Boolean).join(' — ') || categoryLabel(r.category),
+      [r.vendor, r.business_purpose].filter(Boolean).join(' · ') || categoryLabel(r.category),
       dollars(r.amount_cents),
       qboAccount(r.category),
     ]),

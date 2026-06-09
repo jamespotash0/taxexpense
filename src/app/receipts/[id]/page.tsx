@@ -47,7 +47,7 @@ export default async function ReceiptDetailPage({ params }: { params: Promise<{ 
         <aside className="text-sm">
           {irc ? (
             <div className="rounded-lg border border-border bg-surface p-4 shadow-sm">
-              <p className="font-medium">IRC §{irc.section_id} — {irc.title}</p>
+              <p className="font-medium">IRC §{irc.section_id}: {irc.title}</p>
               <p className="mt-2 text-muted">{irc.short_summary}</p>
               {irc.worth_noting && <p className="mt-2 text-xs text-muted">{r.worthNoting} {irc.worth_noting}</p>}
               <p className="mt-3 text-xs text-muted">{r.ircNote}</p>

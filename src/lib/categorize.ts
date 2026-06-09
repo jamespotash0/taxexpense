@@ -73,7 +73,7 @@ export function normalizeCategoryResult(raw: {
 // The not-advice + CPA deferral — the LEGAL control (CLAUDE.md rules 5/7). Lives in ONE place so
 // the floor is a single source of truth the test can assert against. Appended in code on EVERY
 // tax-guidance reply (DEC-065b-i / Jordan) — never left to the model.
-export const DISCLAIMER_LINE = 'Suggestion, not advice — confirm with your CPA.';
+export const DISCLAIMER_LINE = 'Suggestion, not advice. Confirm with your CPA.';
 
 /**
  * The INLINE IRC citation woven into the body where the section is referenced — e.g.

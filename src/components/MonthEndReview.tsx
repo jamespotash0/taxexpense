@@ -33,7 +33,7 @@ const COPY = {
   rerun: 'Re-run review',
   addEmailFirst: 'Add an accountant email in Settings first',
   flaggedTitle: 'Items the agent flagged',
-  noFlags: 'Nothing needed flagging — the month looks documented.',
+  noFlags: 'Nothing needed flagging. The month looks documented.',
   subjectLabel: 'Subject',
   bodyLabel: 'Draft to your accountant (editable)',
   send: 'Send to accountant',
@@ -41,7 +41,7 @@ const COPY = {
   sentTo: 'Sent to',
   draftOnly: 'This is a draft. Nothing is sent until you click “Send”.',
   historyTitle: 'Past reviews',
-  noHistory: 'No past reviews yet — run one above.',
+  noHistory: 'No past reviews yet. Run one above.',
   close: 'Close',
 };
 
@@ -109,7 +109,7 @@ function DraftEditor({
                 <a href={`/receipts/${f.id}`} className="font-medium text-warning-700 underline">
                   View expense
                 </a>
-                <span className="text-muted"> — {f.reason}</span>
+                <span className="text-muted"> · {f.reason}</span>
               </li>
             ))}
           </ul>
