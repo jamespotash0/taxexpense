@@ -156,6 +156,7 @@ const en = {
     startDesktopNote: 'On a computer? Text the number above from your phone to get started.',
     startHaveAccount: 'Already set up?',
     back: '← Back',
+    backHome: '← Back to home',
   },
   pricing: {
     badge: '{days}-day free trial · no card',
@@ -523,6 +524,7 @@ const es: Dict = {
     startDesktopNote: '¿En una computadora? Escribe al número de arriba desde tu teléfono para empezar.',
     startHaveAccount: '¿Ya tienes cuenta?',
     back: '← Atrás',
+    backHome: '← Volver al inicio',
   },
   pricing: {
     badge: '{days} días gratis · sin tarjeta',

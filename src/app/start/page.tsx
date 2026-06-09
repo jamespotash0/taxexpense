@@ -4,6 +4,7 @@
 // returning users. The old multi-step web question funnel was removed — its answers never
 // reached the SMS flow (no phone to key on), so users got re-asked. See JOURNAL DEC-056.
 import Link from 'next/link';
+import Image from 'next/image';
 import { getI18n } from '@/i18n/server';
 import { formatUsPhone } from '@/lib/phone';
 
@@ -19,7 +20,11 @@ export default async function StartPage() {
   const smsHref = `sms:${rawNumber.replace(/[^\d+]/g, '')}?&body=${encodeURIComponent('Hi Tally')}`;
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-12 text-center">
+    <main className="relative mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-12 text-center">
+      <Link href="/" aria-label={o.backHome} className="absolute left-6 top-6 flex items-center gap-2">
+        <Image src="/brand/tally-logo.svg" alt="" width={28} height={28} className="rounded-md" priority />
+        <span className="text-lg font-semibold tracking-tight">Tally</span>
+      </Link>
       <span className="mx-auto inline-flex items-center gap-2 rounded-full bg-accent-50 px-3 py-1 text-xs font-medium text-accent">
         {o.startBadge}
       </span>
