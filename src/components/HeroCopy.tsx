@@ -26,7 +26,7 @@ type CopyA = {
 };
 type CopyB = { line1pre: string; line1em: string; line1post: string; line2: string; subtitle: string };
 
-const headingClass = 'text-4xl font-semibold leading-[1.1] tracking-tight sm:text-5xl md:text-6xl lg:text-[4rem]';
+const headingClass = 'text-4xl font-semibold leading-[1.1] tracking-tight sm:text-5xl md:text-6xl lg:text-[2.75rem] xl:text-[3.25rem]';
 const subClass = 'mx-auto mt-5 max-w-xl text-balance text-base text-gray-600 sm:mt-6 sm:text-lg lg:mx-0 lg:max-w-xl';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
