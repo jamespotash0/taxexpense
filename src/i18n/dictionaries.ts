@@ -7,7 +7,7 @@ const en = {
   hero: {
     // Two-line headline (problem-framed champion, DEC-079). line1 puts the burden on the user
     // ("the why is on you"), line2's "why" is the accent/squiggle word.
-    line1pre: 'Your bank tracks the ',
+    line1pre: 'Banks track the ',
     line1em: 'what',
     line1post: '.',
     line2pre: 'The ',
@@ -383,7 +383,7 @@ type Dict = typeof en;
 const es: Dict = {
   nav: { login: 'Iniciar sesión', getStarted: 'Empezar', howItWorks: 'Cómo funciona', pricing: 'Precios' },
   hero: {
-    line1pre: 'Tu banco registra el ',
+    line1pre: 'Los bancos registran el ',
     line1em: 'qué',
     line1post: '.',
     line2pre: 'El ',
