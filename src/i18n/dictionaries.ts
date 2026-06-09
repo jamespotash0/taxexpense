@@ -5,16 +5,18 @@ import type { Locale } from './config';
 const en = {
   nav: { login: 'Log in', getStarted: 'Get started', howItWorks: 'How it works', pricing: 'Pricing' },
   hero: {
-    // Two-line headline. line1: "Your bank knows what." / line2: "Tally knows why."
-    line1pre: 'Your bank knows ',
+    // Two-line headline (problem-framed champion, DEC-079). line1 puts the burden on the user
+    // ("the why is on you"), line2's "why" is the accent/squiggle word.
+    line1pre: 'Your bank tracks the ',
     line1em: 'what',
     line1post: '.',
-    line2pre: 'Tally knows ',
+    line2pre: 'The ',
     line2em: 'why',
-    line2post: '.',
-    // Kept to ~2 lines at the hero's max-w-xl measure (matches variant B below).
+    line2post: ' is on you.',
+    // Folds the "by April it's gone" forgetting-pain into the subtitle; "hold up" frames the
+    // record, not a tax-outcome promise (Jordan, DEC-079).
     subtitle:
-      'Text a photo or a quick note. Tally captures the why behind each one — so the deductions you’ve earned actually hold up at tax time.',
+      'And by April, it’s gone. Text the why the moment you spend — a photo or a quick note — so the deductions you’ve earned still hold up at tax time.',
     tryEyebrow: 'Try it out',
     tryText: 'Text {number}',
     ctaOr: 'or text',
@@ -380,15 +382,16 @@ type Dict = typeof en;
 const es: Dict = {
   nav: { login: 'Iniciar sesión', getStarted: 'Empezar', howItWorks: 'Cómo funciona', pricing: 'Precios' },
   hero: {
-    line1pre: 'Tu banco sabe ',
+    line1pre: 'Tu banco registra el ',
     line1em: 'qué',
-    line1post: ' gastaste.',
-    line2pre: 'Tally sabe ',
-    line2em: 'por qué',
-    line2post: '.',
-    // A ~2 líneas en el ancho del hero (max-w-xl), igual que la variante B.
+    line1post: '.',
+    line2pre: 'El ',
+    line2em: 'porqué',
+    line2post: ' corre por tu cuenta.',
+    // Mismo enfoque-problema que EN (DEC-079): "para abril ya se esfumó" + "se sostengan"
+    // enmarca el registro, no una promesa de resultado fiscal.
     subtitle:
-      'Envía una foto o una nota rápida. Tally captura el porqué de cada uno — para que las deducciones que ya ganaste de verdad se sostengan en la temporada de impuestos.',
+      'Y para abril, ya se esfumó. Escribe el porqué en el momento en que gastas — una foto o una nota rápida — para que las deducciones que ya ganaste se sostengan en la temporada de impuestos.',
     tryEyebrow: 'Pruébalo',
     tryText: 'Escribe a {number}',
     ctaOr: 'o escribe a',

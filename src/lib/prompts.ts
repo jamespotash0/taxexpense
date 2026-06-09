@@ -11,7 +11,8 @@
 // ---------------------------------------------------------------------------
 // {{name}} tokens are filled by lib/onboarding.ts at send time (first name).
 export const ONBOARDING_Q_NAME =
-  `Hey! I'm Tally — I help you capture business expenses just by texting me. ` +
+  `Hey, I'm Tally! I help you capture business expenses just by texting me. ` +
+  `Your 21-day free trial starts now, no card needed. ` +
   `First, what should I call you?`;
 
 /**
@@ -90,19 +91,11 @@ export function onboardingComplete(appUrl: string, name?: string): string {
 }
 
 /**
- * Proactive trial-expiry nudges (DEC-061). Sent by the daily cron — at most one "ending soon" and
- * one "ended" per trial — to reach people BEFORE they hit the reactive paywall (or who drift away
- * and never text again). Factual + records-are-safe framing (Sofia/Jordan). name = first name.
+ * Proactive trial-EXPIRY notice (DEC-061, narrowed by DEC-079). The daily cron sends exactly ONE
+ * message per trial — and only AFTER the trial has lapsed. We deliberately do NOT nudge during the
+ * trial ("ending soon" was removed): the trial-start is announced on the first text, and we stay
+ * quiet until it's actually expired. Factual + records-are-safe framing (Sofia/Jordan). name = first name.
  */
-export function trialEndingSoonSms(subscribeUrl: string, daysLeft: number, name?: string): string {
-  const lead = name ? `Heads up, ${name} — ` : 'Heads up — ';
-  const when = daysLeft <= 1 ? 'tomorrow' : `in ${daysLeft} days`;
-  return (
-    `${lead}your Tally trial ends ${when}. Keep your expenses — and the why behind each one — ` +
-    `flowing into tax time: ${subscribeUrl}`
-  );
-}
-
 export function trialEndedSms(subscribeUrl: string, name?: string): string {
   const lead = name ? `${name}, your Tally trial has ended.` : 'Your Tally trial has ended.';
   return (

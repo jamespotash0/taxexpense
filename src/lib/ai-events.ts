@@ -1,4 +1,4 @@
-// AI decision / evaluation log (DEC-079). One append-only row per AI decision the workflow makes,
+// AI decision / evaluation log (DEC-080). One append-only row per AI decision the workflow makes,
 // captured AT DECISION TIME — see migration 0027_ai_events.sql for why this can't be backfilled
 // (in-place edits to receipts destroy the "what the model guessed" signal on write).
 //

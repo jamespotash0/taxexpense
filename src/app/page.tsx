@@ -2,7 +2,6 @@
 // Server Component: resolves locale + dictionary, reads the Tally number.
 import Link from 'next/link';
 import Image from 'next/image';
-import { cookies } from 'next/headers';
 import { HeroVideo } from '@/components/HeroVideo';
 import { MissingPiece } from '@/components/MissingPiece';
 import { HowItWorks } from '@/components/HowItWorks';
@@ -15,12 +14,11 @@ import { LocaleSwitcher } from '@/components/LocaleSwitcher';
 import { SiteHeader } from '@/components/SiteHeader';
 import { LandingPricing } from '@/components/LandingPricing';
 import { HeroCopy } from '@/components/HeroCopy';
-import { HeroTextMeForm } from '@/components/HeroTextMeForm';
 import { TextNumberCta } from '@/components/TextNumberCta';
 import { TrackedLink } from '@/components/TrackedLink';
 import { TRIAL_DAYS } from '@/lib/pricing';
 import { formatUsPhone } from '@/lib/phone';
-import { AB_HERO_COOKIE, isHeroVariant, type HeroVariant } from '@/lib/ab';
+import { type HeroVariant } from '@/lib/ab';
 import { getI18n } from '@/i18n/server';
 import { fmt } from '@/i18n/config';
 
@@ -36,8 +34,9 @@ export default async function Home() {
   const smsHref = liveNumber
     ? `sms:${liveNumber.replace(/[^\d+]/g, '')}?&body=${encodeURIComponent('Hi Tally')}`
     : '/start';
-  const abHero = (await cookies()).get(AB_HERO_COOKIE)?.value;
-  const heroVariant: HeroVariant = isHeroVariant(abHero) ? abHero : 'A';
+  // Copy A/B is paused (DEC-079): render the single champion for everyone — including browsers
+  // still holding an old ab_hero=B/C cookie from earlier testing. Re-enable by reading the cookie.
+  const heroVariant: HeroVariant = 'A';
 
   return (
     <div className="relative overflow-x-clip text-gray-900">
@@ -69,58 +68,43 @@ export default async function Home() {
               b={t.hero.vb}
             />
 
-            {/* Primary + secondary CTAs. Arm C (see lib/ab.ts) swaps the sms: link for a "text me
-                first" phone input. Arms A/B keep the text-the-number link. Centered on mobile,
-                left-aligned from lg: to match the two-column layout. */}
-            {heroVariant === 'C' ? (
-              <HeroTextMeForm variant={heroVariant} t={t.heroForm} />
-            ) : (
-              // One primary action (start the trial); texting the number is offered as a
-              // lighter, tappable line beneath — same intent, no competing buttons.
-              <div className="reveal-3 mt-8 flex flex-col items-center gap-3 lg:items-start">
-                {/* Button + "or text …" share one row (wraps on narrow screens). Button uses
-                    rounded-full to match the nav pill's CTA. */}
-                <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 lg:justify-start">
-                  <TrackedLink
-                    href="/start"
-                    event="hero_cta_click"
-                    data={{ experiment: 'hero-copy', variant: heroVariant }}
-                    className="press inline-flex items-center justify-center rounded-full bg-accent px-7 py-3.5 text-base font-medium text-white shadow-lg shadow-accent/20 transition-colors hover:bg-accent-hover"
-                  >
-                    {t.nav.getStarted}
-                  </TrackedLink>
-                  <p className="text-sm text-gray-500">
-                    {t.hero.ctaOr}{' '}
-                    <TextNumberCta
-                      number={number}
-                      smsHref={smsHref!}
-                      variant={heroVariant}
-                      hideIcon
-                      inline
-                      label={number}
-                      copiedLabel={t.hero.copied}
-                      className="font-semibold text-accent underline-offset-4 hover:underline"
-                    />
-                  </p>
-                </div>
-                {/* Trial reassurance — the "free" lever stays as subordinate microcopy now that the
-                    button verb is the action (not "Start free trial"). Reuses the pricing badge copy. */}
-                <p className="text-xs text-gray-400">{fmt(t.pricing.badge, { days: TRIAL_DAYS })}</p>
-              </div>
-            )}
-
-            {/* Who it's for — entity chips read as "designed" rather than a run-on gray line. */}
-            <div className="reveal-3 mt-6 flex flex-wrap items-center justify-center gap-2 lg:justify-start">
-              {t.hero.audienceChips.map((chip) => (
-                <span
-                  key={chip}
-                  className="rounded-full border border-gray-200 bg-white/70 px-3 py-1 text-xs font-medium text-gray-600 backdrop-blur-sm"
+            {/* Primary + secondary CTA. One primary action (start the trial); texting the number is
+                offered as a lighter, tappable line beneath — same intent, no competing buttons.
+                Centered on mobile, left-aligned from lg: to match the two-column layout. */}
+            <div className="reveal-3 mt-8 flex flex-col items-center gap-3 lg:items-start">
+              {/* Button + "or text …" share one row (wraps on narrow screens). Button uses
+                  rounded-full to match the nav pill's CTA. */}
+              <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 lg:justify-start">
+                <TrackedLink
+                  href="/start"
+                  event="hero_cta_click"
+                  data={{ experiment: 'hero-copy', variant: heroVariant }}
+                  className="press inline-flex items-center justify-center rounded-full bg-accent px-7 py-3.5 text-base font-medium text-white shadow-lg shadow-accent/20 transition-colors hover:bg-accent-hover"
                 >
-                  {chip}
-                </span>
-              ))}
+                  {t.nav.getStarted}
+                </TrackedLink>
+                <p className="text-sm text-gray-500">
+                  {t.hero.ctaOr}{' '}
+                  <TextNumberCta
+                    number={number}
+                    smsHref={smsHref!}
+                    variant={heroVariant}
+                    hideIcon
+                    inline
+                    label={number}
+                    copiedLabel={t.hero.copied}
+                    className="font-semibold text-accent underline-offset-4 hover:underline"
+                  />
+                </p>
+              </div>
+              {/* Trial reassurance — the "free / no card" lever stays as subordinate microcopy.
+                  Reuses the pricing badge copy. */}
+              <p className="text-xs text-gray-400">{fmt(t.pricing.badge, { days: TRIAL_DAYS })}</p>
             </div>
-            <p className="reveal-3 mt-4 text-xs text-gray-400">{t.hero.disclaimer}</p>
+
+            {/* Who it's for — one quiet middot line (the bordered chips wrapped raggedly on phones). */}
+            <p className="reveal-3 mt-6 text-xs text-gray-500">{t.hero.audienceChips.join('  ·  ')}</p>
+            <p className="reveal-3 mt-3 text-xs text-gray-400">{t.hero.disclaimer}</p>
           </div>
 
           {/* Right — the interactive video centerpiece: a cinematic moment of spending with

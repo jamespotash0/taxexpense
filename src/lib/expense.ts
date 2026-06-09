@@ -23,8 +23,9 @@ import {
 } from './receipts';
 import type { AppUser } from './users';
 import type { ContextState } from './conversations';
-import { claudeJSON } from './llm';
-import { SONNET_MODEL } from './claude';
+import { claudeJSON, type CallMeta } from './llm';
+import { HAIKU_MODEL, SONNET_MODEL } from './claude';
+import { logAiEvent, type AskReason } from './ai-events';
 import { CLARIFICATION_PROMPT, CORRECTION_PROMPT, RECEIPT_ATTACHMENT_PROMPT } from './prompts';
 import { storePhotoBuffer, type OcrResult } from './ocr';
 
@@ -171,7 +172,11 @@ export async function processNewExpense(
   precomputedCategory: CategoryResult | null = null,
   extractionConfidence: number | null = null,
 ): Promise<ProcessResult> {
-  const modelCat = precomputedCategory ?? (await categorizeExpense(input, user));
+  // Capture token/latency for the standalone categorize call (DEC-080). Null on the precomputed
+  // path — there the category came from the upstream merged OCR extract+categorize, whose usage
+  // isn't threaded here yet (see DEC-080 "Deferred").
+  let catMeta: CallMeta | null = null;
+  const modelCat = precomputedCategory ?? (await categorizeExpense(input, user, (m) => { catMeta = m; }));
   // Per-org vendor memory (DEC-070): if the user has previously corrected this vendor's category,
   // honor that over a fresh model guess so they don't have to correct the same vendor twice.
   const cat = await applyVendorMemory(user.organization_id, input.vendor, modelCat);
@@ -202,6 +207,31 @@ export async function processNewExpense(
 
   const baseState = nextContextState(decision);
 
+  // Snapshot this categorization decision to the AI eval log (DEC-080) — captured here, at decision
+  // time, because a later user edit overwrites the receipt's category in place and destroys "what the
+  // model originally guessed." `asked`/`askReason` vary per return path below, so the caller supplies
+  // them. Awaited (a single fast insert) so it flushes before the serverless function freezes.
+  const emitCategorizeEvent = (rid: string, asked: boolean, askReason: AskReason | null) =>
+    logAiEvent({
+      organizationId: user.organization_id,
+      userId: user.id,
+      receiptId: rid,
+      kind: 'categorize',
+      model: cat.fromMemory ? null : HAIKU_MODEL, // null = the category came from vendor memory, no model
+      category: cat.category,
+      ircSection: rule.irc_section,
+      confidence: cat.confidence,
+      asked,
+      askReason,
+      drifted: cat.drifted ?? false,
+      fromMemory: cat.fromMemory ?? false,
+      flaggedReview: review.needsReview,
+      reviewReason: review.needsReview ? review.reasonCode : null,
+      inputTokens: catMeta?.inputTokens ?? null,
+      outputTokens: catMeta?.outputTokens ?? null,
+      latencyMs: catMeta?.latencyMs ?? null,
+    });
+
   // Low-confidence READ on an otherwise-clean log (DEC-066): we're not sure we got the amount right,
   // and nothing else is being asked. Verify the amount before moving on rather than ✓-ing a possibly
   // wrong number. We skip the Sonnet compose entirely (a deterministic verify question replaces the
@@ -216,6 +246,7 @@ export async function processNewExpense(
   if (lowConfidence) {
     const receiptId = await saveReceipt({ user, input, category: cat.category, rule, decision, photoPath, review });
     log.info('expense_low_confidence_verify', { user: user.id, confidence: extractionConfidence });
+    await emitCategorizeEvent(receiptId, true, 'amount_verify');
     return { smsText: readCheckMessage(input), receiptId, contextState: 'awaiting_confirm' };
   }
 
@@ -237,6 +268,16 @@ export async function processNewExpense(
     saveReceipt({ user, input, category: cat.category, rule, decision, photoPath, review }),
     composeResponse({ input, category: cat.category, rule, decision, irc, user, categoryUncertain }),
   ]);
+
+  // Which question (if any) this log triggered — the over-asking signal (DEC-080).
+  const askReason: AskReason | null = categoryUncertain
+    ? 'category_confirm'
+    : baseState === 'awaiting_context'
+      ? 'context'
+      : baseState === 'awaiting_receipt'
+        ? 'receipt'
+        : null;
+  await emitCategorizeEvent(receiptId, askReason !== null, askReason);
 
   return { smsText, receiptId, contextState: categoryUncertain ? 'awaiting_confirm' : baseState };
 }
@@ -365,7 +406,9 @@ export async function processCorrection(
     return { smsText: '', receiptId: null, contextState: null };
   }
 
+  const corrMeta: { value: CallMeta | null } = { value: null };
   const parsed = await claudeJSON<CorrectionResponse>({
+    onMeta: (m) => { corrMeta.value = m; },
     model: SONNET_MODEL,
     system: CORRECTION_PROMPT,
     userText: [
@@ -424,6 +467,27 @@ export async function processCorrection(
     from_category: categoryChanged ? receipt.category : null,
     to_category: categoryChanged ? category : null,
     amount_corrected: amountCorrected,
+  });
+
+  // The labeled eval example (DEC-080): the user just told us the right answer. from_category→
+  // to_category is a free, real-world correction pair to grade the categorizer against. Keyed to the
+  // same receipt as the original 'categorize' event, so the two join into a guessed→corrected row.
+  await logAiEvent({
+    organizationId: user.organization_id,
+    userId: user.id,
+    receiptId,
+    kind: 'correction',
+    model: SONNET_MODEL,
+    category,
+    ircSection: patch.irc_section,
+    categoryChanged,
+    fromCategory: categoryChanged ? receipt.category : null,
+    toCategory: categoryChanged ? category : null,
+    amountCorrected,
+    asked: nextContextState(decision) !== null,
+    inputTokens: corrMeta.value?.inputTokens ?? null,
+    outputTokens: corrMeta.value?.outputTokens ?? null,
+    latencyMs: corrMeta.value?.latencyMs ?? null,
   });
 
   // Per-org vendor memory (DEC-070): an explicit category correction is our strongest "right answer"

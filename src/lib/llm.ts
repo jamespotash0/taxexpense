@@ -22,6 +22,14 @@ function stripToJson(raw: string): string {
   return s;
 }
 
+/** Per-call cost/latency, surfaced via onMeta for the AI eval log (DEC-080). */
+export interface CallMeta {
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  latencyMs: number;
+}
+
 interface CallOpts {
   model: string;
   system: string;
@@ -33,6 +41,10 @@ interface CallOpts {
   maxTokens?: number;
   /** Cache the system prompt (Anthropic prompt caching, ~75% cost cut on repeats). */
   cacheSystem?: boolean;
+  /** Cost/latency sink for the AI eval log (DEC-080). Called once per underlying API call with the
+   *  token usage + wall-clock latency. Optional — most callers ignore it. On a claudeJSON retry it
+   *  fires per attempt, so a collector should keep the LAST value. */
+  onMeta?: (m: CallMeta) => void;
 }
 
 function buildArgs(opts: CallOpts) {
@@ -61,10 +73,20 @@ function buildArgs(opts: CallOpts) {
 
 /** Call Claude, return the raw SMS/plain-text response. */
 export async function claudeText(opts: CallOpts): Promise<string> {
+  const startedAt = Date.now();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const res = await getClaude().messages.create(buildArgs(opts) as any, {
     timeout: DEFAULT_TIMEOUT_MS,
   });
+  if (opts.onMeta) {
+    const usage = (res as { usage?: { input_tokens?: number; output_tokens?: number } }).usage;
+    opts.onMeta({
+      model: opts.model,
+      inputTokens: usage?.input_tokens ?? 0,
+      outputTokens: usage?.output_tokens ?? 0,
+      latencyMs: Date.now() - startedAt,
+    });
+  }
   return extractText(res.content as Array<{ type: string; text?: string }>);
 }
 

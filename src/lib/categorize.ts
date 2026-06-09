@@ -3,7 +3,7 @@
 // the already-computed decision and only phrases it.
 // OWNER: Raj + Priya (categorize), Sofia (response wording).
 
-import { claudeJSON, claudeText } from './llm';
+import { claudeJSON, claudeText, type CallMeta } from './llm';
 import { HAIKU_MODEL, SONNET_MODEL } from './claude';
 import { CATEGORIZATION_HELPER_PROMPT, CATEGORIZATION_RESPONSE_PROMPT } from './prompts';
 import { canonicalizeCategory } from './categories';
@@ -113,14 +113,20 @@ function expenseSummary(input: ExpenseInput): string {
     .join('\n');
 }
 
-/** Prompt 6 — map an expense to one canonical category string (Haiku). */
-export async function categorizeExpense(input: ExpenseInput, user: AppUser): Promise<CategoryResult> {
+/** Prompt 6 — map an expense to one canonical category string (Haiku).
+ *  @param onMeta optional cost/latency sink for the AI eval log (DEC-080). */
+export async function categorizeExpense(
+  input: ExpenseInput,
+  user: AppUser,
+  onMeta?: (m: CallMeta) => void,
+): Promise<CategoryResult> {
   const result = await claudeJSON<Partial<CategoryResult>>({
     model: HAIKU_MODEL,
     system: CATEGORIZATION_HELPER_PROMPT,
     userText: `## User Context\n${userContextLine(user)}\n\n## Expense\n${expenseSummary(input)}`,
     cacheSystem: true,
     maxTokens: 256,
+    onMeta,
   });
   return normalizeCategoryResult(result);
 }
