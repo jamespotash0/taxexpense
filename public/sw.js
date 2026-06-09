@@ -15,6 +15,6 @@ self.addEventListener('fetch', (event) => {
         caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
         return res;
       })
-      .catch(() => caches.match(req)),
+      .catch(async () => (await caches.match(req)) ?? Response.error()),
   );
 });

@@ -2,7 +2,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { trialReminderDue, TRIAL_ENDING_SOON_DAYS, type TrialReminderRow } from './subscription';
+import { trialReminderDue, type TrialReminderRow } from './subscription';
 
 const NOW = new Date('2026-06-10T12:00:00Z');
 const DAY = 24 * 60 * 60 * 1000;
@@ -14,19 +14,19 @@ function org(over: Partial<TrialReminderRow>): TrialReminderRow {
     owner_user_id: 'u1',
     trial_ends_at: at(10 * DAY),
     subscription_status: 'trialing',
-    trial_ending_reminder_at: null,
     trial_ended_reminder_at: null,
     ...over,
   };
 }
 
-test('well inside the trial → no reminder', () => {
+test('well inside the trial → no notice', () => {
   assert.equal(trialReminderDue(org({ trial_ends_at: at(10 * DAY) }), NOW), null);
 });
 
-test('within the look-ahead window → "ending"', () => {
-  assert.equal(trialReminderDue(org({ trial_ends_at: at(2 * DAY) }), NOW), 'ending');
-  assert.equal(trialReminderDue(org({ trial_ends_at: at(TRIAL_ENDING_SOON_DAYS * DAY - 1000) }), NOW), 'ending');
+test('no pre-expiry nudge: still inside the trial → no notice (DEC-079)', () => {
+  // What used to fire an "ending soon" nudge now stays silent until the trial actually lapses.
+  assert.equal(trialReminderDue(org({ trial_ends_at: at(2 * DAY) }), NOW), null);
+  assert.equal(trialReminderDue(org({ trial_ends_at: at(1000) }), NOW), null);
 });
 
 test('just past expiry → "ended"', () => {
@@ -34,20 +34,11 @@ test('just past expiry → "ended"', () => {
   assert.equal(trialReminderDue(org({ trial_ends_at: at(-1000) }), NOW), 'ended');
 });
 
-test('idempotent: a stamped reminder is not re-sent', () => {
-  assert.equal(trialReminderDue(org({ trial_ends_at: at(2 * DAY), trial_ending_reminder_at: at(-DAY) }), NOW), null);
+test('idempotent: a stamped "ended" notice is not re-sent', () => {
   assert.equal(trialReminderDue(org({ trial_ends_at: at(-2 * DAY), trial_ended_reminder_at: at(-DAY) }), NOW), null);
 });
 
-test('an "ending" stamp does NOT suppress the later "ended" notice', () => {
-  // Sent "ending" earlier; trial has now lapsed → "ended" is still due.
-  assert.equal(
-    trialReminderDue(org({ trial_ends_at: at(-1 * DAY), trial_ending_reminder_at: at(-4 * DAY) }), NOW),
-    'ended',
-  );
-});
-
-test('non-trialing orgs never get a reminder', () => {
+test('non-trialing orgs never get a notice', () => {
   for (const subscription_status of ['active', 'canceled', 'past_due', null] as const) {
     assert.equal(trialReminderDue(org({ subscription_status, trial_ends_at: at(-DAY) }), NOW), null);
   }

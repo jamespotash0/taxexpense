@@ -236,6 +236,46 @@ CREATE TABLE conversations (
 CREATE INDEX idx_conversations_user ON conversations(user_id, created_at DESC);
 ```
 
+### `ai_events` table (AI decision / evaluation log — DEC-080)
+
+Append-only; one row per AI decision the workflow makes, captured **at decision time**. `conversations`
+is the transcript and `receipts` holds only the final, human-blended state — neither can answer "what
+did the model guess vs. what did the user correct it to," because dashboard/SMS edits overwrite a
+category in place. This table snapshots the decision before that happens, so a `correction` row's
+`from_category`→`to_category` is a free, real-world labeled eval example. Powers the future internal
+eval dashboard (correction rate, over-ask rate, drift rate, cost-per-expense). Migration 0027.
+
+```sql
+CREATE TABLE ai_events (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id  UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  user_id          UUID REFERENCES users(id) ON DELETE SET NULL,
+  receipt_id       UUID REFERENCES receipts(id) ON DELETE SET NULL,
+  kind             TEXT NOT NULL,                  -- 'categorize' | 'correction'
+  model            TEXT,                           -- decision model (null if from vendor memory)
+  category         TEXT,
+  irc_section      TEXT,
+  confidence       DECIMAL(3,2),
+  asked            BOOLEAN NOT NULL DEFAULT FALSE, -- did the tree ask the user? (over-asking metric)
+  ask_reason       TEXT,                           -- 'context'|'receipt'|'amount_verify'|'category_confirm'
+  drifted          BOOLEAN NOT NULL DEFAULT FALSE,
+  from_memory      BOOLEAN NOT NULL DEFAULT FALSE,
+  flagged_review   BOOLEAN NOT NULL DEFAULT FALSE,
+  review_reason    TEXT,
+  category_changed BOOLEAN,                         -- correction: did the fix flip the category?
+  from_category    TEXT,                            -- correction: the model's guess (the label's "wrong")
+  to_category      TEXT,                            -- correction: the user's answer (the label's "right")
+  amount_corrected BOOLEAN,
+  input_tokens     INT,                             -- cost; null where usage isn't threaded yet
+  output_tokens    INT,
+  latency_ms       INT,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_ai_events_org  ON ai_events(organization_id, created_at DESC);
+CREATE INDEX idx_ai_events_kind ON ai_events(kind, created_at DESC);
+```
+
 ### `auth_codes` table
 
 ```sql

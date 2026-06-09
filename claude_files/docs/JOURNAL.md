@@ -7,6 +7,157 @@ Format: date, decision, who pushed back, resolution, rationale.
 
 ---
 
+## 2026-06-09 — Capture AI decisions for evaluation (the `ai_events` log)
+
+### DEC-080 — Snapshot every AI decision at decision time into an append-only `ai_events` log
+
+- **Context.** Founder asked how we'd derive *evaluation* meaning from the data — initially assuming a
+  v2 internal dashboard. The framing got corrected: the dashboard is the easy last 10%; the missing
+  90% is **instrumentation that can't be backfilled.** `conversations` is a transcript + operational
+  state store (pending-question `context_state`, rate limiting) — it records messages, not decisions.
+  `receipts` holds only the *final* state, and edits overwrite a category **in place** (`updated_at`
+  moves, the old value is gone). So the single most valuable eval signal — what the model originally
+  guessed vs. what the user corrected it to — is destroyed on write. Defer the capture and we launch
+  v1 blind to whether the substantiation tree (the heart of the product) actually works.
+- **Decision.** Capture is a **v1** item; the dashboard stays v2. Added an append-only `ai_events`
+  table (migration 0027) + `logAiEvent()` ([[ai-events.ts]]), one row per AI decision written **at
+  decision time**:
+  - `kind='categorize'` — emitted in `processNewExpense` on every path (incl. the low-confidence
+    verify path): model, category, confidence, irc_section, `drifted`, `from_memory`, review flag,
+    and `asked`/`ask_reason` (`context`|`receipt`|`amount_verify`|`category_confirm`). The
+    `asked / total` ratio is the **over-asking metric** our "ask only when required" positioning
+    lives on.
+  - `kind='correction'` — emitted in `processCorrection`: `from_category`→`to_category` is a free,
+    real-world **labeled eval example**, keyed to the same `receipt_id` as the original categorize
+    row so the two join into a guessed→corrected pair (the categorizer's grade).
+- **Cost/latency.** Added an optional `onMeta` sink to the `claudeText`/`claudeJSON` wrapper
+  ([[llm.ts]]) surfacing `{ model, input/output tokens, latencyMs }` per call — non-invasive, existing
+  callers ignore it. Threaded through `categorizeExpense` and the correction call so those events carry
+  real token counts (Raj: cost-per-user is non-negotiable; mirrors `agent_runs`).
+- **Privacy / posture.** No message text or PII — the transcript stays in `conversations`; `ai_events`
+  is decisions + cost only, keyed to a receipt. Service-role writes, RLS default-deny (matches
+  `agent_runs`/`funnel_events`). Fire-and-forget: a logging failure warns and never breaks the SMS
+  flow (mirrors `logConversation`).
+- **Deferred / watch.** Token counts are **null on the main SMS path** today: the category there comes
+  from the upstream merged OCR extract+categorize call (DEC-063), whose `usage` isn't threaded into
+  `processNewExpense` yet — only the standalone categorize + correction calls carry tokens. The
+  *decision* fields (the irreplaceable part) are captured on all paths; thread `onMeta` through the
+  merged extract call to close the cost gap.
+- **Reading the signal (v1).** `supabase/eval/ai_events.sql` holds paste-into-Supabase rollups
+  (over-ask rate, correction rate, category-flip + confusion pairs, confidence calibration, drift,
+  cost/latency, daily volume) — the v1 way to read eval until the v2 dashboard renders the same
+  numbers. Read-only, not a migration. Run migration `0027` first so the data accrues.
+
+---
+
+## 2026-06-09 — Problem-framed hero champion; copy A/B paused; framer-motion polish
+
+### DEC-079 — Hero copy goes problem-first ("what / why is on you"); A/B paused; no three.js
+
+- **Context.** Founder felt the live hero (variant B, conversational — "Hey, I'm Tally. Text me
+  the why.") was feature/product-voiced, not problem-focused — "users view things as problems you
+  solve, not what it does." Also asked for cleaner/more-modern motion, floating three.js +
+  anime.js and Contentsquare-style blur-fade / text-reveal / random-letter-swap (21st.dev/shadcn).
+- **Copy options + team review.** Drafted 5 problem-first headlines; founder shortlisted #3
+  (what/why) and #1 (forgetting).
+  - **Marcus:** only #3 ("Your bank tracks the what. The why is on you.") encodes the actual moat —
+    the WHAT-vs-WHY wedge no competitor owns; QuickBooks ships AI deduction-finding in 2026, so
+    "AI receipt tracker" framing is undifferentiated. Champion = #3.
+  - **Sofia:** the sharp arms (#2/#5) can read accusatory to an already-guilty user; #1 blames the
+    *memory*, not the person. Folded #1's "by April it's gone" into the **subtitle** for warmth.
+  - **Jordan (compliance):** keep "Recordkeeping, not tax advice"; no outcome promises. Subtitle
+    says the why/record "still hold up," NOT "nothing gets tossed."
+  - **Maya:** #3 is the 5-second-visualizable hook (split-screen demo). Wanted a dollar number;
+    blocked by compliance (we're a logger, not an advisor).
+- **Conflict surfaced + resolved.** Priya + Alex: a 5-way (or any) A/B test can't reach
+  significance at current (≈zero) traffic — it would read noise as signal. Founder agreed: **no
+  A/B test.** Ship ONE champion. Validate with 5 real self-employed users before trusting any
+  split. A/B scaffolding (lib/ab.ts, proxy.ts) left intact but **paused** — proxy serves 'A' for
+  everyone; restore `Math.random() < 0.5 ? 'A' : 'B'` to re-enable.
+- **Design decision.** **No three.js / anime.js.** All requested effects (blur-fade, text-reveal,
+  letter-swap) are framer-motion (v12, already bundled). three.js would add ~150KB + a WebGL
+  context to the most perf-critical page and compete with the existing cinematic HeroVideo.
+- **Implementation.** [[src/i18n/dictionaries.ts]] variant-A hero copy (EN + ES) → champion.
+  [[src/proxy.ts]] always serves 'A'. [[src/components/HeroCopy.tsx]] rewritten: per-word
+  staggered blur-fade-rise (stagger via computed per-word delay so each logical line stays a
+  `text-balance` block and wraps as a unit, not mid-phrase), letter-swap scramble on the accent
+  word, self-drawing squiggle, cascaded subtitle; `prefers-reduced-motion` renders all static.
+  Verified across 360–1440px (no overflow; 2–3 balanced headline lines) via scripts/check-hero.mjs
+  + settled screenshots.
+- **Follow-ups.** Gut-check the line with 5 real users (Alex/Marcus open item). Variant B's
+  dormant rendering glues its trailing period as a separate token — cosmetic, not served, deferred.
+
+### DEC-079b — Single champion (no A/B at all); chips de-cluttered; trial-start on first text; no pre-expiry nudge
+
+Follow-on tweaks in the same session, all under DEC-079:
+
+- **One hero for everyone, including old cookies.** Pausing the split in proxy.ts only affected
+  *new* visitors — anyone (incl. the founder) holding an `ab_hero=B` cookie from earlier testing
+  still saw the conversational B hero, where only "Tally" scrambled. That's why "the text reveal is
+  just the Tally word." Fix: [[src/app/page.tsx]] now hard-codes `heroVariant = 'A'` (ignores the
+  cookie) and the dead arm-C CTA branch + HeroTextMeForm import were removed. All title words now
+  reveal for everyone.
+- **Audience chips → one quiet middot line.** The bordered entity pills wrapped raggedly (3 + 1) on
+  phones and read as clutter under an eyebrow that already says "Built for the self-employed."
+  Replaced with a single muted `Freelancers · Contractors · Sole proprietors · Single-member LLCs`
+  line. Kept the "{days}-day free trial · no card" reassurance microcopy (proven friction-reducer).
+- **Trial-start is announced on the first text.** [[src/lib/prompts.ts]] `ONBOARDING_Q_NAME` now
+  leads with "Your 21-day free trial starts now — no card needed." so the user knows the clock (and
+  the free days) began. Co-owner join greeting unchanged (they share the owner's subscription).
+- **No pre-expiry nudge — only "trial expired."** Founder: don't nag during the trial; message only
+  once it's actually over. Removed the T-3 "ending soon" reminder entirely: `trialEndingSoonSms`
+  (prompts.ts) deleted; [[src/lib/subscription.ts]] `trialReminderDue` returns only `'ended'`,
+  `TrialReminderKind` narrowed to `'ended'`, `TRIAL_ENDING_SOON_DAYS` + `trial_ending_reminder_at`
+  reads dropped, `listTrialingForReminder` scans only lapsed trials, and the cron route sends just
+  the ended notice. The reactive paywall (on first text after expiry) is unchanged. The now-dead
+  `trial_ending_reminder_at` column is dropped in migration `0028_drop_trial_ending_reminder.sql`
+  (RUN_ALL snapshot updated to match); `trial_ended_reminder_at` + the `idx_orgs_trialing_ends`
+  scan index stay. Tests updated (207 pass).
+
+
+
+### DEC-078 — Receipt reminders: waive + auto-cap so we never nag forever
+
+- **Context.** Founder flagged that the weekly receipt-reminder cron can nag indefinitely: if a
+  user genuinely has no receipt (only the bill/statement), repeated nudges are annoying. Also asked
+  how multiple-missing is handled.
+- **Bug found, not just a gap.** The in-conversation "I don't have a receipt" handler (DEC-072)
+  acknowledges "no problem" but **keeps `needs_receipt = true`**, and the only thing that ever
+  clears the flag is attaching a photo. So "I don't have it" → "no problem" → re-nagged weekly,
+  forever. The conversational ack and the recurring cron didn't talk to each other.
+- **Multiple-missing (answer).** The cron aggregates per user into ONE weekly text with a count
+  ("3 expenses are still missing a receipt photo"), not one text per receipt. Matching an incoming
+  photo to a specific expense happens later via the attachment flow.
+- **Team review (Priya / Sofia / Jordan / Raj / Alex).**
+  - **Priya:** it's a broken-promise bug; a flagged receipt needs a terminal state besides "photo
+    attached" — `waived`. Track waive rate + reminders-per-receipt-before-resolution.
+  - **Sofia:** split the reply — "later/I'll send it" keeps nudging; "lost it / don't have one" is a
+    different intent → acknowledge and STOP. The weekly nudge should advertise the exit ("reply
+    'no receipt'").
+  - **Jordan:** waiving must NOT flip `substantiation_complete` — a waived ≥$75 strict expense is
+    still an audit gap and must show on the export. Fewer texts also helps TCPA. Log why we stopped.
+  - **Raj:** boring schema — one nullable `receipt_waived_at` + a `receipt_reminder_count`; cron
+    gets one more WHERE clause. On attach, clear the waive so a late photo re-engages.
+  - **Alex:** the reminder friction is partly the moat (documentation completeness) — make "later"
+    frictionless and "waive" deliberate, and never let a cap *silently* drop a ≥$75 gap.
+- **Conflict surfaced + resolved.** Sofia wanted an auto-cap (silence = annoyed, stop); Alex/Jordan
+  resisted a *silent* cap. Resolution: keep an auto-cap (`RECEIPT_REMINDER_CAP = 4`) but it's never
+  silent — the capping nudge says "I'll stop asking after this… over-$75 still needs a receipt," and
+  capped/waived expenses stay visible in the dashboard cleanup list and on the export.
+- **Decision / implementation.**
+  - Migration `0026_receipt_waive.sql`: `receipt_waived_at`, `receipt_reminder_count`, partial index.
+  - SMS: new `looksLikeNoReceiptEver` (permanent "no receipt", excludes "later") → `waiveReceipt` +
+    distinct ack; "later"/bare-no keeps the existing keep-flagged ack.
+  - Cron: excludes waived, caps at 4, increments per receipt only on successful send, switches to an
+    explicit "last nudge" message at the cap, and now also filters opted-out users (was missing).
+  - Attach paths clear `receipt_waived_at`. Export gains a "Receipt" column (On file / Missing /
+    None (no receipt available) / Not required). Waiving never sets `substantiation_complete`.
+  - Tests added for the later-vs-never classifier and the export status column (208 pass).
+- **Deferred (not punted).** A per-receipt "No receipt available" button in the dashboard — the SMS
+  path delivers waive today; the dashboard gives per-item control (SMS can only waive in context).
+
+---
+
 ## 2026-06-07 — Substantiation gaps, conversational capability answers, paywall determinism
 
 ### DEC-077 — Subscription-limit (paywall) reply: deterministic subscribe token, NO caching layer

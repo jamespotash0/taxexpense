@@ -1,4 +1,4 @@
-# CLAUDE.md — Project Memory
+# CLAUDE.md: Project Memory
 
 This file is automatically read by Claude Code on every session start. It contains the most important context to keep loaded at all times.
 
@@ -10,15 +10,15 @@ This file is automatically read by Claude Code on every session start. It contai
 
 ## What This Project Is
 
-Tally is a text-based AI assistant that captures business expense context (the WHY) in real-time for self-employed people. Users text expenses to a phone number — photo or text. The AI extracts data, categorizes it under the correct IRC section, and asks for additional context **only when the IRS substantiation rules actually require it**.
+Tally is a text-based AI assistant that captures business expense context (the WHY) in real-time for self-employed people. Users text expenses to a phone number (photo or text). The AI extracts data, categorizes it under the correct IRC section, and asks for additional context **only when the IRS substantiation rules actually require it**.
 
 ## Positioning Statement
 
 **Internal (for technical decisions):**
-"We solve tax-time scrambles for self-employed people whose bank tracks WHAT they spent but not WHY — and by April it's too late to remember."
+"We solve tax-time scrambles for self-employed people whose bank tracks WHAT they spent but not WHY, and by April it's too late to remember."
 
 **External (for user-facing copy):**
-"Your bank knows WHAT you spent — but not WHY. Tally captures both."
+"Your bank knows WHAT you spent, but not WHY. Tally captures both."
 
 The product is NOT just "AI receipt tracking." It's "capture WHY in real-time." Every design decision should reinforce this positioning.
 
@@ -75,7 +75,7 @@ Look up substantiation_rules
 Strict category?
 ├── NO → Log it. Done.
 └── YES:
-    ├── always_receipt? (lodging only — gifts are threshold-based, see JOURNAL DEC-012)
+    ├── always_receipt? (lodging only; gifts are threshold-based, see JOURNAL DEC-012)
     │   ├── Has photo? → ask only for context
     │   └── No photo? → log + ask for receipt
     └── amount >= $75?
@@ -86,7 +86,7 @@ Strict category?
 
 The strict categories are: meals, travel transportation/lodging, business gifts, vehicle expenses.
 
-Everything else is "general substantiation" — log and move on.
+Everything else is "general substantiation." Log it and move on.
 
 ## File Map
 
@@ -94,6 +94,7 @@ When you need to know something, read the relevant file (under `claude_files/`):
 
 | Need | File |
 |------|------|
+| Where the build is right now (living snapshot) | `claude_files/docs/STATE.md` |
 | Product overview and positioning | `claude_files/docs/CONTEXT.md` |
 | Day-by-day execution plan | `claude_files/docs/PLAN.md` |
 | Technical specification + DB schema | `claude_files/docs/SPEC.md` |
@@ -108,10 +109,13 @@ When you need to know something, read the relevant file (under `claude_files/`):
 ## How to Approach Work
 
 **At session start:**
-1. Confirm what day of the build I'm on
-2. Read `claude_files/docs/PLAN.md` for today's overview
-3. Open the relevant ticket file (`claude_files/specs/01-foundation.md`, etc.)
-4. Work tickets in order
+1. Read `claude_files/docs/STATE.md` for where the build is right now
+2. Confirm what day of the build I'm on
+3. Read `claude_files/docs/PLAN.md` for today's overview
+4. Open the relevant ticket file (`claude_files/specs/01-foundation.md`, etc.)
+5. Work tickets in order
+
+Keep `STATE.md` current as work lands. JOURNAL.md is the append-only history; STATE.md is the present snapshot.
 
 **For technical decisions:**
 - Default to "boring tech that works"
@@ -136,14 +140,14 @@ When you need to know something, read the relevant file (under `claude_files/`):
 
 Load these as needed for domain-specific perspective (under `claude_files/team/`):
 
-- `marcus-chen.md` — Strategy, prioritization, positioning
-- `priya-sharma.md` — Specs, edge cases, metrics
-- `sofia-reyes.md` — Flows, conversation design, copy
-- `raj-patel.md` — Architecture, database, scaling
-- `emma-larsson.md` — Next.js, frontend, performance
-- `jordan-kim.md` — Security, compliance, testing
-- `alex-moreno.md` — Pressure-testing, devil's advocate
-- `maya-okafor.md` — Content, distribution, growth
+- `marcus-chen.md`: Strategy, prioritization, positioning
+- `priya-sharma.md`: Specs, edge cases, metrics
+- `sofia-reyes.md`: Flows, conversation design, copy
+- `raj-patel.md`: Architecture, database, scaling
+- `emma-larsson.md`: Next.js, frontend, performance
+- `jordan-kim.md`: Security, compliance, testing
+- `alex-moreno.md`: Pressure-testing, devil's advocate
+- `maya-okafor.md`: Content, distribution, growth
 
 **Default approach:** When a decision touches multiple domains, load 2-3 relevant personas and get their perspectives. Don't load all of them every time.
 
@@ -155,7 +159,7 @@ Load these as needed for domain-specific perspective (under `claude_files/team/`
 ✅ Phone OTP login
 ✅ Web dashboard for review/edit/export
 ✅ CSV export (standard + QuickBooks-compatible)
-✅ "Email my accountant" feature (P1 — can slip)
+✅ "Email my accountant" feature (P1, can slip)
 ✅ Landing page + legal pages
 
 ## What V1 Does NOT Include
@@ -174,7 +178,7 @@ Load these as needed for domain-specific perspective (under `claude_files/team/`
 ## Common Mistakes to Avoid
 
 1. **Don't over-architect.** This is V1. Boring tech that works > clever tech that breaks.
-2. **Don't ask too many questions.** The substantiation decision tree determines when to ask — never add more.
+2. **Don't ask too many questions.** The substantiation decision tree determines when to ask. Never add more.
 3. **Don't claim "tax advice."** We're a logger, not an advisor. Always defer to CPA for specifics.
 4. **Don't add features mid-build.** New ideas go in `JOURNAL.md` for post-V1 consideration.
 5. **Don't skip security tickets.** Jordan's checklist is non-negotiable.
@@ -183,13 +187,13 @@ Load these as needed for domain-specific perspective (under `claude_files/team/`
 ## Brand Name
 
 **Working name:** Tally · **Beta domain:** tallywhy.com (see JOURNAL DEC-013, supersedes DEC-010)
-**App Store / subtitle descriptor:** "Tally · expense tracking" — the tagline must carry the WHY.
+**App Store / subtitle descriptor:** "Tally · expense tracking." The tagline must carry the WHY.
 
 **Status:** Treated as a rebrandable beta name (same posture as the prior "TaxSnap" handle).
 "Tally" was chosen on sound + category fit ("a tally" = a running financial record; warm,
-verb-able — "it tallies as you go"). The WHY differentiator is now carried by the domain
-itself — **tallywhy.com** ("your bank knows WHAT, Tally knows WHY") — rather than a generic
-`get<name>expense` handle. Its namespace is crowded — bare `tally.com` and clean `tally-*`
+verb-able, "it tallies as you go"). The WHY differentiator is now carried by the domain
+itself, **tallywhy.com** ("your bank knows WHAT, Tally knows WHY"), rather than a generic
+`get<name>expense` handle. Its namespace is crowded. Bare `tally.com` and clean `tally-*`
 domains (incl. `usetally.com`) are taken or parked-for-sale, and "Tally" is an active fintech
 trademark thicket (ex Tally credit-card app, Tally forms, tally.cash/.money). So: do NOT
 invest in the "Tally" mark; `tallywhy.com` is the beta handle (with `gettallywhy.com` /
@@ -200,12 +204,12 @@ paid/public scale.
 
 1. Brand name locked
 2. User validation with 5 real unsophisticated self-employed people
-3. Lawyer review of disclaimer/privacy/terms (~$1,500-2,500 — pre-paid users)
+3. Lawyer review of disclaimer/privacy/terms (~$1,500-2,500, pre-paid users)
 4. CPA spot-check of IRC summaries (post-launch, when revenue justifies)
 
 ## How to Use This File
 
-Claude Code reads this on every session automatically. You shouldn't need to remind it about anything in this file — just ask for help with the actual work.
+Claude Code reads this on every session automatically. You shouldn't need to remind it about anything in this file. Just ask for help with the actual work.
 
 If something major changes (new positioning, new architecture decision), update this file and log it in `claude_files/docs/JOURNAL.md`. It's the source of truth for "what does Claude Code need to know on every session."
 

@@ -20,10 +20,11 @@ export function proxy(req: NextRequest) {
     const existing = req.cookies.get(AB_HERO_COOKIE)?.value;
     if (isHeroVariant(existing)) return NextResponse.next();
 
-    // 50/50 copy test only (A vs B). Arm C (phone-input CTA) is NOT auto-assigned to live
-    // traffic — it's a prototype reachable via a forced `ab_hero=C` cookie for user-testing
-    // and demos, pending TCPA consent-logging + DB-backed rate limiting (JOURNAL DEC-027).
-    const variant = Math.random() < 0.5 ? 'A' : 'B';
+    // Copy A/B is OFF (DEC-079): with effectively zero traffic a split can't reach significance,
+    // so everyone gets the champion copy (A — the problem-framed "what / why" hero). The B/C
+    // arms still render via a forced `ab_hero=B|C` cookie for demos/user-testing, and the split
+    // re-enables by restoring `Math.random() < 0.5 ? 'A' : 'B'` here once traffic justifies it.
+    const variant = 'A';
     req.cookies.set(AB_HERO_COOKIE, variant); // visible to this request's RSC render
     const res = NextResponse.next({ request: { headers: req.headers } });
     res.cookies.set(AB_HERO_COOKIE, variant, {

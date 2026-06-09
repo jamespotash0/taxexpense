@@ -854,11 +854,11 @@ ALTER TABLE organizations ADD COLUMN IF NOT EXISTS subscription_welcomed_at TIME
 -- 0019_trial_reminders.sql
 -- =============================================================
 
--- Tally — proactive trial-expiry reminders (DEC-061). Two idempotency stamps so the daily cron
--- texts each trial at most once before expiry ("ending soon") and once at/after expiry ("ended").
+-- Tally — proactive trial-expiry reminder (DEC-061, narrowed by DEC-079). One idempotency stamp so
+-- the daily cron texts each trial at most once, and only after expiry ("trial ended"). The
+-- pre-expiry "ending soon" stamp (trial_ending_reminder_at) was removed in 0028.
 -- (subscription_status exists by here — added in the 0005 section above.)
 
-ALTER TABLE organizations ADD COLUMN IF NOT EXISTS trial_ending_reminder_at TIMESTAMPTZ;
 ALTER TABLE organizations ADD COLUMN IF NOT EXISTS trial_ended_reminder_at TIMESTAMPTZ;
 CREATE INDEX IF NOT EXISTS idx_orgs_trialing_ends
   ON organizations(trial_ends_at)

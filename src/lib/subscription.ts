@@ -69,26 +69,24 @@ export async function updateOrgBilling(orgId: string, patch: OrgBillingPatch): P
   if (error) throw error;
 }
 
-// --- Proactive trial reminders (DEC-061) -------------------------------------------------------
+// --- Proactive trial-expiry notice (DEC-061, narrowed by DEC-079) ------------------------------
+// We notify ONLY after the trial has actually lapsed — no "ending soon" nudges during the trial.
+// The trial-start is announced on the user's first text; the cron then stays quiet until expiry.
 
-/** Days before expiry to send the "ending soon" nudge. */
-export const TRIAL_ENDING_SOON_DAYS = 3;
-
-export type TrialReminderKind = 'ending' | 'ended';
+export type TrialReminderKind = 'ended';
 
 export interface TrialReminderRow {
   id: string;
   owner_user_id: string | null;
   trial_ends_at: string | null;
   subscription_status: SubStatus;
-  trial_ending_reminder_at: string | null;
   trial_ended_reminder_at: string | null;
 }
 
 /**
- * Pure: which trial reminder (if any) is due for an org right now. Sends "ending" once within the
- * window before expiry, and "ended" once at/after expiry — each gated by its own stamp so the daily
- * cron never re-texts. Only trialing orgs qualify (a subscriber's status is 'active').
+ * Pure: is the one-time "trial ended" notice due for an org right now? Fires once at/after expiry,
+ * gated by its stamp so the daily cron never re-texts. Only trialing orgs qualify (a subscriber's
+ * status is 'active'). No pre-expiry nudge by design (DEC-079).
  */
 export function trialReminderDue(org: TrialReminderRow, now: Date): TrialReminderKind | null {
   if (org.subscription_status !== 'trialing' || !org.trial_ends_at) return null;
@@ -96,32 +94,26 @@ export function trialReminderDue(org: TrialReminderRow, now: Date): TrialReminde
   if (ends <= now.getTime()) {
     return org.trial_ended_reminder_at ? null : 'ended';
   }
-  const msLeft = ends - now.getTime();
-  if (msLeft <= TRIAL_ENDING_SOON_DAYS * DAY_MS) {
-    return org.trial_ending_reminder_at ? null : 'ending';
-  }
   return null;
 }
 
-/** Trialing orgs whose trial ends within the look-ahead window or has already lapsed (cron scan). */
+/** Trialing orgs whose trial has already lapsed and haven't been told yet (cron scan). */
 export async function listTrialingForReminder(now: Date): Promise<TrialReminderRow[]> {
-  const horizon = new Date(now.getTime() + TRIAL_ENDING_SOON_DAYS * DAY_MS).toISOString();
   const { data, error } = await getSupabaseAdmin()
     .from('organizations')
-    .select('id, owner_user_id, trial_ends_at, subscription_status, trial_ending_reminder_at, trial_ended_reminder_at')
+    .select('id, owner_user_id, trial_ends_at, subscription_status, trial_ended_reminder_at')
     .eq('subscription_status', 'trialing')
     .not('trial_ends_at', 'is', null)
-    .lte('trial_ends_at', horizon);
+    .lte('trial_ends_at', now.toISOString());
   if (error) throw error;
   return (data as TrialReminderRow[]) ?? [];
 }
 
-/** Stamp the reminder we just sent so it's never re-sent (idempotency). */
-export async function stampTrialReminder(orgId: string, kind: TrialReminderKind): Promise<void> {
-  const col = kind === 'ending' ? 'trial_ending_reminder_at' : 'trial_ended_reminder_at';
+/** Stamp the "ended" notice we just sent so it's never re-sent (idempotency). */
+export async function stampTrialReminder(orgId: string): Promise<void> {
   const { error } = await getSupabaseAdmin()
     .from('organizations')
-    .update({ [col]: new Date().toISOString() })
+    .update({ trial_ended_reminder_at: new Date().toISOString() })
     .eq('id', orgId);
   if (error) throw error;
 }
