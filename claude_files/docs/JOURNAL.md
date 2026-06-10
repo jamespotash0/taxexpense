@@ -7,6 +7,54 @@ Format: date, decision, who pushed back, resolution, rationale.
 
 ---
 
+## 2026-06-10 — Profession-aware categorization (business profile); inventory/COGS deferred
+
+### DEC-081 — Business profile as a categorization PRIOR (Spec 09, Piece 1); inventory/COGS (Piece 2) deferred
+
+- **Context.** Founder asked whether Tally serves higher-value verticals (real estate agents to
+  start): 1099 sole-props with profession-specific deductions (mileage, home office, MLS/desk/E&O
+  fees, staging, closing gifts, CE) that a generic engine — and competitors like Keeper — miss. The
+  engine was profession-blind: `users.business_type` was collected at onboarding and injected into
+  the categorizer as a bare string, but **no logic used it** — realtor, consultant, and barber all
+  got the identical 21 categories. The watch-reseller example surfaced a second, deeper gap (below).
+- **Decision (Piece 1 — SHIPPED).** Derive a structured **business profile** once, lazily, at the
+  first expense (`ensureBusinessProfile`, top of the expense flow — onboarding stays deterministic +
+  fast, the highest-drop-off moment) from the free-text `business_type` answer via Sonnet
+  (`BUSINESS_PROFILE_BUILDER_PROMPT`). Shape: `{industry, sells_product, common_categories,
+  synonyms, notes_for_categorizer}`, stored in `users.business_profile` JSONB (migration 0029).
+  Injected through the SINGLE `userContextLine` seam so all four categorization paths (standalone,
+  merged OCR, merged text, response composer) become profession-aware at once. It is a **PRIOR, not
+  an override** — the prompt says so literally; the model still decides and code still enforces the
+  closed taxonomy. Dashboard edit of `business_type` clears the profile so it regenerates lazily.
+- **Guardrails (the load-bearing ones).**
+  - **Closed-taxonomy backstop (Jordan/Alex).** `sanitizeProfile` drops any `common_categories`/
+    `synonyms` value that isn't a real category key, so a hallucinated hint (e.g. a stray
+    `inventory_cogs`/`meals_client`) can never reach a prompt as if authoritative. Unit-tested.
+  - **Best-effort, zero-regression.** Any failure → profile stays null → today's bare-business_type
+    behavior. Never throws into the SMS flow.
+  - **Wrong-profile risk (Alex).** A bad/over-applied profile miscategorizes *systematically*, worse
+    than random noise. Mitigation now: it's only a prior + an easy dashboard correction that
+    regenerates. Profession-tagged eval (`npm run eval:profession`) measures with-vs-without lift.
+- **Decision (Piece 2 — DEFERRED).** Inventory / Cost of Goods Sold (§471) is **out of scope.** The
+  deciding reason is structural, not effort: COGS depends on year-end ending inventory (Schedule C
+  Part III: beginning + purchases − ending), which depends on **what sold**. Tally captures
+  *expenses* (money out); a sale is *revenue* (money in) — the side of the ledger the product
+  deliberately never touches. So Tally cannot compute COGS; the only honest options are a single
+  year-end inventory question or punting the ending count to the user's CPA, and per-sale tracking
+  would turn an effortless capture tool into inventory/bookkeeping software. The §471 seed migration
+  drafted earlier was removed. Verified facts kept in Spec 09 for if/when an inventory segment is a
+  deliberate target (§448(c) threshold $32M for 2026; §471(c) small-business NIMS method).
+- **Pushback considered.** Alex: ungated inventory category would mislabel ordinary purchases →
+  resolved by deferring Piece 2 entirely and gating any future inventory work behind the profile.
+  Raj: COGS timing isn't expressible in `substantiation_rules.deduction_percentage` (encodes *how
+  much*, not *when*) → another reason Piece 2 needs schema work it doesn't have, so it waits.
+- **Files.** `0029_business_profile.sql`, `src/lib/businessProfile.ts` (+ `.test.ts`),
+  `BUSINESS_PROFILE_BUILDER_PROMPT` (prompts.ts), `userContextLine` (categorize.ts),
+  `ensureBusinessProfile` wiring (sms-handler.ts), settings edit (SettingsForm/route/page +
+  dictionaries), `scripts/eval/profession.ts`. Full spec: `claude_files/specs/09-business-profile.md`.
+
+---
+
 ## 2026-06-09 — Capture AI decisions for evaluation (the `ai_events` log)
 
 ### DEC-080 — Snapshot every AI decision at decision time into an append-only `ai_events` log

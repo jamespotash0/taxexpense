@@ -54,6 +54,7 @@ export default async function SettingsPage() {
             email: user.email ?? '',
             organization_name: (org?.name as string | null) ?? '',
             accountant_email: user.accountant_email ?? '',
+            business_type: user.business_type ?? '',
           }}
         />
       </div>

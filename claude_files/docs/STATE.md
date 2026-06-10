@@ -24,7 +24,7 @@ _Last updated: 2026-06-10_
 
 ## Recently shipped
 
-- **Business profile → profession-aware categorization** (Spec 09, Piece 1, 2026-06-10).
+- **Business profile → profession-aware categorization** (Spec 09, Piece 1, DEC-081, 2026-06-10).
   `users.business_profile` JSONB (migration 0029) holds a structured prior
   `{industry, sells_product, common_categories, synonyms, notes_for_categorizer}` derived ONCE
   from the free-text `business_type` answer (Sonnet, `BUSINESS_PROFILE_BUILDER_PROMPT`). Generated
@@ -32,8 +32,11 @@ _Last updated: 2026-06-10_
   deterministic/fast), injected through the single `userContextLine` seam so all four categorization
   paths get it. Closed-taxonomy backstop (`sanitizeProfile`) drops any invalid category key.
   Best-effort: failure → null → today's bare-business_type behavior. New module `businessProfile.ts`
-  + tests (227 pass). **Inventory/COGS (Piece 2) DEFERRED** — Tally captures expenses not sales, so
-  it structurally can't compute COGS; out of scope (Spec 09). Needs a JOURNAL DEC number.
+  + tests (227 pass). **Work type is now editable at /settings** — changing it clears the profile so
+  it regenerates on the next expense. **Two evals added:** `eval:profession` (with-vs-without-profile
+  categorization lift, regression-gated) and `eval:profile-build` (grades what the builder prompt
+  generates; 9/9 sane). **Inventory/COGS (Piece 2) DEFERRED** — Tally captures expenses not sales,
+  so it structurally can't compute COGS; out of scope (Spec 09).
 - **Receipt reminders: waive + auto-cap** (DEC-078, 2026-06-08). A flagged receipt now has
   a terminal `waived` state so we stop nagging forever. Cap at 4 reminders, never silent.
 - **Paywall reply made deterministic** (DEC-077, 2026-06-07). Subscribe token, no caching layer.

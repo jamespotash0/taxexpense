@@ -11,6 +11,7 @@ interface Initial {
   email: string;
   organization_name: string;
   accountant_email: string;
+  business_type: string;
 }
 
 interface SettingsCopy {
@@ -18,6 +19,8 @@ interface SettingsCopy {
   email: string;
   businessName: string;
   accountantEmail: string;
+  workType: string;
+  workTypeHint: string;
   save: string;
   saved: string;
   saveFailed: string;
@@ -44,6 +47,7 @@ export function SettingsForm({ initial, t }: { initial: Initial; t: SettingsCopy
         email: form.email || null,
         organization_name: form.organization_name || null,
         accountant_email: form.accountant_email || null,
+        business_type: form.business_type || null,
       },
     });
     if (ok) {
@@ -60,6 +64,11 @@ export function SettingsForm({ initial, t }: { initial: Initial; t: SettingsCopy
       <div><label className={labelCls}>{t.yourName}</label><input className={field} value={form.full_name} onChange={(e) => set('full_name', e.target.value)} /></div>
       <div><label className={labelCls}>{t.email}</label><input type="email" className={field} value={form.email} onChange={(e) => set('email', e.target.value)} placeholder="you@example.com" /></div>
       <div><label className={labelCls}>{t.businessName}</label><input className={field} value={form.organization_name} onChange={(e) => set('organization_name', e.target.value)} /></div>
+      <div>
+        <label className={labelCls}>{t.workType}</label>
+        <input className={field} value={form.business_type} onChange={(e) => set('business_type', e.target.value)} placeholder="e.g. real estate agent" />
+        <p className="mt-1 text-xs text-muted">{t.workTypeHint}</p>
+      </div>
       <div>
         <label className={labelCls}>{t.accountantEmail}</label>
         <input type="email" className={field} value={form.accountant_email} onChange={(e) => set('accountant_email', e.target.value)} placeholder="accountant@example.com" />
