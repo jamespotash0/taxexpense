@@ -43,15 +43,41 @@ export function computeEntitlement(org: OrgBilling, now: Date): Entitlement {
   return { entitled: false, reason: org.subscription_status ? 'expired' : 'none', trialDaysLeft: 0 };
 }
 
-/** Load an org's billing row and compute entitlement (now). */
+/**
+ * Pure: an AGENCY-managed creator's entitlement (Spec 10, Fix 3). The creator never pays; coverage
+ * flows from the agency's status (set by hand for the first agencies, automated per-seat later).
+ * 'active'/'trialing' → covered; anything else → not. No trial countdown is surfaced to a managed
+ * creator (they don't see billing), so trialDaysLeft is always 0.
+ */
+export function computeAgencyEntitlement(status: SubStatus): Entitlement {
+  if (status === 'active' || status === 'trialing') {
+    return { entitled: true, reason: status === 'active' ? 'active' : 'trialing', trialDaysLeft: 0 };
+  }
+  return { entitled: false, reason: status ? 'expired' : 'none', trialDaysLeft: 0 };
+}
+
+/** Load an agency's billing status and compute its entitlement. */
+export async function getAgencyEntitlement(agencyId: string): Promise<Entitlement> {
+  const { data, error } = await getSupabaseAdmin()
+    .from('agencies')
+    .select('subscription_status')
+    .eq('id', agencyId)
+    .maybeSingle();
+  if (error) throw error;
+  return computeAgencyEntitlement((data?.subscription_status as SubStatus) ?? null);
+}
+
+/** Load an org's billing row and compute entitlement (now). Managed creator orgs (Spec 10) inherit
+ *  the AGENCY's entitlement instead of their own — they never have their own subscription/trial. */
 export async function getOrgEntitlement(orgId: string): Promise<Entitlement> {
   const { data, error } = await getSupabaseAdmin()
     .from('organizations')
-    .select('trial_ends_at, subscription_status, current_period_end')
+    .select('agency_id, trial_ends_at, subscription_status, current_period_end')
     .eq('id', orgId)
     .maybeSingle();
   if (error) throw error;
   if (!data) return { entitled: false, reason: 'none', trialDaysLeft: 0 };
+  if (data.agency_id) return getAgencyEntitlement(data.agency_id as string);
   return computeEntitlement(data as OrgBilling, new Date());
 }
 

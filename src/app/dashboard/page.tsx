@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/session';
 import { getMonthlySummary, listReceipts, type ReceiptFilter } from '@/lib/receipts';
 import { getOrgEntitlement } from '@/lib/subscription';
+import { getUserAgencyIds, getOrgAgencyId } from '@/lib/agency';
 import { StatusIcons } from '@/components/StatusIcons';
 import { MonthEndReview } from '@/components/MonthEndReview';
 import { LocaleSwitcher } from '@/components/LocaleSwitcher';
@@ -36,11 +37,17 @@ export default async function DashboardPage({
     filterParam === 'needs_attention' || filterParam === 'this_month' ? filterParam : 'all';
   const justSubscribed = sub === 'success';
 
-  const [summary, { rows }, entitlement] = await Promise.all([
+  const [summary, { rows }, entitlement, agencyIds, managedAgencyId] = await Promise.all([
     getMonthlySummary(user.organization_id),
     listReceipts(user.organization_id, { filter, limit: 50 }),
     getOrgEntitlement(user.organization_id),
+    getUserAgencyIds(user.id),
+    getOrgAgencyId(user.organization_id),
   ]);
+  // Agency staff get a link to the multi-client view (Spec 10). A MANAGED creator (their org is
+  // owned by an agency) pays nothing and sees no billing UI — the agency covers them.
+  const isAgencyStaff = agencyIds.length > 0;
+  const isManaged = managedAgencyId !== null;
 
   const completePct = summary.count > 0 ? Math.round((summary.complete_count / summary.count) * 100) : 0;
   const tallyNumber = process.env.TWILIO_PHONE_NUMBER
@@ -53,6 +60,7 @@ export default async function DashboardPage({
         <h1 className="text-xl font-semibold tracking-tight">Tally</h1>
         <nav className="flex items-center gap-4 text-sm text-muted">
           <LocaleSwitcher current={locale} />
+          {isAgencyStaff && <Link href="/agency" className="hover:text-foreground">Agency</Link>}
           <Link href="/settings" className="hover:text-foreground">{t.app.nav.settings}</Link>
           <form action="/api/auth/logout" method="post" className="flex">
             <button type="submit" className="cursor-pointer bg-transparent p-0 [font:inherit] text-inherit hover:text-foreground">{t.app.nav.logout}</button>
@@ -69,8 +77,9 @@ export default async function DashboardPage({
         </div>
       )}
 
-      {/* Trial / paywall banner (DEC-021) */}
-      {!entitlement.entitled ? (
+      {/* Trial / paywall banner (DEC-021). Suppressed for managed creators (Spec 10): the agency
+          pays, so they never see trial/subscribe UI. */}
+      {isManaged ? null : !entitlement.entitled ? (
         <div className="mt-6 rounded-lg border border-warning-600 bg-warning-50 p-4">
           <p className="font-medium text-warning-700">{d.trialEndedTitle}</p>
           <p className="mt-1 text-sm text-muted">{d.trialEndedBody}</p>

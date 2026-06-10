@@ -1,7 +1,7 @@
 // Unit tests for entitlement (DEC-021) — gating correctness.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { computeEntitlement, type OrgBilling } from './subscription';
+import { computeEntitlement, computeAgencyEntitlement, type OrgBilling } from './subscription';
 
 const now = new Date('2026-06-02T12:00:00Z');
 const inDays = (d: number) => new Date(now.getTime() + d * 86400000).toISOString();
@@ -54,4 +54,28 @@ test('canceled → not entitled', () => {
 test('trialDaysLeft rounds up partial days', () => {
   const org: OrgBilling = { subscription_status: 'trialing', trial_ends_at: new Date(now.getTime() + 1.2 * 86400000).toISOString(), current_period_end: null };
   assert.equal(computeEntitlement(org, now).trialDaysLeft, 2);
+});
+
+// Agency-managed creators (Spec 10, Fix 3): coverage inherits from the agency's status.
+test('agency active → managed creator entitled', () => {
+  const e = computeAgencyEntitlement('active');
+  assert.equal(e.entitled, true);
+  assert.equal(e.reason, 'active');
+});
+
+test('agency trialing → managed creator entitled (no trial countdown surfaced)', () => {
+  const e = computeAgencyEntitlement('trialing');
+  assert.equal(e.entitled, true);
+  assert.equal(e.trialDaysLeft, 0);
+});
+
+test('agency past_due/canceled → managed creator NOT entitled', () => {
+  assert.equal(computeAgencyEntitlement('past_due').entitled, false);
+  assert.equal(computeAgencyEntitlement('canceled').entitled, false);
+});
+
+test('agency with no status → managed creator NOT entitled (reason none)', () => {
+  const e = computeAgencyEntitlement(null);
+  assert.equal(e.entitled, false);
+  assert.equal(e.reason, 'none');
 });

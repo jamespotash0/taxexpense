@@ -18,6 +18,7 @@
     "cache:check": "node --import tsx --env-file=.env.local scripts/eval/cache-check.ts",
     "redteam": "node --import tsx --env-file=.env.local scripts/redteam/run.ts",
     "sim:onboarding": "node --import tsx scripts/onboarding/sim.ts",
+    "seed:agency": "node --import tsx --env-file=.env.local scripts/seed-agency.ts",
     "agent:smoke": "node --import tsx --env-file=.env.local scripts/agent-smoke.ts"
   },
   "dependencies": {
