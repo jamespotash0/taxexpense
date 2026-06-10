@@ -19,6 +19,7 @@ import {
 } from './ocr';
 import { processNewExpense, processClarification, processCorrection, processAttachment, type ProcessResult } from './expense';
 import type { CategoryResult } from './categorize';
+import { ensureBusinessProfile } from './businessProfile';
 import { routeTextMessage, resolveFlagChoice, looksLikeExpenseCapture } from './router';
 import { subscribeUrl } from './subscribe-link';
 import { getReceipt, getLatestReceiptSince, waiveReceipt } from './receipts';
@@ -690,9 +691,16 @@ export async function handleInboundSms(msg: InboundMessage): Promise<void> {
 
   let reply: ProcessResult;
   try {
-    reply = user.onboarding_completed
-      ? await handleExpenseFlow(user, msg)
-      : { smsText: await handleOnboarding(user, msg.body), receiptId: null, contextState: null };
+    if (user.onboarding_completed) {
+      // Profession-aware categorization prior (Spec 09): lazily derive + persist the business
+      // profile on the first post-onboarding message so the user's first logged expense is already
+      // profession-aware. Best-effort — ensureBusinessProfile self-heals and never throws, returning
+      // the user unchanged on failure (retried next message). No-op once the profile exists.
+      const enriched = await ensureBusinessProfile(user);
+      reply = await handleExpenseFlow(enriched, msg);
+    } else {
+      reply = { smsText: await handleOnboarding(user, msg.body), receiptId: null, contextState: null };
+    }
   } catch (err) {
     log.error('sms_processing_failed', { user: user.id, message: errMsg(err) });
     reply = { smsText: MSG.failure, receiptId: null, contextState: null };

@@ -7,6 +7,7 @@ import { claudeJSON, claudeText, type CallMeta } from './llm';
 import { HAIKU_MODEL, SONNET_MODEL } from './claude';
 import { CATEGORIZATION_HELPER_PROMPT, CATEGORIZATION_RESPONSE_PROMPT } from './prompts';
 import { canonicalizeCategory } from './categories';
+import { renderProfileForPrompt } from './businessProfile';
 import { log } from './log';
 import { PUBLIC_ENV, optionalEnv } from './env';
 import type { AppUser } from './users';
@@ -41,7 +42,11 @@ export interface CategoryResult {
 }
 
 export function userContextLine(user: AppUser): string {
-  return `Business type: ${user.business_type ?? 'unknown'}; Entity: ${user.entity_type ?? 'unknown'}`;
+  const base = `Business type: ${user.business_type ?? 'unknown'}; Entity: ${user.entity_type ?? 'unknown'}`;
+  // Profession-aware prior (Spec 09): when present, append the structured profile so every
+  // categorization path (standalone, merged OCR/text, and the response composer) sees it. Absent
+  // → unchanged behavior. This is the single seam all four call sites funnel through.
+  return user.business_profile ? `${base}\n${renderProfileForPrompt(user.business_profile)}` : base;
 }
 
 /** Coerce a raw LLM category payload into a safe CategoryResult (shared by the standalone

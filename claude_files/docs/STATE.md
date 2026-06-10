@@ -7,7 +7,7 @@ overwritten in place so it always reflects the present, not the history.
 **Read this first at session start** to orient, then read JOURNAL.md or the specific
 ticket file when you need detail.
 
-_Last updated: 2026-06-09_
+_Last updated: 2026-06-10_
 
 ---
 
@@ -24,6 +24,16 @@ _Last updated: 2026-06-09_
 
 ## Recently shipped
 
+- **Business profile → profession-aware categorization** (Spec 09, Piece 1, 2026-06-10).
+  `users.business_profile` JSONB (migration 0029) holds a structured prior
+  `{industry, sells_product, common_categories, synonyms, notes_for_categorizer}` derived ONCE
+  from the free-text `business_type` answer (Sonnet, `BUSINESS_PROFILE_BUILDER_PROMPT`). Generated
+  lazily at first expense (`ensureBusinessProfile` at the top of the expense flow — onboarding stays
+  deterministic/fast), injected through the single `userContextLine` seam so all four categorization
+  paths get it. Closed-taxonomy backstop (`sanitizeProfile`) drops any invalid category key.
+  Best-effort: failure → null → today's bare-business_type behavior. New module `businessProfile.ts`
+  + tests (227 pass). **Inventory/COGS (Piece 2) DEFERRED** — Tally captures expenses not sales, so
+  it structurally can't compute COGS; out of scope (Spec 09). Needs a JOURNAL DEC number.
 - **Receipt reminders: waive + auto-cap** (DEC-078, 2026-06-08). A flagged receipt now has
   a terminal `waived` state so we stop nagging forever. Cap at 4 reminders, never silent.
 - **Paywall reply made deterministic** (DEC-077, 2026-06-07). Subscribe token, no caching layer.

@@ -7,6 +7,7 @@ import { getSupabaseAdmin } from './supabase';
 import { log } from './log';
 import { maskPhone } from './log';
 import { MAX_CO_OWNERS, TRIAL_DAYS } from './pricing';
+import type { BusinessProfile } from './businessProfile';
 
 export interface AppUser {
   id: string;
@@ -16,6 +17,9 @@ export interface AppUser {
   email: string | null; // collected at the dashboard, not over SMS (DEC-014)
   business_type: string | null;
   entity_type: 'sole_prop' | 'smllc' | 's_corp' | 'c_corp' | 'unknown' | null;
+  // Profession-aware categorization prior derived once from business_type (Spec 09, Piece 1).
+  // Null until generated at first expense; categorization falls back to the bare business_type line.
+  business_profile: BusinessProfile | null;
   default_payment_account: 'business' | 'personal' | 'unknown' | null;
   accountant_email: string | null;
   onboarding_completed: boolean;
