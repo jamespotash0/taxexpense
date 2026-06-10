@@ -13,8 +13,14 @@ _Last updated: 2026-06-09_
 
 ## Now working on
 
+- **Messaging-cost levers** (see `claude_files/specs/messaging-cost-levers.md`, draft proposal).
+  Two active levers: (A) conditional disclaimer/citation — BLOCKED on a Jordan/lawyer call;
+  (A.1) encoding — SMS segment instrumentation now SHIPPED (`sms-segments.ts` + `sendMessage`
+  logs an `sms_segments` line per SMS); (B) value digest — designed, not built. Silent capture +
+  question-batching explicitly REJECTED. Pending: a JOURNAL DEC to record the finding/rejection/defers.
 - Cleaning AI-isms out of the docs (em dashes removed from CLAUDE.md).
-- Uncommitted changes in flight: HeroCopy.tsx, i18n/dictionaries.ts, proxy.ts, JOURNAL.md.
+- Uncommitted changes in flight: HeroCopy.tsx, i18n/dictionaries.ts, proxy.ts, JOURNAL.md,
+  plus new sms-segments.ts/.test.ts, twilio.ts, and the messaging-cost-levers spec.
 
 ## Recently shipped
 

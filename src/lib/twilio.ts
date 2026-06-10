@@ -5,6 +5,8 @@
 
 import twilio from 'twilio';
 import { requireEnv, optionalEnv } from './env';
+import { analyzeSegments, redactNonGsmForLog } from './sms-segments';
+import { log } from './log';
 
 let _client: ReturnType<typeof twilio> | null = null;
 
@@ -27,6 +29,23 @@ export async function sendMessage(to: string, body: string, channel: Channel = '
       ? requireEnv('TWILIO_WHATSAPP_FROM') // already "whatsapp:+1..."
       : requireEnv('TWILIO_PHONE_NUMBER');
   const toAddr = channel === 'whatsapp' ? `whatsapp:${to}` : to;
+
+  // Instrumentation only (messaging-cost-levers.md A.1): record encoding + segment count so we can
+  // measure the real cost of UCS-2-forcing glyphs (✓, →, emoji) before changing copy. PII-safe —
+  // we log derived metrics and the offending NON-GSM symbols only, never the body (names/amounts
+  // are GSM-7 and so never surface here). WhatsApp isn't segment-billed, so we only log for SMS.
+  if (channel === 'sms') {
+    const seg = analyzeSegments(body);
+    const { symbols, letterCount } = redactNonGsmForLog(seg.nonGsmChars);
+    log.info('sms_segments', {
+      encoding: seg.encoding,
+      segments: seg.segments,
+      chars: seg.chars,
+      nonGsmSymbols: symbols.slice(0, 10),
+      nonGsmLetterCount: letterCount,
+    });
+  }
+
   const message = await getTwilio().messages.create({ to: toAddr, from, body });
   return message.sid;
 }
