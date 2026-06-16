@@ -24,6 +24,16 @@ _Last updated: 2026-06-10_
 
 ## Recently shipped
 
+- **Bug fix: replies to the weekly receipt reminder now work** (2026-06-15). The reminder cron
+  sends via `sendSms` and sets NO live `awaiting_receipt` pending context (and any original context
+  ages out of the pending window), so a "no receipt" reply — exactly what the nudge instructs —
+  fell through to new-expense capture and got the generic "text me an expense" help line. Even the
+  literal "no receipt" failed. Fix: a new branch in `handleExpenseFlow` — when there's no pending
+  question and the message isn't a fresh expense, a permanent no-receipt reply
+  (`looksLikeNoReceiptEver`) bulk-waives all outstanding flagged receipts (`waiveAllFlaggedReceipts`),
+  and a "later"-style reply (`looksLikeNoReceipt` + `countFlaggedReceipts` > 0) is acknowledged and
+  kept flagged. New `bulkWaiveMessage` copy + regression tests (the exact failing phrase). 242 tests.
+
 - **Business profile → profession-aware categorization** (Spec 09, Piece 1, DEC-081, 2026-06-10).
   `users.business_profile` JSONB (migration 0029) holds a structured prior
   `{industry, sells_product, common_categories, synonyms, notes_for_categorizer}` derived ONCE

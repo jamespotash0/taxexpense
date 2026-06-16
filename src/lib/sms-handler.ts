@@ -554,6 +554,11 @@ async function handleExpenseFlow(user: AppUser, msg: InboundMessage): Promise<Pr
     // receipt vanished mid-flight → fall through to new-expense handling
   }
 
+  // NOTE: a reply to the WEEKLY receipt reminder (which sets no live awaiting_receipt context) is
+  // handled by reasoning inside routeTextMessage below — it classifies the message WITH receipt
+  // context ("the user has N expenses missing a receipt") and waives/acks accordingly, instead of
+  // matching every "no receipt" phrasing here.
+
   // Conversational router (DEC-029): answer read-only questions ("how much on meals
   // this year?", "last 3 charges", "review my year") and safe commands. Returns null
   // when the message is an expense to capture, so the workflow path below still runs.

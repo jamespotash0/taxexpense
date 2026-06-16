@@ -313,6 +313,38 @@ export async function waiveReceipt(orgId: string, receiptId: string): Promise<Re
   return updateReceipt(orgId, receiptId, { receipt_waived_at: new Date().toISOString() });
 }
 
+/**
+ * Waive ALL of an org's outstanding flagged-not-waived receipts at once (DEC-078). Used when a user
+ * replies "no receipt" to the WEEKLY reminder, which is about every flagged receipt — not a single
+ * live one (the cron sets no per-receipt pending context). Same semantics as waiveReceipt: sets
+ * receipt_waived_at, leaves needs_receipt set (a late photo still attaches) and never marks
+ * substantiation_complete (the gap stays visible + on the export). Returns how many were waived.
+ */
+export async function waiveAllFlaggedReceipts(orgId: string): Promise<number> {
+  const { data, error } = await getSupabaseAdmin()
+    .from('receipts')
+    .update({ receipt_waived_at: new Date().toISOString() })
+    .eq('organization_id', orgId)
+    .eq('needs_receipt', true)
+    .is('receipt_waived_at', null)
+    .select('id');
+  if (error) throw error;
+  return data?.length ?? 0;
+}
+
+/** How many of an org's receipts are still flagged for a receipt and not waived (for deciding
+ *  whether a "later"-style reply to the reminder should be acknowledged vs. ignored). */
+export async function countFlaggedReceipts(orgId: string): Promise<number> {
+  const { count, error } = await getSupabaseAdmin()
+    .from('receipts')
+    .select('id', { count: 'exact', head: true })
+    .eq('organization_id', orgId)
+    .eq('needs_receipt', true)
+    .is('receipt_waived_at', null);
+  if (error) throw error;
+  return count ?? 0;
+}
+
 /** A flagged receipt the weekly reminder cron may nudge about (DEC-078). */
 export interface ReminderCandidate {
   id: string;

@@ -167,3 +167,10 @@ test('looksLikeNoReceiptEver: does NOT fire on "later" deferrals (those stay fla
   assert.equal(looksLikeNoReceiptEver('it was with John from Acme'), false);
   assert.equal(looksLikeNoReceiptEver('here you go'), false);
 });
+
+// Still used by the LIVE awaiting_receipt branch (a permanent "no receipt" reply while we just asked
+// for one). Reminder replies (no live context) are handled by reasoning in routeTextMessage instead.
+test('looksLikeNoReceiptEver: catches the verbose "skip it" phrasing', () => {
+  assert.equal(looksLikeNoReceiptEver("Don't have a receipt for it so you can skip it"), true);
+  assert.equal(looksLikeNoReceiptEver('no receipt, skip these'), true);
+});

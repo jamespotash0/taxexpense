@@ -3,7 +3,7 @@
 // Run: npm run test
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { looksLikeExpenseCapture, sanitizeIntent, parseFlagTarget } from './router';
+import { looksLikeExpenseCapture, sanitizeIntent, parseFlagTarget, bulkWaiveMessage } from './router';
 
 test('fast-path: obvious captures skip the classifier', () => {
   assert.equal(looksLikeExpenseCapture('$48 lunch with Sarah re partnership'), true);
@@ -80,4 +80,26 @@ test('sanitize: advice / help / capture / unknown', () => {
   assert.deepEqual(sanitizeIntent({ intent: 'other' }), { kind: 'other' }); // off-topic → can't-help reply
   assert.deepEqual(sanitizeIntent({ intent: 'context_statement' }), { kind: 'context_statement' }); // detail about a logged expense
   assert.deepEqual(sanitizeIntent({ intent: 'something_weird' }), { kind: 'capture' }); // safe default
+});
+
+// Receipt resolution (reply about expenses still missing a receipt). Only an explicit "none" waives;
+// any ambiguous/missing resolution defaults to the SAFE "later" so we never silently stop nudging.
+test('sanitize: receipt_resolution honors "none", defaults ambiguous to "later"', () => {
+  assert.deepEqual(sanitizeIntent({ intent: 'receipt_resolution', resolution: 'none' }), { kind: 'receipt_resolution', resolution: 'none' });
+  assert.deepEqual(sanitizeIntent({ intent: 'receipt_resolution', resolution: 'later' }), { kind: 'receipt_resolution', resolution: 'later' });
+  assert.deepEqual(sanitizeIntent({ intent: 'receipt_resolution' }), { kind: 'receipt_resolution', resolution: 'later' });
+  assert.deepEqual(sanitizeIntent({ intent: 'receipt_resolution', resolution: 'garbage' }), { kind: 'receipt_resolution', resolution: 'later' });
+});
+
+test('bulkWaiveMessage: pluralizes and never over-claims', () => {
+  assert.match(bulkWaiveMessage(1), /that expense/);
+  assert.match(bulkWaiveMessage(3), /those 3 expenses/);
+  for (const n of [1, 3]) {
+    const m = bulkWaiveMessage(n);
+    assert.match(m, /won't ask again/i);
+    assert.match(m, /accountant/i); // honest about the un-receipted gap
+    for (const bad of ['audit-ready', 'complete', 'guaranteed']) {
+      assert.ok(!m.toLowerCase().includes(bad), `"${bad}" must not appear: ${m}`);
+    }
+  }
 });

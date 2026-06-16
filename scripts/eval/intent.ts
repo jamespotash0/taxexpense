@@ -14,7 +14,7 @@
 // those bypass the classifier entirely and are unit-tested separately. We call classifyIntent
 // directly to grade the model, not the fast-path.
 
-import { classifyIntent, type Intent } from '../../src/lib/router';
+import { classifyIntent, type Intent, type ReplyContext } from '../../src/lib/router';
 
 type Check = (i: Intent) => boolean;
 
@@ -24,10 +24,12 @@ interface IntentCase {
   expect: string; // human-readable, for the report
   tags: Array<'easy' | 'edge' | 'ambiguous'>;
   check: Check;
+  ctx?: ReplyContext; // conversation context the classifier reasons with (e.g. flagged-receipt count)
   note?: string;
 }
 
 const isKind = (k: Intent['kind']): Check => (i) => i.kind === k;
+const isResolution = (r: 'none' | 'later'): Check => (i) => i.kind === 'receipt_resolution' && i.resolution === r;
 const isQuery = (tool?: string, period?: string): Check => (i) =>
   i.kind === 'query' && (tool == null || i.tool === tool) && (period == null || i.period === period);
 
@@ -47,6 +49,24 @@ const CASES: IntentCase[] = [
     tags: ['edge'], check: isKind('capture'), note: '"forty bucks" — no $-digit, fast-path may miss; must still capture.' },
   { id: 'cap-coffee-detail', text: 'bought printer paper at staples for the office', expect: 'capture',
     tags: ['edge'], check: isKind('capture'), note: 'New expense, no amount stated → still a capture.' },
+
+  // ---- receipt_resolution: a reply about expenses still missing a receipt (needs context) ----
+  // The whole point of the reasoning approach: the SAME words mean different things with vs without
+  // receipt context, so these must be classified WITH the flagged-receipt count.
+  { id: 'rr-skip-verbose', text: "Don't have a receipt for it so you can skip it", expect: 'receipt_resolution/none',
+    tags: ['edge'], ctx: { flaggedCount: 3 }, check: isResolution('none'),
+    note: 'The exact reply that previously fell through to the generic help line.' },
+  { id: 'rr-lost', text: 'lost it', expect: 'receipt_resolution/none',
+    tags: ['edge'], ctx: { flaggedCount: 1, awaitingReceipt: true }, check: isResolution('none') },
+  { id: 'rr-bare-no', text: 'no', expect: 'receipt_resolution/none',
+    tags: ['edge'], ctx: { flaggedCount: 1, awaitingReceipt: true }, check: isResolution('none'),
+    note: 'A bare "no" right after being asked to send a receipt means "I don\'t have one".' },
+  { id: 'rr-later', text: "I'll send it tonight", expect: 'receipt_resolution/later',
+    tags: ['edge'], ctx: { flaggedCount: 2 }, check: isResolution('later') },
+  // Context-gating: the same "no receipt" words with NO flagged receipts must NOT waive anything.
+  { id: 'rr-no-context', text: "don't have a receipt for it", expect: 'NOT receipt_resolution',
+    tags: ['edge'], check: (i) => i.kind !== 'receipt_resolution',
+    note: 'No receipt context → must not classify as receipt_resolution (nothing to waive).' },
 
   // ---- query: tool + period/category extraction ----
   { id: 'q-meals-year', text: 'how much have I spent on meals this year?', expect: 'query/aggregate/this_year',
@@ -169,7 +189,7 @@ function describe(i: Intent): string {
 
 async function grade(c: IntentCase): Promise<{ id: string; tags: string; ok: boolean; expect: string; got: string }> {
   try {
-    const i = await classifyIntent(c.text);
+    const i = await classifyIntent(c.text, c.ctx);
     return { id: c.id, tags: c.tags.join(','), ok: c.check(i), expect: c.expect, got: describe(i) };
   } catch (err) {
     return { id: c.id, tags: c.tags.join(','), ok: false, expect: c.expect, got: `ERROR ${err instanceof Error ? err.message : 'unknown'}` };
