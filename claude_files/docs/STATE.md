@@ -24,6 +24,14 @@ _Last updated: 2026-06-16_
 
 ## Recently shipped
 
+- **Landing traffic-source capture** (DEC-084, 2026-06-16). We now count where a visit came from
+  (utm_source/ref param or external referrer, e.g. Product Hunt). New `traffic_sources` table
+  (migration 0031, no PII — source/medium/campaign + referrer host only), a once-per-session client
+  beacon `<TrafficSource/>` on the landing page → `POST /api/traffic` (IP-throttled) → pure
+  `normalizeTrafficSource`. Aggregate channel counts only, NOT per-user web→SMS attribution
+  (DEC-048/049 unchanged); JS-only. **Action needed: run `0031_traffic_sources.sql` in Supabase**
+  before it ships (insert no-ops until then). 260 tests; eslint + tsc clean.
+
 - **Multi-charge text capture** (DEC-083, 2026-06-16, follow-up to DEC-082). A single text naming
   several distinct charges ("$20 Twilio and another $20", "$40 gas and $12 parking") now logs them
   ALL instead of silently dropping all but the first. The merged parse prompt returns

@@ -7,6 +7,39 @@ Format: date, decision, who pushed back, resolution, rationale.
 
 ---
 
+## 2026-06-16 — Landing traffic-source capture (Product Hunt et al.)
+
+### DEC-084 — Aggregate channel attribution on the landing page (utm_source / ref / referrer)
+
+- **Context.** Founder asked whether we capture a "ref" when someone clicks an external link (e.g. a
+  Product Hunt launch). We did NOT: nothing read `utm_*`/`ref` params or the referrer, no source field
+  at signup, and no web analytics was initialized (only Vercel Speed Insights + Sentry). Per DEC-048/049
+  the web funnel and SMS signup are deliberately decoupled (no shared key), so per-user web→SMS
+  attribution is impossible — but an AGGREGATE channel counter is cheap and fits that model.
+- **Decision.** Build the aggregate option (the founder picked it over per-user attribution, which would
+  reopen the TCPA/funnel tradeoff). New `traffic_sources` table (migration 0031): no PII — source/medium/
+  campaign + the referrer HOST only (no full URL, no phone/name), service-role write, RLS default-deny,
+  same posture as `funnel_events`. Flow: a client beacon (`<TrafficSource/>`, mounted on the landing
+  page) fires ONCE per session — guarded by a sessionStorage flag set before send (also defeats React
+  StrictMode's double-effect) — reading `utm_source`/`ref`/`via` + `utm_medium`/`utm_campaign` from the
+  URL and `document.referrer`. It skips direct/no-attribution visits entirely, then POSTs (sendBeacon,
+  fetch+keepalive fallback) to `POST /api/traffic`. The route is public + IP-throttled (30/15min),
+  validates loosely, and delegates to the pure `normalizeTrafficSource` (trim/lowercase/cap; drops our
+  OWN hosts so internal nav isn't a "referral"; returns null when there's no signal → no row).
+- **Bounded by design.** Aggregate channel counts ONLY — not tied to a later inbound text (DEC-048/049
+  unchanged). JS-only (no-JS visitors aren't counted) — acceptable for a launch metric, and Product Hunt
+  links carry `?ref=producthunt` so the param path catches them. Mounted on the landing page (`/`) only;
+  if PH links ever point at `/start`, add the component there too.
+- **Tests.** `traffic.test.ts` covers `normalizeTrafficSource`: ref param recorded + lowercased,
+  external referrer → host only (path/query dropped), utm trio capped, direct visit → null, internal
+  referrer → null, unparseable referrer ignored, param survives an internal referrer, garbage path
+  nulled, length caps. 260 pass; eslint + tsc clean.
+- **Deploy step (manual).** Run `supabase/migrations/0031_traffic_sources.sql` in the Supabase SQL
+  editor before this ships — until then the insert no-ops (best-effort, warn-logged). RUN_ALL.sql was
+  NOT touched (it's already stale, missing 0025–0030; the numbered file is the source of truth).
+
+---
+
 ## 2026-06-16 — Multi-charge text capture (one text → log every charge)
 
 ### DEC-083 — A single text naming several distinct charges logs them ALL (follow-up to DEC-082)

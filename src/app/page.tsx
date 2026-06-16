@@ -16,6 +16,7 @@ import { LandingPricing } from '@/components/LandingPricing';
 import { HeroCopy } from '@/components/HeroCopy';
 import { TextNumberCta } from '@/components/TextNumberCta';
 import { TrackedLink } from '@/components/TrackedLink';
+import { TrafficSource } from '@/components/TrafficSource';
 import { TRIAL_DAYS } from '@/lib/pricing';
 import { formatUsPhone } from '@/lib/phone';
 import { type HeroVariant } from '@/lib/ab';
@@ -40,6 +41,10 @@ export default async function Home() {
 
   return (
     <div className="relative overflow-x-clip text-gray-900">
+      {/* Records where the visit came from (utm_source/ref or external referrer, e.g. Product Hunt)
+          once per session — aggregate channel analytics, no PII (DEC-084). Renders nothing. */}
+      <TrafficSource locale={locale} />
+
       {/* Accent glow spans from the very top — behind the nav — so there's no white seam. */}
       <div className="hero-glow pointer-events-none absolute inset-x-0 top-0 -z-10 h-[820px]" />
 
