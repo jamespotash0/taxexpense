@@ -16,8 +16,9 @@ import {
   parseAndCategorizeText,
   type OcrResult,
   type ParsedTextExpense,
+  type ParsedAdditionalExpense,
 } from './ocr';
-import { processNewExpense, processClarification, processCorrection, processAttachment, type ProcessResult } from './expense';
+import { processNewExpense, processClarification, processCorrection, processAttachment, confirmReceiptMessage, type ProcessResult } from './expense';
 import type { CategoryResult } from './categorize';
 import { ensureBusinessProfile } from './businessProfile';
 import { routeTextMessage, resolveFlagChoice, looksLikeExpenseCapture } from './router';
@@ -230,42 +231,9 @@ export function hasExpenseSignal(
   );
 }
 
-async function handleTextAsNewExpense(user: AppUser, body: string): Promise<ProcessResult> {
-  if (!body.trim()) return { smsText: MSG.help, receiptId: null, contextState: null };
-
-  // The inbound text is already persisted by handleInboundSms before we parse, so a parser
-  // failure loses nothing — reply helpfully instead of letting it throw to the generic
-  // failure path (red-team graceful_fail; team DEC). The merged call has no internal fallback.
-  let parsed: Awaited<ReturnType<typeof parseAndCategorizeText>>['parsed'];
-  let category: CategoryResult;
-  try {
-    ({ parsed, category } = await parseAndCategorizeText(body, user));
-  } catch (err) {
-    log.warn('text_parse_failed', { user: user.id, message: errMsg(err) });
-    return { smsText: MSG.couldntRead, receiptId: null, contextState: null };
-  }
-  if (parsed.amount == null && parsed.business_miles == null) {
-    // No amount AND no other expense signal (vendor/purpose/attendees/place) → this isn't an expense
-    // description (gibberish, a stray fragment). Ask the user to rephrase instead of assuming an
-    // expense and arming an awaiting_amount wait on a phantom. Metric tracks the unanticipated-
-    // message rate so we can tell whether this needs more than a rephrase nudge (Priya).
-    if (!hasExpenseSignal(parsed)) {
-      log.info('inbound_unrecognized', { user: user.id, confidence: parsed.confidence });
-      return { smsText: MSG.couldntRead, receiptId: null, contextState: null };
-    }
-    // A real expense missing only its amount ("lunch with a client at Mortons"). Don't fire-and-
-    // forget: remember what we already parsed so the user's "$167" reply can be combined + re-parsed
-    // into THIS expense instead of a new contextless one (the §262/$0 phantom + "how much?" loop).
-    // DEC-064. Completion is owned by handleExpenseFlow.
-    return {
-      smsText: MSG.needAmount,
-      receiptId: null,
-      contextState: 'awaiting_amount',
-      pendingData: { priorText: body, amountAttempts: 0 },
-    };
-  }
-
-  const input: ExpenseInput = {
+/** Map a parsed text expense to the canonical ExpenseInput (text path → no photo, no items). */
+function textParsedToInput(parsed: ParsedTextExpense): ExpenseInput {
+  return {
     amount_cents: parsed.amount != null ? Math.round(parsed.amount * 100) : null,
     vendor: parsed.vendor,
     transaction_date: parsed.transaction_date,
@@ -278,9 +246,115 @@ async function handleTextAsNewExpense(user: AppUser, body: string): Promise<Proc
     raw_text: parsed.raw_text,
     items: [],
   };
+}
+
+/** Parse + log the PRIMARY text expense, returning its result and any ADDITIONAL distinct charges
+ *  the same message named (DEC-083). The result is the existing single-expense behavior verbatim;
+ *  callers that don't opt into multi-capture just read `.result` and ignore `.extras`. */
+async function parseLogPrimaryText(
+  user: AppUser,
+  body: string,
+): Promise<{ result: ProcessResult; extras: ParsedAdditionalExpense[] }> {
+  if (!body.trim()) return { result: { smsText: MSG.help, receiptId: null, contextState: null }, extras: [] };
+
+  // The inbound text is already persisted by handleInboundSms before we parse, so a parser
+  // failure loses nothing — reply helpfully instead of letting it throw to the generic
+  // failure path (red-team graceful_fail; team DEC). The merged call has no internal fallback.
+  let parsed: ParsedTextExpense;
+  let category: CategoryResult;
+  let extras: ParsedAdditionalExpense[] = [];
+  try {
+    ({ parsed, category, additional: extras } = await parseAndCategorizeText(body, user));
+  } catch (err) {
+    log.warn('text_parse_failed', { user: user.id, message: errMsg(err) });
+    return { result: { smsText: MSG.couldntRead, receiptId: null, contextState: null }, extras: [] };
+  }
+  if (parsed.amount == null && parsed.business_miles == null) {
+    // No amount AND no other expense signal (vendor/purpose/attendees/place) → this isn't an expense
+    // description (gibberish, a stray fragment). Ask the user to rephrase instead of assuming an
+    // expense and arming an awaiting_amount wait on a phantom. Metric tracks the unanticipated-
+    // message rate so we can tell whether this needs more than a rephrase nudge (Priya).
+    if (!hasExpenseSignal(parsed)) {
+      log.info('inbound_unrecognized', { user: user.id, confidence: parsed.confidence });
+      return { result: { smsText: MSG.couldntRead, receiptId: null, contextState: null }, extras: [] };
+    }
+    // A real expense missing only its amount ("lunch with a client at Mortons"). Don't fire-and-
+    // forget: remember what we already parsed so the user's "$167" reply can be combined + re-parsed
+    // into THIS expense instead of a new contextless one (the §262/$0 phantom + "how much?" loop).
+    // DEC-064. Completion is owned by handleExpenseFlow. A bare-amount primary carries no usable
+    // extras either, so drop them.
+    return {
+      result: {
+        smsText: MSG.needAmount,
+        receiptId: null,
+        contextState: 'awaiting_amount',
+        pendingData: { priorText: body, amountAttempts: 0 },
+      },
+      extras: [],
+    };
+  }
+
   // Pass the parse confidence so an ambiguous text read (e.g. conflicting amounts) gets verified
   // instead of silently logged (DEC-066).
-  return processNewExpense(user, input, null, category, parsed.confidence);
+  const result = await processNewExpense(user, textParsedToInput(parsed), null, category, parsed.confidence);
+  return { result, extras };
+}
+
+async function handleTextAsNewExpense(user: AppUser, body: string): Promise<ProcessResult> {
+  return (await parseLogPrimaryText(user, body)).result;
+}
+
+/** A short "$15 Vercel (Software)" line for an additional charge, for the batch note. Pure. */
+export function summarizeExtra(extra: ParsedAdditionalExpense): string {
+  const p = extra.parsed;
+  const money =
+    p.amount != null ? `$${p.amount.toFixed(2)}` : p.business_miles != null ? `${p.business_miles} mi` : '';
+  const vendor = p.vendor ? ` ${p.vendor}` : '';
+  return `${money}${vendor} (${categoryLabel(extra.category.category)})`.trim();
+}
+
+/** The batch note appended after the primary reply when a text named several charges (DEC-083).
+ *  Pure + exported so the copy is unit-testable without logging real expenses. */
+export function formatBatchNote(summaries: string[], anyIncomplete: boolean, dashboardUrl: string): string {
+  const lead = summaries.length === 1 ? 'one more' : `${summaries.length} more`;
+  let note = `I also logged ${lead}: ${summaries.join(', ')}.`;
+  if (anyIncomplete) {
+    note += ` A couple may need a quick detail to be documentation-complete — add it on your dashboard: ${dashboardUrl}.`;
+  }
+  return note;
+}
+
+/**
+ * Multi-charge text capture (DEC-083). The primary expense already logged on the full conversational
+ * path (it may own a live question / recurring offer — unchanged). Log each ADDITIONAL distinct
+ * charge from the same message too (no silent loss), then append ONE summary note rather than
+ * stacking a second pending question. Recurring offers are skipped for a batch by design (we never
+ * stack two questions). If any extra is still incomplete, point to the dashboard to finish it.
+ */
+async function captureTextExpense(user: AppUser, body: string): Promise<ProcessResult> {
+  const { result, extras } = await parseLogPrimaryText(user, body);
+  if (extras.length === 0) return maybeOfferRecurring(user, result);
+
+  const summaries: string[] = [];
+  let anyIncomplete = false;
+  for (const extra of extras) {
+    const logged = await processNewExpense(
+      user,
+      textParsedToInput(extra.parsed),
+      null,
+      extra.category,
+      extra.parsed.confidence,
+    );
+    if (logged.receiptId) {
+      summaries.push(summarizeExtra(extra));
+      if (logged.contextState !== null) anyIncomplete = true;
+    }
+  }
+  if (summaries.length === 0) return maybeOfferRecurring(user, result);
+
+  log.info('multi_expense_text', { user: user.id, extras: summaries.length });
+  const note = formatBatchNote(summaries, anyIncomplete, appBase());
+  return { ...result, smsText: `${result.smsText}\n\n${note}` };
 }
 
 /** Recurring (DEC-033): after a COMPLETE log, offer to track it monthly when it's
@@ -464,7 +538,9 @@ async function handleExpenseFlow(user: AppUser, msg: InboundMessage): Promise<Pr
   // Checked before the recurring Y/N below so a verify "yes" isn't taken as a renewal confirmation.
   if (pending?.contextState === 'awaiting_confirm') {
     if (isAffirmative(msg.body) || CONFIRM_RE.test(msg.body)) {
-      return { smsText: '✓ Great — locked it in.', receiptId: pending.receiptId, contextState: null };
+      // Carry the same value a normal log reply does — category + IRC §section + link — instead of
+      // a bare "locked it in" (the verify path skipped composeResponse, so this is where it lands).
+      return confirmReceiptMessage(user.organization_id, pending.receiptId);
     }
     if (!replyStartsNewExpense(msg.body) && !EXPLAIN_RE.test(msg.body)) {
       const corrected = await processCorrection(user, pending.receiptId, msg.body);
@@ -583,8 +659,10 @@ async function handleExpenseFlow(user: AppUser, msg: InboundMessage): Promise<Pr
 
   // New text expense → subject to the usage caps (checked after the router so read-only
   // queries above are never blocked, and before parse/categorize so a blocked user costs nothing).
+  // captureTextExpense logs the primary normally AND any additional distinct charges in the same
+  // text (DEC-083), folding the recurring offer in for the single-expense case.
   if (blocked) return cappedReply(decision);
-  return withAnnualNudge(decision, await maybeOfferRecurring(user, await handleTextAsNewExpense(user, msg.body)));
+  return withAnnualNudge(decision, await captureTextExpense(user, msg.body));
 }
 
 /** Top-level inbound handler. Always sends exactly one SMS reply. */

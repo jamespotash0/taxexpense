@@ -5,7 +5,8 @@
 // integration-level (LLM + DB) and not unit-tested, matching router.test.ts.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { replyStartsNewExpense, looksLikeCorrection, looksLikeNoReceipt, looksLikeNoReceiptEver, hasExpenseSignal } from './sms-handler';
+import { replyStartsNewExpense, looksLikeCorrection, looksLikeNoReceipt, looksLikeNoReceiptEver, hasExpenseSignal, summarizeExtra, formatBatchNote } from './sms-handler';
+import type { ParsedAdditionalExpense } from './ocr';
 
 // hasExpenseSignal — the gibberish guard. A parsed text with NO amount/miles/vendor/purpose/
 // attendees/place isn't an expense (→ ask to rephrase, not "how much?").
@@ -173,4 +174,39 @@ test('looksLikeNoReceiptEver: does NOT fire on "later" deferrals (those stay fla
 test('looksLikeNoReceiptEver: catches the verbose "skip it" phrasing', () => {
   assert.equal(looksLikeNoReceiptEver("Don't have a receipt for it so you can skip it"), true);
   assert.equal(looksLikeNoReceiptEver('no receipt, skip these'), true);
+});
+
+// Multi-charge text capture (DEC-083): a single text naming several charges logs the primary on the
+// normal flow and each ADDITIONAL charge too, then summarizes them in one note (no second question).
+function extra(parsed: Partial<ParsedAdditionalExpense['parsed']>, category: string): ParsedAdditionalExpense {
+  return {
+    parsed: {
+      amount: null, vendor: null, transaction_date: null, attendees: null, business_purpose: null,
+      business_miles: null, location_city: null, raw_text: '', confidence: 0.9, ...parsed,
+    },
+    category: { category, confidence: 0.9, reasoning: '' },
+  };
+}
+
+test('summarizeExtra: amount + vendor + category label', () => {
+  assert.equal(summarizeExtra(extra({ amount: 15, vendor: 'Vercel' }, 'software')), '$15.00 Vercel (Software)');
+});
+
+test('summarizeExtra: mileage entry shows miles, no $; missing vendor reads cleanly', () => {
+  assert.equal(summarizeExtra(extra({ business_miles: 40 }, 'vehicle_business')), '40 mi (Vehicle / Mileage)');
+  assert.equal(summarizeExtra(extra({ amount: 12 }, 'travel_transportation')), '$12.00 (Travel: Transportation)');
+});
+
+test('formatBatchNote: lists each extra; pluralizes; no dashboard pointer when all complete', () => {
+  const note = formatBatchNote(['$15 Vercel (Software)', '$12 parking (Travel: Transportation)'], false, 'https://tallywhy.com');
+  assert.ok(note.includes('I also logged 2 more:'), note);
+  assert.ok(note.includes('$15 Vercel (Software)') && note.includes('$12 parking'), note);
+  assert.ok(!note.includes('dashboard'), note); // nothing incomplete → no pointer
+});
+
+test('formatBatchNote: singular phrasing + dashboard pointer when an extra is incomplete', () => {
+  const note = formatBatchNote(['$80 dinner (Business Meals)'], true, 'https://tallywhy.com');
+  assert.ok(note.includes('I also logged one more:'), note);
+  assert.ok(note.includes('documentation-complete'), note); // approved copy, never "audit-ready"
+  assert.ok(note.includes('https://tallywhy.com'), note);
 });

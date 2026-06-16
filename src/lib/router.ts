@@ -251,24 +251,34 @@ function commandReply(user: AppUser, command: CommandName): ProcessResult {
 // Query dispatch — every number comes from lib/queries.ts (numbers-from-DB).
 // ---------------------------------------------------------------------------
 
+// Append a "see them on your dashboard" pointer to a query reply. The dashboard redirects to OTP
+// login when there's no session, so this link doubles as the sign-in entry point for SMS users who
+// have never opened the web app — answering "what are my expenses?" with both the figures AND a way
+// to view/edit them. Omitted when there's nothing logged yet, since there'd be nothing to look at.
+function withDashboardLink(smsText: string, hasData: boolean): string {
+  if (!hasData) return smsText;
+  return `${smsText}\n\nSee them on your dashboard: ${appBase()}/dashboard`;
+}
+
 async function runQuery(orgId: string, intent: Extract<Intent, { kind: 'query' }>): Promise<ProcessResult> {
   switch (intent.tool) {
     case 'recent': {
       const rows = await recentExpenses(orgId, intent.count ?? 3);
-      return reply(formatRecent(rows));
+      return reply(withDashboardLink(formatRecent(rows), rows.length > 0));
     }
     case 'breakdown': {
       const { rows, periodLabel } = await categoryBreakdown(orgId, intent.period);
-      return reply(formatBreakdown(rows, periodLabel));
+      return reply(withDashboardLink(formatBreakdown(rows, periodLabel), rows.length > 0));
     }
     case 'review_year': {
+      // Year review already carries its own /dashboard/cleanup link, so no extra pointer here.
       const review = await reviewYear(orgId, defaultReviewYear());
       return reply(formatYearReview(review, `${appBase()}/dashboard/cleanup`));
     }
     case 'aggregate':
     default: {
       const result = await aggregateExpenses(orgId, { period: intent.period, category: intent.category });
-      return reply(formatAggregate(result));
+      return reply(withDashboardLink(formatAggregate(result), result.count > 0));
     }
   }
 }

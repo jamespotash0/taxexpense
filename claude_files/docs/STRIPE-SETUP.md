@@ -94,6 +94,23 @@ NEXT_PUBLIC_APP_URL=https://<your-domain>   # used for success/cancel + link bui
 
 ---
 
+## 5b. Coupons / promo codes (no code change)
+
+Checkout already passes `allow_promotion_codes: true` (`src/lib/stripe.ts`), so the hosted
+Checkout page shows an **"Add promotion code"** field. To make a code work:
+
+1. **Product catalog → Coupons → ＋ New** — set the discount (% off or fixed amount) and duration
+   (**Once**, **Forever**, or **N months**). Save.
+2. Open the coupon → **Promotion codes → ＋ Add** — this is the customer-facing string they type
+   (e.g. `LAUNCH50`). Optionally set expiry, **max redemptions**, **first-time-customers-only**,
+   or a minimum order amount. One coupon can have many promo codes.
+3. Users enter the code at Checkout and the discount applies before they pay.
+
+Coupons are **per mode** — create them in Test mode to verify, then again in Live mode. A free
+trial already covers everyone via `TRIAL_DAYS`; use coupons for a price cut *after* the trial.
+
+---
+
 ## 6. Test it locally (Stripe CLI)
 
 Stripe can't reach `localhost`, so forward webhooks with the CLI:

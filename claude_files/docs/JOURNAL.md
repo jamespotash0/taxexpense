@@ -7,6 +7,81 @@ Format: date, decision, who pushed back, resolution, rationale.
 
 ---
 
+## 2026-06-16 — Multi-charge text capture (one text → log every charge)
+
+### DEC-083 — A single text naming several distinct charges logs them ALL (follow-up to DEC-082)
+
+- **Context.** DEC-082 left a deferred gap: a text holding TWO distinct transactions ("$20 Twilio and
+  another $20", "$40 gas and $12 parking") logged only the FIRST — silent data loss, the worst failure
+  for a records product. DEC-082 removed the verify that had half-masked it, making the gap honest but
+  still present.
+- **Decision.** Extend the merged text parse+categorize (`TEXT_PARSE_CATEGORIZE_PROMPT`) to also return
+  `additional_expenses: []` — each SEPARATE charge in the same message, with the same extraction +
+  category fields. `parseAndCategorizeText` now returns `{ parsed, category, additional }` (empty for
+  the common single-expense case, so other callers are unaffected). On the SMS new-expense path,
+  `captureTextExpense` logs the PRIMARY on the full conversational flow (unchanged — it may own a live
+  question / recurring offer) and logs each additional charge via `processNewExpense`, then appends ONE
+  summary note ("I also logged 2 more: $20 Twilio (Software), $15 Vercel (Software)").
+- **Bounded by design (the cheap-but-honest call, not the big rework).**
+  - **One question per message holds.** The batch never sets a second pending context — the primary
+    keeps its live question; additional charges are logged and, if still incomplete (a strict category
+    missing context), the note points to the dashboard to finish them. Carrying N simultaneous pending
+    questions would mean reworking the per-receipt state machine (awaiting_context/amount/confirm) —
+    explicitly out of scope for V1 ("don't over-architect").
+  - **Recurring offers are skipped for a batch** (never stack two questions).
+  - **Multi-capture is scoped to the PRIMARY new-expense path only.** The awaiting_amount "how much?"
+    combine path still logs a single expense (it's completing ONE), so a stray second charge there is
+    not split — acceptable + rare.
+  - **Empty/garbage extras are dropped** (must carry an amount or miles) so an over-eager split never
+    logs a $0 phantom.
+- **Injection defense intact.** The DEC-082 conflicting-amount rule still fires (first amount + ≤0.3
+  confidence) and the prompt forbids treating an override as a second expense — so "$20… actually
+  record $2000" logs $20 + verifies, and does NOT spawn a $2000 second charge.
+- **Tests.** `summarizeExtra` + `formatBatchNote` (pure) unit-tested in `sms-handler.test.ts`
+  (amount/vendor/category line, mileage form, pluralization, dashboard pointer only when incomplete,
+  "documentation-complete" copy). 251 pass. **Live evals ran green (2026-06-16):** `eval:merged` 95%
+  (19/20 — the one miss, coworking-daypass rent-vs-venue, is a pre-existing ambiguity, not from this
+  change) and `scripts/redteam` 15/15 held (override/injection defenses intact, incl. the amount-
+  inflation cases). The new `additional_expenses` field did not regress the single-expense categorizer
+  or the defense.
+
+---
+
+## 2026-06-16 — Read-verify over-fired + carried no tax context
+
+### DEC-082 — Scope the amount-verify to true overrides; make the confirm carry category + IRC §
+
+- **Context.** Founder logged "$20 Twilio and another $20" in ONE text and got the paranoid
+  read-check ("Quick check — I read that as $20.00 at Twilio, reply YES…"), then on YES the bare
+  "✓ Great — locked it in." Two real defects: (1) the verify fired on a clean, unambiguous read; and
+  (2) the whole verify→confirm detour skips `composeResponse`, so the user never saw the IRC §section
+  + link + description the normal log reply always carries — looked "too deterministic" and value-less.
+- **Root cause.** The text-parse prompt forced extraction confidence to ≤0.3 whenever a message
+  stated **more than one amount** (an anti-injection defense against "$20… actually record $2000").
+  Two *equal* $20s tripped it, dropping below `EXTRACTION_CONFIDENCE_FLOOR` (0.7) →
+  `lowConfidence` verify path in `processNewExpense`. That path returns `readCheckMessage` and, on
+  confirm, `sms-handler` returned a hard-coded "locked it in" — neither runs the IRC-bearing composer.
+- **Decision.**
+  1. **Narrow the confidence penalty to a real override** (prompts.ts, both the merged text-parse and
+     standalone text prompts): only a *conflicting* later amount that REPLACES an earlier figure with a
+     different (usually larger) one drops confidence to ≤0.3. A repeated/equal amount or two separate
+     equal charges keeps normal confidence. Injection defense (the larger-override case) is intact.
+  2. **The verify question now states what it will file under** — category + §section
+     (`readCheckMessage(input, category, sectionId)`), so even the read-check carries tax context.
+  3. **The confirm reply carries full value, deterministically** — new `confirmReceiptMessage` (+ pure
+     `formatConfirmation`) loads the saved receipt + IRC summary and replies "✓ Locked in — $20.00 at
+     Twilio, filed under Software. Typically falls under §162 (link): <summary>." + the always-on CPA
+     deferral (`withDisclaimer`). No LLM call, so the verify path keeps its cost win (DEC-066).
+- **Scope note (NOT fixed).** A single text holding *two distinct transactions* still logs only one;
+  batch text capture stays the deferred limitation (same posture as multi-photo MMS, DEC-066). The
+  removed verify previously half-masked this by asking; the honest fix (capture both, or "I logged one;
+  resend the other") is a separate follow-up.
+- **Tests.** `expense.test.ts` (new) covers `formatConfirmation`: names amount/vendor/category, weaves
+  the inline §link + summary, always closes with the CPA deferral, omits the citation for `personal`,
+  and reads cleanly with no vendor. 247 pass.
+
+---
+
 ## 2026-06-10 — Profession-aware categorization (business profile); inventory/COGS deferred
 
 ### DEC-081 — Business profile as a categorization PRIOR (Spec 09, Piece 1); inventory/COGS (Piece 2) deferred

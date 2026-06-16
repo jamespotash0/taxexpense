@@ -215,33 +215,55 @@ export async function parseTextExpense(text: string): Promise<ParsedTextExpense>
   };
 }
 
+/** One additional distinct charge found in the same text (DEC-083). Slim: the parsed expense fields
+ *  + its own category, ready to log via processNewExpense's precomputed-category path. */
+export interface ParsedAdditionalExpense {
+  parsed: ParsedTextExpense;
+  category: CategoryResult;
+}
+
+/** Raw additional-charge object as the merged prompt returns it (same fields as the top level). */
+type RawAdditional = Partial<ParsedTextExpense> & RawCategoryFields;
+
+function toParsedExpense(raw: Partial<ParsedTextExpense>, fallbackText: string): ParsedTextExpense {
+  return {
+    amount: raw.amount ?? null,
+    vendor: raw.vendor ?? null,
+    transaction_date: raw.transaction_date ?? null,
+    attendees: raw.attendees ?? null,
+    business_purpose: raw.business_purpose ?? null,
+    business_miles: raw.business_miles ?? null,
+    location_city: raw.location_city ?? null,
+    raw_text: raw.raw_text ?? fallbackText,
+    confidence: typeof raw.confidence === 'number' ? raw.confidence : 0,
+  };
+}
+
 /**
  * Merged parse + categorize for a text-only expense (one Haiku call) — DEC-063.
  * Replaces the parse-then-categorize two-call chain on the SMS new-expense text path.
+ * `additional` carries any SEPARATE charges named in the same message (DEC-083) — empty for the
+ * common single-expense case, so callers that don't opt into multi-capture are unaffected.
  */
 export async function parseAndCategorizeText(
   text: string,
   user: AppUser,
-): Promise<{ parsed: ParsedTextExpense; category: CategoryResult }> {
-  const raw = await claudeJSON<Partial<ParsedTextExpense> & RawCategoryFields>({
+): Promise<{ parsed: ParsedTextExpense; category: CategoryResult; additional: ParsedAdditionalExpense[] }> {
+  const raw = await claudeJSON<Partial<ParsedTextExpense> & RawCategoryFields & { additional_expenses?: RawAdditional[] }>({
     model: HAIKU_MODEL,
     system: TEXT_PARSE_CATEGORIZE_PROMPT,
     userText: `## User Context\n${userContextLine(user)}\n\n## Message\n${text}`,
     cacheSystem: true,
   });
+  // Only keep additional charges that actually carry a usable amount or mileage — drop empty/garbage
+  // objects so we never log a $0 phantom from an over-eager split.
+  const additional: ParsedAdditionalExpense[] = (Array.isArray(raw.additional_expenses) ? raw.additional_expenses : [])
+    .filter((a) => a && (a.amount != null || a.business_miles != null))
+    .map((a) => ({ parsed: toParsedExpense(a, text), category: toCategoryResult(a) }));
   return {
-    parsed: {
-      amount: raw.amount ?? null,
-      vendor: raw.vendor ?? null,
-      transaction_date: raw.transaction_date ?? null,
-      attendees: raw.attendees ?? null,
-      business_purpose: raw.business_purpose ?? null,
-      business_miles: raw.business_miles ?? null,
-      location_city: raw.location_city ?? null,
-      raw_text: raw.raw_text ?? text,
-      confidence: typeof raw.confidence === 'number' ? raw.confidence : 0,
-    },
+    parsed: toParsedExpense(raw, text),
     category: toCategoryResult(raw),
+    additional,
   };
 }
 

@@ -7,7 +7,7 @@ overwritten in place so it always reflects the present, not the history.
 **Read this first at session start** to orient, then read JOURNAL.md or the specific
 ticket file when you need detail.
 
-_Last updated: 2026-06-10_
+_Last updated: 2026-06-16_
 
 ---
 
@@ -23,6 +23,25 @@ _Last updated: 2026-06-10_
   plus new sms-segments.ts/.test.ts, twilio.ts, and the messaging-cost-levers spec.
 
 ## Recently shipped
+
+- **Multi-charge text capture** (DEC-083, 2026-06-16, follow-up to DEC-082). A single text naming
+  several distinct charges ("$20 Twilio and another $20", "$40 gas and $12 parking") now logs them
+  ALL instead of silently dropping all but the first. The merged parse prompt returns
+  `additional_expenses[]`; `captureTextExpense` logs the primary on the full conversational flow and
+  each extra via `processNewExpense`, then appends one summary note. Bounded: one live question per
+  message (extras finish on the dashboard), recurring offers skipped for batches, injection/override
+  defense intact, $0 phantoms filtered. Pure helpers (`summarizeExtra`/`formatBatchNote`) unit-tested;
+  251 pass. Live evals green: `eval:merged` 95% (19/20) + `redteam` 15/15 held (no regression).
+
+- **Read-verify fix: scoped the trigger + the confirm now carries the IRC §** (DEC-082, 2026-06-16).
+  A "$20 Twilio and another $20" in one text tripped the multi-amount anti-injection rule (confidence
+  forced ≤0.3), firing the paranoid read-check; on YES it returned a bare "locked it in" with no tax
+  context, because the verify→confirm detour skips `composeResponse`. Fix: (1) the confidence penalty
+  now only fires on a real *override* (a conflicting later amount that replaces an earlier one), not a
+  repeated/equal amount; (2) `readCheckMessage` states the category + §section it'll file under; (3)
+  new `confirmReceiptMessage`/`formatConfirmation` reply with category + §link + plain-English summary
+  + CPA deferral, deterministically (no LLM, keeps DEC-066's cost win). Batch text capture (two distinct
+  charges in one text → still logs one) stays the deferred limitation. 247 tests.
 
 - **Bug fix: replies to the weekly receipt reminder now work** (2026-06-15). The reminder cron
   sends via `sendSms` and sets NO live `awaiting_receipt` pending context (and any original context

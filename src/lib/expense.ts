@@ -11,7 +11,9 @@ import {
   MILEAGE_RATE_CENTS_PER_MILE,
   type SubstantiationRule,
 } from './substantiation';
-import { getIrcSummary } from './irc';
+import { getIrcSummary, lookupIrcSectionFlexible } from './irc';
+import { categoryLabel } from './categories';
+import { ircCitation, withDisclaimer } from './categorize';
 import { assessCategoryReview } from './review';
 import { log } from './log';
 import {
@@ -46,11 +48,64 @@ export interface ProcessResult {
 const EXTRACTION_CONFIDENCE_FLOOR = 0.7;
 
 /** Deterministic "did I read this right?" prompt shown when extraction confidence is low. Surfaces
- *  the amount (and vendor) so the user can catch a misread; the reply confirms or corrects it. */
-function readCheckMessage(input: ExpenseInput): string {
+ *  the amount (and vendor) so the user can catch a misread, plus what it will file the expense under
+ *  (category + IRC section) so the verify still carries the tax context, not just a number to OK.
+ *  The reply confirms or corrects it. */
+function readCheckMessage(input: ExpenseInput, category: string, sectionId: string | null): string {
   const amount = `$${((input.amount_cents ?? 0) / 100).toFixed(2)}`;
   const at = input.vendor ? ` at ${input.vendor}` : '';
-  return `Quick check — I read that as ${amount}${at}. Reply YES if that's right, or send the correct amount and I'll fix it.`;
+  const section = sectionId ? ` (§${sectionId.replace(/^§/, '')})` : '';
+  const filing = `, filing under ${categoryLabel(category)}${section}`;
+  return `Quick check — I read that as ${amount}${at}${filing}. Reply YES if that's right, or send the correct amount and I'll fix it.`;
+}
+
+/**
+ * Deterministic confirmation after the user OKs a verified read (DEC-066 awaiting_confirm YES) or a
+ * category micro-confirm (DEC-073). Replaces the old bare "✓ Great — locked it in." with the same
+ * value the normal log reply carries: the category it filed under, the IRC section it cites (with
+ * the tap-through link + a one-line plain-English summary), and the CPA deferral. No LLM call — built
+ * straight from the saved receipt + IRC summary, so the verify path keeps its cost win (DEC-066).
+ */
+export async function confirmReceiptMessage(orgId: string, receiptId: string): Promise<ProcessResult> {
+  const receipt = await getReceipt(orgId, receiptId);
+  if (!receipt) {
+    // Receipt vanished mid-flight — still acknowledge so the user isn't left hanging.
+    return { smsText: '✓ Locked it in.', receiptId, contextState: null };
+  }
+  // Resolve the IRC summary flexibly (receipts store "§274(n)"; section_id keys are bare "274").
+  const irc = receipt.irc_section ? await lookupIrcSectionFlexible(receipt.irc_section) : null;
+  const sectionId = irc?.section_id ?? (receipt.irc_section ? receipt.irc_section.replace(/§/g, '').replace(/[^0-9A-Za-z]/g, '') : null);
+  return {
+    smsText: formatConfirmation({
+      amountCents: receipt.amount_cents,
+      vendor: receipt.vendor,
+      category: receipt.category,
+      sectionId,
+      summary: irc?.short_summary ?? null,
+    }),
+    receiptId,
+    contextState: null,
+  };
+}
+
+/** Pure assembly of the confirmation copy (category + IRC §section + link + summary + disclaimer).
+ *  Split out from confirmReceiptMessage so the wording is unit-testable without a DB. */
+export function formatConfirmation(args: {
+  amountCents: number;
+  vendor: string | null;
+  category: string | null;
+  sectionId: string | null;
+  summary: string | null;
+}): string {
+  const amount = `$${(args.amountCents / 100).toFixed(2)}`;
+  const at = args.vendor ? ` at ${args.vendor}` : '';
+  const citation = ircCitation({ sectionId: args.sectionId });
+  const lines = [`✓ Locked in — ${amount}${at}, filed under ${categoryLabel(args.category)}.`];
+  if (citation) {
+    const desc = args.summary ? `: ${args.summary}` : '';
+    lines.push(`Typically falls under ${citation}${desc}`);
+  }
+  return withDisclaimer(lines.join('\n'));
 }
 
 function generalFallback(category: string): SubstantiationRule {
@@ -247,7 +302,7 @@ export async function processNewExpense(
     const receiptId = await saveReceipt({ user, input, category: cat.category, rule, decision, photoPath, review });
     log.info('expense_low_confidence_verify', { user: user.id, confidence: extractionConfidence });
     await emitCategorizeEvent(receiptId, true, 'amount_verify');
-    return { smsText: readCheckMessage(input), receiptId, contextState: 'awaiting_confirm' };
+    return { smsText: readCheckMessage(input, cat.category, rule.irc_section), receiptId, contextState: 'awaiting_confirm' };
   }
 
   const irc = await getIrcSummary(rule.irc_section);
