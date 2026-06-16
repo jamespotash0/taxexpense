@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import { PWARegister } from '@/components/PWARegister';
 import { MotionProvider } from '@/components/MotionProvider';
 import { SITE_URL } from '@/lib/site';
@@ -49,6 +50,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className="min-h-full flex flex-col">
         <MotionProvider>{children}</MotionProvider>
         <PWARegister />
+        <SpeedInsights />
       </body>
     </html>
   );
