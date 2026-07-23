@@ -12,6 +12,10 @@ The result is a clean, exportable, documentation-complete record of business exp
 
 > **Who it's for:** Sole proprietors and single-member LLCs who pay business expenses from a mix of personal and business cards and have *nothing* organized for tax time — people who don't use Mercury/Brex/Ramp, QuickBooks, or a dedicated accountant.
 
+### 📱 Try it
+
+Text an expense to **+1 (762) 475-4986** — a receipt photo or just a few words like `$30 gas to client site` — and Tally takes it from there.
+
 ---
 
 ## How it works
