@@ -22,6 +22,7 @@ import { formatUsPhone } from '@/lib/phone';
 import { type HeroVariant } from '@/lib/ab';
 import { getI18n } from '@/i18n/server';
 import { fmt } from '@/i18n/config';
+import { publicSmsNumber } from '@/lib/env';
 
 export default async function Home() {
   const { locale, t } = await getI18n();
@@ -30,7 +31,7 @@ export default async function Home() {
   // fall back to a placeholder (reserved 555-01xx fictional range) — the core "just text it"
   // mechanic stays visible. A real env number always wins and makes the CTA a live sms: link
   // with a prefilled "Hi Tally" draft; with the placeholder, the CTA routes to /start instead.
-  const liveNumber = process.env.TWILIO_PHONE_NUMBER || '';
+  const liveNumber = publicSmsNumber() || '';
   const number = liveNumber ? formatUsPhone(liveNumber) : '+1 (415) 555-0134';
   const smsHref = liveNumber
     ? `sms:${liveNumber.replace(/[^\d+]/g, '')}?&body=${encodeURIComponent('Hi Tally')}`

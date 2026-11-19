@@ -7,6 +7,31 @@ Format: date, decision, who pushed back, resolution, rationale.
 
 ---
 
+## 2026-11-19 — Linq added as a second messaging provider (Twilio kept)
+
+### DEC-085 — Linq (iMessage/RCS/SMS) behind MESSAGING_PROVIDER=linq; Twilio stays scaffolded
+
+- **Context.** Founder asked to move from Twilio to Linq, expecting it to be cheaper. Checked: Linq is
+  flat-rate (Business $260/mo per line, no per-message fees; free Hobby tier capped at 20 contacts).
+  Twilio is usage-based (about $0.01/segment + number + 10DLC), so Linq only wins above roughly 20k
+  messages/mo. At ~3 beta users the free Hobby tier fits, so the founder chose to plug Linq in now and
+  keep Twilio wired as the fallback.
+- **Decision.** One switch, `MESSAGING_PROVIDER=linq`. `sendMessage` (twilio.ts) routes SMS through
+  `sendLinq` (POST /v3/messages, Linq picks the line); WhatsApp stays on Twilio. New webhook
+  `/api/linq/inbound` verifies the Standard Webhooks signature (HMAC-SHA256 over id.timestamp.body,
+  5-min tolerance), parses `message.received` (webhook_version 2026-02-03) into the same
+  `InboundMessage`, and hands off to the unchanged `handleInboundSms`. `fetchInboundMedia` (was
+  fetchTwilioMedia) downloads Linq CDN photos too. `publicSmsNumber()` picks the displayed number.
+- **Acks before processing.** Linq retries any webhook not 2xx'd within 10s; OCR + Sonnet can exceed
+  that and would log duplicate expenses. The route returns 200 immediately and processes in `after()`.
+- **Opt-out.** Linq blocks sends to anyone who texted STOP (403 / code 2024) on its own; our existing
+  STOP/START keyword handling still runs. Linq has no Advanced Opt-Out HELP interception.
+- **Unverified against the live API:** whether Linq CDN attachment URLs need the API key (the fetch
+  falls back to Bearer on 401/403) and the full inbound media-part shape. Check on the first photo.
+- **Upgrade path.** Above ~20 contacts: Linq Business ($260/mo) or flip back to Twilio (unset the var).
+
+---
+
 ## 2026-06-16 — Landing traffic-source capture (Product Hunt et al.)
 
 ### DEC-084 — Aggregate channel attribution on the landing page (utm_source / ref / referrer)

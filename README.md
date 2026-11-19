@@ -151,6 +151,12 @@ TWILIO_AUTH_TOKEN=
 TWILIO_PHONE_NUMBER=
 # TWILIO_WHATSAPP_FROM=        # optional
 
+# Linq (alternative provider; set MESSAGING_PROVIDER=linq to use it instead of Twilio for SMS)
+# MESSAGING_PROVIDER=linq
+# LINQ_API_KEY=
+# LINQ_PHONE_NUMBER=            # the number users text (shown on the site)
+# LINQ_WEBHOOK_SECRET=          # whsec_... from the webhook subscription create response
+
 # Stripe
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
@@ -183,7 +189,8 @@ npm run dev
 Open [http://localhost:3000](http://localhost:3000).
 
 To exercise the SMS pipeline locally, point your Twilio number's webhook (or a tunnel like
-ngrok) at `/api/sms/inbound`.
+ngrok) at `/api/sms/inbound`. With Linq, subscribe `message.received` to
+`/api/linq/inbound?version=2026-02-03` instead.
 
 ---
 

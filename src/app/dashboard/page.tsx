@@ -12,6 +12,7 @@ import { formatMoney, formatDate } from '@/lib/format';
 import { formatUsPhone } from '@/lib/phone';
 import { getI18n } from '@/i18n/server';
 import { fmt } from '@/i18n/config';
+import { publicSmsNumber } from '@/lib/env';
 
 export default async function DashboardPage({
   searchParams,
@@ -50,9 +51,8 @@ export default async function DashboardPage({
   const isManaged = managedAgencyId !== null;
 
   const completePct = summary.count > 0 ? Math.round((summary.complete_count / summary.count) * 100) : 0;
-  const tallyNumber = process.env.TWILIO_PHONE_NUMBER
-    ? formatUsPhone(process.env.TWILIO_PHONE_NUMBER)
-    : 'your Tally number';
+  const smsNumber = publicSmsNumber();
+  const tallyNumber = smsNumber ? formatUsPhone(smsNumber) : 'your Tally number';
 
   return (
     <main className="mx-auto max-w-3xl p-4 sm:p-8">

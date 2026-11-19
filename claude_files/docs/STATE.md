@@ -7,11 +7,16 @@ overwritten in place so it always reflects the present, not the history.
 **Read this first at session start** to orient, then read JOURNAL.md or the specific
 ticket file when you need detail.
 
-_Last updated: 2026-06-16_
+_Last updated: 2026-11-19_
 
 ---
 
 ## Now working on
+
+- **Linq as the messaging provider (DEC-085).** `MESSAGING_PROVIDER=linq` routes SMS through Linq
+  (free Hobby tier, 20-contact cap) via `src/lib/linq.ts` + `/api/linq/inbound`; Twilio stays wired
+  as the fallback (unset the var). Pending: founder sets the LINQ_* env vars + webhook subscription,
+  then a live photo test to confirm attachment download.
 
 - **Messaging-cost levers** (see `claude_files/specs/messaging-cost-levers.md`, draft proposal).
   Two active levers: (A) conditional disclaimer/citation — BLOCKED on a Jordan/lawyer call;

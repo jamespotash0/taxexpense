@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { parseBody, jsonError, serverError } from '@/lib/api';
 import { normalizeToE164 } from '@/lib/phone';
 import { sendSms } from '@/lib/twilio';
-import { optionalEnv } from '@/lib/env';
+import { publicSmsNumber } from '@/lib/env';
 import { createRateLimiter, getClientIp } from '@/lib/rate-limit';
 import { log, maskPhone } from '@/lib/log';
 
@@ -44,7 +44,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     'Msg & data rates may apply. Reply HELP for help, STOP to opt out.';
 
   try {
-    if (optionalEnv('TWILIO_PHONE_NUMBER')) {
+    if (publicSmsNumber()) {
       await sendSms(phone, welcome);
       log.info('hero_optin_sent', { phone: maskPhone(phone) });
     } else {

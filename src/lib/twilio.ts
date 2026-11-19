@@ -4,7 +4,8 @@
 // called in the route handler (EPIC-2); the helper lives here.
 
 import twilio from 'twilio';
-import { requireEnv, optionalEnv } from './env';
+import { requireEnv, optionalEnv, isLinq } from './env';
+import { sendLinq } from './linq';
 import { analyzeSegments, redactNonGsmForLog } from './sms-segments';
 import { log } from './log';
 
@@ -24,6 +25,10 @@ export type Channel = 'sms' | 'whatsapp';
  * "whatsapp:+14155238886" — the Twilio sandbox number works for testing).
  */
 export async function sendMessage(to: string, body: string, channel: Channel = 'sms'): Promise<string> {
+  // MESSAGING_PROVIDER=linq routes SMS through Linq (flat-rate, no segment billing, so no
+  // segment logging). WhatsApp stays on Twilio. Every caller goes through here.
+  if (isLinq() && channel === 'sms') return sendLinq(to, body);
+
   const from =
     channel === 'whatsapp'
       ? requireEnv('TWILIO_WHATSAPP_FROM') // already "whatsapp:+1..."

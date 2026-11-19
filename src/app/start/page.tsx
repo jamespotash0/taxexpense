@@ -7,6 +7,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { getI18n } from '@/i18n/server';
 import { formatUsPhone } from '@/lib/phone';
+import { publicSmsNumber } from '@/lib/env';
 
 export const metadata = { title: 'Get started · Tally' };
 
@@ -15,7 +16,7 @@ export default async function StartPage() {
   const o = t.onboarding;
   // Fall back to a placeholder (reserved 555-01xx fictional range) so the page always shows a
   // number to text even before the real Twilio number is wired. A real env number always wins.
-  const rawNumber = process.env.TWILIO_PHONE_NUMBER || '+1 (415) 555-0134';
+  const rawNumber = publicSmsNumber() || '+1 (415) 555-0134';
   const number = formatUsPhone(rawNumber);
   const smsHref = `sms:${rawNumber.replace(/[^\d+]/g, '')}?&body=${encodeURIComponent('Hi Tally')}`;
 

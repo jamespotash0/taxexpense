@@ -76,18 +76,28 @@ function visionMediaType(contentType: string): string {
 }
 
 /**
- * Download an MMS photo from Twilio into memory (NO storage write). We OCR from these
+ * Download an inbound photo (Twilio or Linq) into memory (NO storage write). We OCR from these
  * bytes first and only persist to Storage once we know the image will be linked to a
  * receipt — this prevents orphaned uploads from non-receipt / unmatched photos.
  */
-export async function fetchTwilioMedia(twilioMediaUrl: string): Promise<{ buffer: Buffer; contentType: string }> {
-  const sid = requireEnv('TWILIO_ACCOUNT_SID');
-  const token = requireEnv('TWILIO_AUTH_TOKEN');
-  // Twilio media requires basic auth; use the Authorization header (don't inline creds in URL).
-  const res = await fetch(twilioMediaUrl, {
-    headers: { Authorization: `Basic ${Buffer.from(`${sid}:${token}`).toString('base64')}` },
-  });
-  if (!res.ok) throw new Error(`twilio_media_fetch_failed_${res.status}`);
+export async function fetchInboundMedia(mediaUrl: string): Promise<{ buffer: Buffer; contentType: string }> {
+  let res: Response;
+  if (new URL(mediaUrl).hostname === 'cdn.linqapp.com') {
+    // Linq attachment URLs are typically pre-signed (an extra auth header can break those);
+    // the docs don't say, so fall back to the API key if the plain fetch is refused.
+    res = await fetch(mediaUrl);
+    if (res.status === 401 || res.status === 403) {
+      res = await fetch(mediaUrl, { headers: { Authorization: `Bearer ${requireEnv('LINQ_API_KEY')}` } });
+    }
+  } else {
+    const sid = requireEnv('TWILIO_ACCOUNT_SID');
+    const token = requireEnv('TWILIO_AUTH_TOKEN');
+    // Twilio media requires basic auth; use the Authorization header (don't inline creds in URL).
+    res = await fetch(mediaUrl, {
+      headers: { Authorization: `Basic ${Buffer.from(`${sid}:${token}`).toString('base64')}` },
+    });
+  }
+  if (!res.ok) throw new Error(`media_fetch_failed_${res.status}`);
   const contentType = res.headers.get('content-type') ?? 'image/jpeg';
   const buffer = Buffer.from(await res.arrayBuffer());
   return { buffer, contentType };

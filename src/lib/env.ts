@@ -21,6 +21,16 @@ export function optionalEnv(name: string): string | undefined {
   return value && value.length > 0 ? value : undefined;
 }
 
+/** Messaging provider: 'linq' when MESSAGING_PROVIDER=linq, otherwise Twilio (the default). */
+export function isLinq(): boolean {
+  return optionalEnv('MESSAGING_PROVIDER') === 'linq';
+}
+
+/** The number users text, for the active provider. Undefined until one is configured. */
+export function publicSmsNumber(): string | undefined {
+  return optionalEnv(isLinq() ? 'LINQ_PHONE_NUMBER' : 'TWILIO_PHONE_NUMBER');
+}
+
 // Public (NEXT_PUBLIC_*) vars are inlined at build time and safe in the client bundle.
 export const PUBLIC_ENV = {
   supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',

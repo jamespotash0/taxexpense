@@ -10,7 +10,7 @@ import { getSubstantiationRule } from './substantiation';
 import { categoryLabel } from './categories';
 import { handleOnboarding } from './onboarding';
 import {
-  fetchTwilioMedia,
+  fetchInboundMedia,
   extractAndCategorizeReceiptFromImageData,
   storePhotoBuffer,
   parseAndCategorizeText,
@@ -515,7 +515,7 @@ async function handleExpenseFlow(user: AppUser, msg: InboundMessage): Promise<Pr
     // OCR + categorize from the bytes FIRST (one merged Haiku call, DEC-063); we only write
     // to Storage once we know the image links to a receipt (prevents orphaned uploads from
     // non-receipt / unmatched photos). On the attachment path below the category is unused.
-    const { buffer, contentType } = await fetchTwilioMedia(msg.mediaUrls[0]);
+    const { buffer, contentType } = await fetchInboundMedia(msg.mediaUrls[0]);
     const { ocr, category } = await extractAndCategorizeReceiptFromImageData(buffer, contentType, user, caption);
 
     // If a receipt is awaiting a photo, try to attach this one first (stores on match).
