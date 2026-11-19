@@ -42,13 +42,13 @@ function reminderMessage(firstName: string | null, n: number, lastNudge: boolean
   const noun = n === 1 ? 'expense is' : 'expenses are';
   if (lastNudge) {
     return (
-      `${lead}last receipt nudge: ${n} ${noun} still missing a photo. I'll stop asking after this. ` +
-      `Add one anytime from your dashboard. Note: expenses over $75 need a receipt for your taxes.`
+      `${lead}last nudge from me, promise! ${n} ${noun} still missing a receipt photo. I'll stop asking after this. ` +
+      `You can add one anytime from your dashboard. Just a reminder: expenses over $75 need a receipt for your taxes.`
     );
   }
   return (
-    `${lead}quick nudge from Tally: ${n} ${noun} still missing a receipt photo. Snap & send when you ` +
-    `can and I'll match it up, or reply "no receipt" if you don't have it and I'll stop asking.`
+    `${lead}quick nudge! ${n} ${noun} still missing a receipt photo. Snap and send when you ` +
+    `can and I'll match it up. Or reply "no receipt" if you don't have it and I'll stop asking.`
   );
 }
 

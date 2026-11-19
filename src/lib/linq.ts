@@ -28,6 +28,18 @@ export async function sendLinq(to: string, body: string): Promise<string> {
 }
 
 /**
+ * The iMessage feel (DEC-086): mark the chat "Read" and show the "..." typing bubble while we
+ * process. The bubble clears itself when our reply lands (or after ~90s). iMessage only; Linq
+ * accepts and ignores it on SMS/RCS chats. Best-effort: never blocks or fails the reply.
+ */
+export async function showReadAndTyping(chatId: string): Promise<void> {
+  const headers = { Authorization: `Bearer ${requireEnv('LINQ_API_KEY')}` };
+  const base = `${LINQ_API}/chats/${encodeURIComponent(chatId)}`;
+  await fetch(`${base}/read`, { method: 'POST', headers }).catch(() => {});
+  await fetch(`${base}/typing`, { method: 'POST', headers }).catch(() => {});
+}
+
+/**
  * Verify a Linq webhook (Standard Webhooks): HMAC-SHA256 over `${id}.${timestamp}.${rawBody}`,
  * keyed with the base64 part of the `whsec_...` secret, compared against each `v1,<base64>`
  * entry in `webhook-signature`. Rejects timestamps more than 5 min off (replay protection).
@@ -63,6 +75,7 @@ interface LinqPart {
 interface LinqEvent {
   event_type?: string;
   data?: {
+    chat?: { id?: string };
     direction?: string;
     sender_handle?: { handle?: string };
     parts?: LinqPart[];

@@ -189,6 +189,7 @@ export async function composeResponse(args: {
   const userText = [
     `## User Context`,
     `${userContextLine(user)}; Default payment: ${user.default_payment_account ?? 'unknown'}`,
+    `Your name (what this user calls you): ${user.agent_name ?? 'Penny'}`,
     ``,
     `## Expense`,
     expenseSummary(input),

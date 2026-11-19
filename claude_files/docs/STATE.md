@@ -13,6 +13,10 @@ _Last updated: 2026-11-19_
 
 ## Now working on
 
+- **Penny voice + renamable assistant (DEC-086).** Friend-voice copy everywhere, no em dashes
+  (enforced in `sendMessage`), onboarding asks what to call the assistant (default Penny), and
+  Linq shows Read + typing. Pending: run migration 0032 in Supabase before deploying.
+
 - **Linq as the messaging provider (DEC-085).** `MESSAGING_PROVIDER=linq` routes SMS through Linq
   (free Hobby tier, 20-contact cap) via `src/lib/linq.ts` + `/api/linq/inbound`; Twilio stays wired
   as the fallback (unset the var). Pending: founder sets the LINQ_* env vars + webhook subscription,

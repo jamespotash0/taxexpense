@@ -14,6 +14,7 @@ export interface AppUser {
   organization_id: string;
   phone_number: string;
   full_name: string | null;
+  agent_name: string | null; // what they call the assistant; null = "Penny" (DEC-086)
   email: string | null; // collected at the dashboard, not over SMS (DEC-014)
   business_type: string | null;
   entity_type: 'sole_prop' | 'smllc' | 's_corp' | 'c_corp' | 'unknown' | null;

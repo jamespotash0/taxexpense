@@ -78,24 +78,24 @@ export type OfferReason = 'subscription' | 'repeat';
 /** Offer to start tracking, appended after a normal "logged" reply. */
 export function offerRecurring(vendor: string | null, amountCents: number, reason: OfferReason): string {
   if (reason === 'subscription') {
-    return `${vendor ?? 'That'} ${formatMoney(amountCents)} looks like a recurring subscription — want me to track it monthly so you don't have to re-text it? Reply YES.`;
+    return `${vendor ?? 'That'} ${formatMoney(amountCents)} looks like a subscription! Want me to track it monthly so you don't have to re-text it? Reply YES.`;
   }
-  return `I've logged ${label(vendor, amountCents)} before — want me to track it monthly so you don't have to re-text it? Reply YES.`;
+  return `I've seen ${label(vendor, amountCents)} before! Want me to track it monthly so you don't have to re-text it? Reply YES.`;
 }
 
 /** Confirmation that a template is now tracked. */
 export function recurringCreatedMsg(vendor: string | null, amountCents: number): string {
-  return `✓ Tracking ${label(vendor, amountCents)} monthly. I'll check in before each one — nothing is logged until you confirm.`;
+  return `✓ You got it, tracking ${label(vendor, amountCents)} monthly. I'll check in before each one, and nothing gets logged until you confirm.`;
 }
 
 /** The monthly nudge (cron-initiated). */
 export function confirmRenewalMsg(vendor: string | null, amountCents: number): string {
-  return `Heads up — your ${label(vendor, amountCents)} usually recurs around now. Did it? Reply Y to log it, or N to skip.`;
+  return `Hey! Your ${label(vendor, amountCents)} usually comes around about now. Did it? Reply Y to log it, or N to skip.`;
 }
 
 /** Reply after the user skips a renewal. */
 export function skippedRenewalMsg(vendor: string | null): string {
-  return `No problem — skipped ${vendor ?? 'it'} this month. I'll check again next time.`;
+  return `No problem, skipped ${vendor ?? 'it'} this month. I'll check again next time!`;
 }
 
 /** Build the expense input to re-log when a renewal is confirmed. */

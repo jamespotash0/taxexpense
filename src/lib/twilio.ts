@@ -19,12 +19,18 @@ function getTwilio() {
 
 export type Channel = 'sms' | 'whatsapp';
 
+/** Friend voice (DEC-086): no em/en dashes in anything we text. Catches AI-written replies too. */
+export function stripDashes(body: string): string {
+  return body.replace(/\s*[—–]\s*/g, ', ');
+}
+
 /**
  * Send an outbound message on the given channel. WhatsApp uses the same Twilio API with
  * `whatsapp:` address prefixes and a WhatsApp-enabled sender (TWILIO_WHATSAPP_FROM, e.g.
  * "whatsapp:+14155238886" — the Twilio sandbox number works for testing).
  */
-export async function sendMessage(to: string, body: string, channel: Channel = 'sms'): Promise<string> {
+export async function sendMessage(to: string, rawBody: string, channel: Channel = 'sms'): Promise<string> {
+  const body = stripDashes(rawBody);
   // MESSAGING_PROVIDER=linq routes SMS through Linq (flat-rate, no segment billing, so no
   // segment logging). WhatsApp stays on Twilio. Every caller goes through here.
   if (isLinq() && channel === 'sms') return sendLinq(to, body);

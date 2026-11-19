@@ -198,22 +198,22 @@ function appBase(): string {
 // about every flagged receipt at once.
 export function bulkWaiveMessage(n: number): string {
   const what = n === 1 ? 'that expense' : `those ${n} expenses`;
-  return `No problem — I won't ask again about ${what}. Your text is the record, and I've noted there's no receipt so it's clear for your accountant. Snap a photo anytime and it'll still attach.`;
+  return `Totally fine, I won't ask about ${what} again. Your text is the record, and I noted there's no receipt so it's clear for your accountant. Snap a photo anytime and it'll still attach.`;
 }
 const RECEIPT_LATER_ACK =
-  "No problem — I'll keep those flagged so you can send the photos whenever. Everything else is captured ✓";
+  "No problem! I'll keep those flagged so you can send the photos whenever. Everything else is captured ✓";
 
 const ADVICE_DEFLECTION =
-  "I keep your records, not tax advice — for what you'll owe or whether something's deductible, check with a CPA. " +
-  'But I can tell you what you\'ve logged: try "how much on meals this year?" or "review my year".';
+  "I'm your record keeper, not a tax advisor! For what you'll owe or whether something's deductible, check with a CPA. " +
+  'But I can tell you what you\'ve logged. Try "how much on meals this year?" or "review my year".';
 
 const HELP_TEXT =
-  'Text me an expense — a photo or a note like "$30 gas to client site" — and I\'ll log it. ' +
-  'You can also ask things like "how much on meals this year?" or "review my year".';
+  'Hey! Text me any expense (a receipt photo or a note like "$30 gas to client site") and I\'ll log it. ' +
+  'You can also ask me stuff like "how much on meals this year?" or "review my year".';
 
 // Grounded facts the capability answerer may rely on — keep accurate to the actual product so the
 // model never invents a feature. If behavior changes, update this list.
-const CAPABILITY_PROMPT = `You are Tally, an assistant people text to log business expenses. A user asked how Tally works or whether it can do something. Answer ONLY from the facts below, in ONE short, friendly SMS (under 320 characters, plain text, no bullet lists). If the question is NOT covered by the facts, do NOT guess — reply simply that you can't answer that one (e.g. "I can't answer that — I'm built to log business expenses.") and stop there. Never give tax advice; for what's deductible or owed, defer to a CPA.
+const CAPABILITY_PROMPT = `You are Tally's friendly texting assistant that people text to log business expenses. A user asked how Tally works or whether it can do something. Answer ONLY from the facts below, in ONE short SMS (under 320 characters, plain text, no bullet lists) that sounds like a warm, upbeat friend texting back. Never use em dashes or en dashes. If the question is NOT covered by the facts, do NOT guess. Reply simply that you can't answer that one (e.g. "Hmm, I can't answer that one. I'm built to log business expenses!") and stop there. Never give tax advice; for what's deductible or owed, defer to a CPA.
 
 What Tally can do:
 - Log expenses you text — a photo of a receipt, or a quick note like "$30 gas to client site". Reading receipt photos and mileage ("drove 22 miles to client") both work.
@@ -231,7 +231,7 @@ Answer the user's question directly and concisely.`;
 // Off-topic / unprocessable message (DEC-029): say plainly we can't do it, then point back to
 // the one thing we do. Distinct from HELP_TEXT, which still greets a "hi" / "what can you do".
 const CANT_HELP_TEXT =
-  "Sorry, I can't help with that — I'm built to log business expenses. " +
+  "Ha, wish I could help with that! I'm built to log business expenses though. " +
   'Text me one like "$30 gas to client site" and I\'ll take it from there.';
 
 function commandReply(user: AppUser, command: CommandName): ProcessResult {
@@ -244,7 +244,7 @@ function commandReply(user: AppUser, command: CommandName): ProcessResult {
     );
   }
   // export
-  return reply(`Export a CSV or QuickBooks file anytime from your dashboard: ${base}/dashboard`);
+  return reply(`Easy! Grab a CSV or QuickBooks file anytime from your dashboard: ${base}/dashboard`);
 }
 
 // ---------------------------------------------------------------------------
@@ -332,14 +332,14 @@ async function findFlagCandidates(orgId: string, target: FlagTarget): Promise<Re
 
 async function flagOne(user: AppUser, r: ReceiptRow): Promise<ProcessResult> {
   const name = `${r.vendor ?? 'your expense'} ${formatMoney(r.amount_cents)}`;
-  if (r.flagged_for_cpa) return reply(`${name} is already flagged for your CPA — it'll show on the export.`);
+  if (r.flagged_for_cpa) return reply(`${name} is already flagged for your CPA, so it'll show on the export.`);
   await updateReceipt(user.organization_id, r.id, { flagged_for_cpa: true });
-  return reply(`✓ Flagged ${name} for your CPA. It'll be marked on your export so they can weigh in.`);
+  return reply(`✓ Done! Flagged ${name} for your CPA. It'll be marked on your export so they can weigh in.`);
 }
 
 async function flagLatest(user: AppUser): Promise<ProcessResult> {
   const { rows } = await listReceipts(user.organization_id, { limit: 1 });
-  if (!rows[0]) return reply("I don't see an expense to flag yet — text me one first.");
+  if (!rows[0]) return reply("I don't see any expenses to flag yet. Text me one first!");
   return flagOne(user, rows[0]);
 }
 
@@ -351,7 +351,7 @@ async function flagForCpa(user: AppUser, text: string): Promise<ProcessResult> {
   const candidates = await findFlagCandidates(user.organization_id, target);
   if (candidates.length === 0) {
     return reply(
-      'I couldn’t find that one. Try the amount ("flag the $48 one") or the vendor — or flag specific expenses in your dashboard.',
+      'Hmm, I couldn’t find that one. Try the amount ("flag the $48 one") or the vendor, or flag it from your dashboard.',
     );
   }
   if (candidates.length === 1) return flagOne(user, candidates[0]);
@@ -359,7 +359,7 @@ async function flagForCpa(user: AppUser, text: string): Promise<ProcessResult> {
   const list = candidates.slice(0, 5);
   const lines = list.map((r, i) => `${i + 1}) ${r.vendor ?? 'Unknown'} ${formatMoney(r.amount_cents)}${shortDate(r.transaction_date)}`);
   return {
-    smsText: `I found a few — which should I flag for your CPA?\n${lines.join('\n')}\nReply with a number.`,
+    smsText: `I found a few! Which one should I flag for your CPA?\n${lines.join('\n')}\nReply with a number.`,
     receiptId: null,
     contextState: 'awaiting_flag_choice',
     pendingData: { candidateIds: list.map((r) => r.id) },
@@ -372,7 +372,7 @@ export async function resolveFlagChoice(user: AppUser, candidateIds: string[], c
     return reply(`Reply with a number 1-${candidateIds.length} to flag one for your CPA.`);
   }
   const r = await getReceipt(user.organization_id, candidateIds[choice - 1]);
-  if (!r) return reply("That one's no longer available — try again or use the dashboard.");
+  if (!r) return reply("Hmm, that one's not there anymore. Try again or use the dashboard.");
   return flagOne(user, r);
 }
 
@@ -398,8 +398,8 @@ async function handleContextStatement(user: AppUser, text: string): Promise<Proc
   // that wrongly diverts real expenses here is auditable, not invisible).
   log.info('conversational_no_log', { user: user.id, kind: 'context_statement', applied: false });
   return reply(
-    'Got it. I log business expenses as they happen — send me one (a photo, or a quick note like ' +
-      '"$30 gas to client site") and I\'ll capture the why and any context the IRS needs.',
+    'Got it! Whenever you spend on the business, send it my way (a photo, or a quick note like ' +
+      '"$30 gas to client site") and I\'ll capture the why and anything the IRS needs.',
   );
 }
 

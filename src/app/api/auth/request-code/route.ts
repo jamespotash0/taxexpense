@@ -32,7 +32,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     if (!result.ok) {
       return jsonError('rate_limited', 429, { message: 'Too many code requests. Try again in a few minutes.' });
     }
-    await sendSms(phone, `Your Tally code is: ${result.code} (expires in 10 min)`);
+    await sendSms(phone, `Your Tally code is ${result.code} (good for 10 min) 🔐`);
     return NextResponse.json({ ok: true });
   } catch (err) {
     return serverError('request_code_failed', err, { phone: maskPhone(phone) });

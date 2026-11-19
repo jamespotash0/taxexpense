@@ -7,6 +7,32 @@ Format: date, decision, who pushed back, resolution, rationale.
 
 ---
 
+## 2026-11-19 — Penny: friend voice, a renamable assistant, iMessage typing
+
+### DEC-086 — The texting assistant is "Penny" (renamable), talks like a friend, no em dashes
+
+- **Context.** Founder wanted Tally's texts to feel friendly and fun, like a friend, with no em
+  dashes, the iMessage "..." typing bubble, and a fun assistant name the user can change.
+- **Decision.**
+  - **Name.** Default "Penny" (founder's pick). New onboarding step right after the user's name:
+    "I go by Penny, but you can call me whatever you like." Stored on `users.agent_name`
+    (migration 0032, NULL = Penny). `parseAgentName` keeps Penny on "keep it"/"skip"/"Penny's fine".
+    The name is passed to the reply-writing prompt so a renamed assistant never calls itself Penny.
+  - **Voice.** Every hard-coded text rewritten warm and casual (acknowledge first, light emoji,
+    exclamation where natural). The reply-writing, clarification and correction prompts gained a
+    Voice section. Legal guardrails unchanged: "typically falls under", IRC citation, "documentation
+    complete", CPA disclaimer, TCPA elements in HELP and opt-in texts.
+  - **No em dashes.** Copy is dash-free, and `stripDashes` in `sendMessage` replaces any em/en dash
+    (including AI-written ones) with a comma before anything is sent.
+  - **iMessage feel (Linq only).** On each inbound, mark the chat Read, then start the typing
+    bubble; it clears when the reply lands. Best-effort; no-op on SMS/RCS chats.
+- **Deploy order.** Run migration 0032 BEFORE deploying, or onboarding's agent_name write fails.
+  Users mid-onboarding at deploy time shift by one question (the new step is index 1); fine at
+  ~3 users, all past onboarding.
+- **Doc drift.** SYSTEM-PROMPTS.md still has the pre-Penny prompt wording; prompts.ts is current.
+
+---
+
 ## 2026-11-19 — Linq added as a second messaging provider (Twilio kept)
 
 ### DEC-085 — Linq (iMessage/RCS/SMS) behind MESSAGING_PROVIDER=linq; Twilio stays scaffolded

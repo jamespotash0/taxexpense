@@ -104,7 +104,7 @@ function issuePhrases(counts: Record<CleanupIssueType, number>): string[] {
  */
 export function formatYearReview(review: YearReview, cleanupUrl: string): string {
   if (review.count === 0) {
-    return `No ${review.year} expenses logged yet — text me one and I'll start your year.`;
+    return `No ${review.year} expenses yet! Text me one and we'll get your year started.`;
   }
 
   const headline = `Your ${review.year}: ${formatMoney(review.total_cents)} across ${review.count} ${
@@ -116,7 +116,7 @@ export function formatYearReview(review: YearReview, cleanupUrl: string): string
     : '';
 
   if (review.issueCount === 0) {
-    return `${headline}${top}\nLooks documentation complete ✓ — nothing to tidy before you file.`;
+    return `${headline}${top}\nLooking documentation complete ✓ Nothing to tidy before you file. Nice work!`;
   }
 
   const phrases = issuePhrases(review.counts);

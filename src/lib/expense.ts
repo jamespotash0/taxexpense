@@ -56,7 +56,7 @@ function readCheckMessage(input: ExpenseInput, category: string, sectionId: stri
   const at = input.vendor ? ` at ${input.vendor}` : '';
   const section = sectionId ? ` (§${sectionId.replace(/^§/, '')})` : '';
   const filing = `, filing under ${categoryLabel(category)}${section}`;
-  return `Quick check — I read that as ${amount}${at}${filing}. Reply YES if that's right, or send the correct amount and I'll fix it.`;
+  return `Quick check! I read that as ${amount}${at}${filing}. Reply YES if that's right, or send the correct amount and I'll fix it.`;
 }
 
 /**
@@ -70,7 +70,7 @@ export async function confirmReceiptMessage(orgId: string, receiptId: string): P
   const receipt = await getReceipt(orgId, receiptId);
   if (!receipt) {
     // Receipt vanished mid-flight — still acknowledge so the user isn't left hanging.
-    return { smsText: '✓ Locked it in.', receiptId, contextState: null };
+    return { smsText: '✓ Got it, locked in!', receiptId, contextState: null };
   }
   // Resolve the IRC summary flexibly (receipts store "§274(n)"; section_id keys are bare "274").
   const irc = receipt.irc_section ? await lookupIrcSectionFlexible(receipt.irc_section) : null;
@@ -100,7 +100,7 @@ export function formatConfirmation(args: {
   const amount = `$${(args.amountCents / 100).toFixed(2)}`;
   const at = args.vendor ? ` at ${args.vendor}` : '';
   const citation = ircCitation({ sectionId: args.sectionId });
-  const lines = [`✓ Locked in — ${amount}${at}, filed under ${categoryLabel(args.category)}.`];
+  const lines = [`✓ Locked in! ${amount}${at}, filed under ${categoryLabel(args.category)}.`];
   if (citation) {
     const desc = args.summary ? `: ${args.summary}` : '';
     lines.push(`Typically falls under ${citation}${desc}`);

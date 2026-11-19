@@ -65,17 +65,17 @@ test('isRecurringLikely: subscription/bill categories vs variable ones', () => {
 
 test('offerRecurring: subscription reason (first log, category-based)', () => {
   const m = offerRecurring('Figma', 4900, 'subscription');
-  assert.match(m, /Figma \$49\.00 looks like a recurring subscription/);
+  assert.match(m, /Figma \$49\.00 looks like a subscription/);
   assert.match(m, /Reply YES/);
 });
 
 test('offerRecurring: repeat reason (seen before)', () => {
-  assert.match(offerRecurring('Figma', 4900, 'repeat'), /logged Figma \$49\.00 before/);
+  assert.match(offerRecurring('Figma', 4900, 'repeat'), /seen Figma \$49\.00 before/);
 });
 
 test('recurringCreatedMsg copy', () => {
-  assert.match(recurringCreatedMsg('Figma', 4900), /Tracking Figma \$49\.00 monthly/);
-  assert.match(recurringCreatedMsg('Figma', 4900), /nothing is logged until you confirm/);
+  assert.match(recurringCreatedMsg('Figma', 4900), /tracking Figma \$49\.00 monthly/);
+  assert.match(recurringCreatedMsg('Figma', 4900), /nothing gets logged until you confirm/);
 });
 
 test('confirmRenewalMsg asks Y/N', () => {

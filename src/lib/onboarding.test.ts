@@ -1,8 +1,25 @@
 // Unit tests for onboarding parsing + config (DEC-013).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseEntityType, parsePaymentAccount, parseName, parseBusinessName, hasNamedEntity, ONBOARDING_QUESTIONS } from './onboarding';
+import { parseEntityType, parsePaymentAccount, parseName, parseBusinessName, parseAgentName, hasNamedEntity, ONBOARDING_QUESTIONS } from './onboarding';
+import { stripDashes } from './twilio';
 import type { AppUser } from './users';
+
+test('parseAgentName: keeps Penny on "keep it"-style replies, takes a new name otherwise (DEC-086)', () => {
+  for (const keep of ['Penny', 'penny is fine', "Penny's great!", 'keep it', 'skip', 'sure', '"Penny"']) {
+    assert.equal(parseAgentName(keep), 'Penny', keep);
+  }
+  assert.equal(parseAgentName('Max'), 'Max');
+  assert.equal(parseAgentName("I'll call you Ziggy!"), 'Ziggy');
+  assert.equal(parseAgentName('call you buddy'), 'Buddy');
+  assert.ok(parseAgentName('x'.repeat(50)).length <= 30);
+});
+
+test('stripDashes: no em/en dashes reach the user (DEC-086)', () => {
+  assert.equal(stripDashes('Got it — logged.'), 'Got it, logged.');
+  assert.equal(stripDashes('meals–50%'), 'meals, 50%');
+  assert.equal(stripDashes('S-corp stays'), 'S-corp stays');
+});
 
 test('parseName strips lead-ins and tidies', () => {
   assert.equal(parseName('Jane'), 'Jane');
@@ -36,7 +53,7 @@ test('parsePaymentAccount maps keywords; "mixed" → unknown', () => {
 test('onboarding config: name, work, entity, business name, payment — in order (DEC-058)', () => {
   assert.deepEqual(
     ONBOARDING_QUESTIONS.map((q) => q.key),
-    ['full_name', 'business_type', 'entity_type', 'organization_name', 'default_payment_account'],
+    ['full_name', 'agent_name', 'business_type', 'entity_type', 'organization_name', 'default_payment_account'],
   );
   // Business name persists to the org, after entity, and is the only gated question.
   const biz = ONBOARDING_QUESTIONS.find((q) => q.key === 'organization_name')!;

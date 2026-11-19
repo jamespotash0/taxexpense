@@ -101,7 +101,7 @@ test('formatAggregate: numbers come straight from the struct', () => {
 
 test('formatAggregate: zero count is graceful', () => {
   const r: AggregateResult = { total_cents: 0, deductible_cents: 0, count: 0, periodLabel: 'this month', categoryLabel: null };
-  assert.equal(formatAggregate(r), 'No expenses this month yet.');
+  assert.equal(formatAggregate(r), 'Nothing logged this month yet! Text me one anytime.');
 });
 
 test('formatAggregate: singular noun + no category scope', () => {
@@ -114,13 +114,13 @@ test('formatRecent: lists vendor, category, amount', () => {
     { vendor: 'Uber', amount_cents: 5400, category: 'vehicle_business', transaction_date: '2026-06-01' },
     { vendor: null, amount_cents: 4900, category: 'software', transaction_date: null },
   ]);
-  assert.match(out, /Your last 2:/);
+  assert.match(out, /your last 2:/);
   assert.match(out, /\$54\.00 Uber · Vehicle \/ Mileage \(Jun 1\)/);
   assert.match(out, /\$49\.00 Unknown vendor · Software/);
 });
 
 test('formatRecent: empty', () => {
-  assert.equal(formatRecent([]), "You haven't logged any expenses yet.");
+  assert.equal(formatRecent([]), "You haven't logged any expenses yet! Text me one to get started.");
 });
 
 test('formatBreakdown: top spend, highest first', () => {

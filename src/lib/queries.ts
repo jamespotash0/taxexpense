@@ -263,7 +263,7 @@ export async function recentExpenses(orgId: string, n = 3): Promise<RecentExpens
 export function formatAggregate(r: AggregateResult): string {
   const scope = r.categoryLabel ? ` on ${r.categoryLabel}` : '';
   if (r.count === 0) {
-    return `No expenses${scope} ${r.periodLabel} yet.`;
+    return `Nothing logged${scope} ${r.periodLabel} yet! Text me one anytime.`;
   }
   const noun = r.count === 1 ? 'expense' : 'expenses';
   return `You've logged ${formatMoney(r.total_cents)} across ${r.count} ${noun}${scope} ${r.periodLabel} (${formatMoney(
@@ -273,17 +273,17 @@ export function formatAggregate(r: AggregateResult): string {
 
 /** "Your last N: • $54 Uber · Vehicle (Jun 1) • …" */
 export function formatRecent(rows: RecentExpense[]): string {
-  if (rows.length === 0) return "You haven't logged any expenses yet.";
+  if (rows.length === 0) return "You haven't logged any expenses yet! Text me one to get started.";
   const lines = rows.map((r) => {
     const vendor = r.vendor ?? 'Unknown vendor';
     return `• ${formatMoney(r.amount_cents)} ${vendor} · ${categoryLabel(r.category)}${shortDate(r.transaction_date)}`;
   });
-  return `Your last ${rows.length}:\n${lines.join('\n')}`;
+  return `Here are your last ${rows.length}:\n${lines.join('\n')}`;
 }
 
 /** "Top categories <period>: Meals $1,200 · Software $400 · Vehicle $180" (top 5). */
 export function formatBreakdown(rows: CategoryTotal[], periodLabel: string, top = 5): string {
-  if (rows.length === 0) return `No expenses ${periodLabel} yet.`;
+  if (rows.length === 0) return `Nothing logged ${periodLabel} yet! Text me one anytime.`;
   const parts = rows.slice(0, top).map((r) => `${r.label} ${formatMoney(r.total_cents)}`);
   return `Top spend ${periodLabel}: ${parts.join(' · ')}.`;
 }

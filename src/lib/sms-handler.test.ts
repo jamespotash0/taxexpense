@@ -207,6 +207,6 @@ test('formatBatchNote: lists each extra; pluralizes; no dashboard pointer when a
 test('formatBatchNote: singular phrasing + dashboard pointer when an extra is incomplete', () => {
   const note = formatBatchNote(['$80 dinner (Business Meals)'], true, 'https://tallywhy.com');
   assert.ok(note.includes('I also logged one more:'), note);
-  assert.ok(note.includes('documentation-complete'), note); // approved copy, never "audit-ready"
+  assert.ok(note.includes('documentation complete'), note); // approved copy, never "audit-ready"
   assert.ok(note.includes('https://tallywhy.com'), note);
 });

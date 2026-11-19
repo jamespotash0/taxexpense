@@ -65,5 +65,5 @@ test('formatYearReview: singular gap noun', () => {
 
 test('formatYearReview: empty year invites a first expense', () => {
   const out = formatYearReview(review({ count: 0, total_cents: 0, deductible_cents: 0, topCategories: [] }), URL);
-  assert.match(out, /No 2026 expenses logged yet/);
+  assert.match(out, /No 2026 expenses yet/);
 });

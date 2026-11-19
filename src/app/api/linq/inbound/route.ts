@@ -7,7 +7,7 @@
 //    and OCR + Sonnet can take longer, which would otherwise log duplicate expenses.
 
 import { NextResponse, after } from 'next/server';
-import { verifyLinqSignature, parseLinqInbound } from '@/lib/linq';
+import { verifyLinqSignature, parseLinqInbound, showReadAndTyping } from '@/lib/linq';
 import { handleInboundSms } from '@/lib/sms-handler';
 import { optionalEnv } from '@/lib/env';
 import { log } from '@/lib/log';
@@ -37,10 +37,14 @@ export async function POST(req: Request): Promise<NextResponse> {
     return new NextResponse('Bad Request', { status: 400 });
   }
 
-  const msg = parseLinqInbound(event as Parameters<typeof parseLinqInbound>[0]);
+  const parsed = event as Parameters<typeof parseLinqInbound>[0];
+  const msg = parseLinqInbound(parsed);
   if (msg) {
+    const chatId = parsed.data?.chat?.id;
     after(async () => {
       try {
+        // "Read" + "..." while Penny thinks, like a friend about to reply.
+        if (chatId) await showReadAndTyping(chatId);
         await handleInboundSms(msg);
       } catch (err) {
         log.error('inbound_handler_uncaught', {

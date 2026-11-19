@@ -149,26 +149,26 @@ export function looksLikeCorrection(text: string, vendor: string | null): boolea
 
 // User-facing error/help copy (TSNAP-026 / Sofia — human, not technical).
 const MSG = {
-  notReceipt: "That doesn't look like a receipt. Want to describe the expense in text instead?",
-  unreadable: "That photo's a bit blurry. Can you snap another, or just text me the details?",
-  needAmount: 'Got it — quick: how much was this?',
+  notReceipt: "Hmm, that doesn't look like a receipt to me 🤔 Want to just text me what it was instead?",
+  unreadable: "Ah, that photo came out a little blurry. Mind snapping another, or just texting me the details?",
+  needAmount: 'Got it! Quick one: how much was it?',
   // After re-asking once with no amount, stop the loop gracefully (DEC-064). Don't log a $0
   // phantom — just invite a clean resend so the next message starts fresh.
   amountGiveUp:
-    "No worries — I didn't catch an amount, so I haven't logged this one. When you have it, send it like \"$45 lunch with a client\" and I'll take it from there.",
-  help: 'Send me a business expense — a receipt photo, text like "$30 gas to client site", or "drove 40 miles to Acme".',
+    "No worries! I didn't catch an amount, so I haven't logged this one yet. Whenever you have it, send something like \"$45 lunch with a client\" and I'll take it from there.",
+  help: 'Send me any business expense! A receipt photo, a note like "$30 gas to client site", or "drove 40 miles to Acme" all work.',
   // Acknowledge a "later / I'll send it" reply while awaiting a receipt (DEC-072): keep it flagged
   // so the photo can be added later, confirm everything else is captured. The weekly nudge still
   // fires until it arrives (or the user waives it). Never re-asks the amount.
   noReceiptAck:
-    "No problem — it's logged. I've kept it flagged for a receipt, so you can snap the photo anytime and it'll attach. Everything else is captured ✓",
+    "No problem, it's logged! I'll keep it flagged for a receipt, so snap the photo whenever and it'll attach. Everything else is captured ✓",
   // Acknowledge a PERMANENT "there's no receipt" reply (DEC-078): waive future reminders, keep the
   // expense, and be honest that it's an un-receipted gap for the CPA. Never marks it complete.
   noReceiptWaived:
-    "No problem — I won't ask again about this one. Your text is the record, and I've noted there's no receipt so it's clear for your accountant. Everything else is captured ✓",
-  failure: "Hmm, that didn't go through on my end. Mind sending it once more?",
+    "Totally fine, I won't ask about this one again. Your text is the record, and I noted there's no receipt so it's clear for your accountant. Everything else is captured ✓",
+  failure: "Oops, something hiccuped on my end 😅 Mind sending that one more time?",
   // Parser failed (not a delivery failure — the message arrived and is saved). Sofia copy.
-  couldntRead: "I couldn't quite make that one out. Mind rephrasing it — something like \"$30 gas to client site\" works great.",
+  couldntRead: "Hmm, I couldn't quite make that one out. Mind rephrasing? Something like \"$30 gas to client site\" works great.",
 };
 
 function ocrToInput(data: Extract<OcrResult, { ok: true }>['data'], bodyText: string): ExpenseInput {
@@ -319,7 +319,7 @@ export function formatBatchNote(summaries: string[], anyIncomplete: boolean, das
   const lead = summaries.length === 1 ? 'one more' : `${summaries.length} more`;
   let note = `I also logged ${lead}: ${summaries.join(', ')}.`;
   if (anyIncomplete) {
-    note += ` A couple may need a quick detail to be documentation-complete — add it on your dashboard: ${dashboardUrl}.`;
+    note += ` A couple might need a quick detail to be documentation complete. You can add it on your dashboard: ${dashboardUrl}.`;
   }
   return note;
 }
@@ -408,8 +408,8 @@ function appBase(): string {
 function cappedReply(decision: Extract<UsageDecision, { kind: 'block_daily' | 'block_annual' }>): ProcessResult {
   const smsText =
     decision.kind === 'block_daily'
-      ? `That's a lot of expenses in one day — I've saved every one. I'll catch up on new ones shortly so nothing gets garbled; everything so far is on your dashboard: ${appBase()}.`
-      : `You've reached your plan's expense limit for the year — everything's saved and exportable. If you're logging this much, let's get you on a plan that fits: email support@tallywhy.com.`;
+      ? `Wow, busy day! 😅 I've saved every one so far. Give me a bit to catch up on new ones so nothing gets garbled. Everything so far is on your dashboard: ${appBase()}.`
+      : `You've hit your plan's expense limit for the year. Everything's saved and exportable! If you're logging this much, let's get you on a plan that fits: email support@tallywhy.com.`;
   return { smsText, receiptId: null, contextState: null };
 }
 
@@ -424,7 +424,7 @@ function withExtraPhotosNote(result: ProcessResult, extraPhotos: number): Proces
   const noun = extraPhotos === 1 ? 'one more photo' : `${extraPhotos} more photos`;
   return {
     ...result,
-    smsText: `${result.smsText}\n\nI also saw ${noun} in that message — I log them one at a time, so send ${them} again separately and I'll catch each one.`,
+    smsText: `${result.smsText}\n\nI also spotted ${noun} in there! I log them one at a time, so send ${them} again separately and I'll catch each one.`,
   };
 }
 
@@ -433,12 +433,12 @@ function withAnnualNudge(decision: UsageDecision, result: ProcessResult): Proces
   if (decision.kind !== 'warn_annual') return result;
   return {
     ...result,
-    smsText: `${result.smsText}\n\nHeads up — you're near your yearly expense limit (${decision.used}/${ANNUAL_RECEIPT_QUOTA}). Logging a lot? Email support@tallywhy.com about a high-volume plan.`,
+    smsText: `${result.smsText}\n\nHeads up, you're getting close to your yearly expense limit (${decision.used}/${ANNUAL_RECEIPT_QUOTA}). Logging a lot? Email support@tallywhy.com about a high-volume plan.`,
   };
 }
 
 // Closing line on any tax-guidance reply (suggest-not-advise + CPA deferral).
-const CPA_NOTE = 'Suggestion, not advice — for your situation, check with a CPA.';
+const CPA_NOTE = 'Suggestion, not advice. For your situation, check with a CPA.';
 
 /** Explain WHY Tally is asking / how it works — deterministic, from the substantiation rule +
  *  IRC summary (no LLM). Keeps any pending question open so the user can still answer it.
@@ -459,7 +459,7 @@ async function explainWhy(user: AppUser, pending: PendingContext | null): Promis
       const missing = (receipt.substantiation_missing_fields ?? []).join(', ');
       const need = missing ? ` notes on ${missing}` : ' a little more detail';
       return reply(
-        `${categoryLabel(receipt.category)} is a strict category — to deduct it the IRS (§${section}) needs${need}. That's the only reason I asked; everything else I just log.\n\n§${section} in plain English → ${base}/irc/${section}`,
+        `Good question! ${categoryLabel(receipt.category)} is a strict category, so to deduct it the IRS (§${section}) needs${need}. That's the only reason I asked. Everything else I just log.\n\n§${section} in plain English: ${base}/irc/${section}`,
         pending,
       );
     }
@@ -467,14 +467,14 @@ async function explainWhy(user: AppUser, pending: PendingContext | null): Promis
 
   if (pending?.contextState === 'awaiting_receipt') {
     return reply(
-      `For strict categories (meals, travel, gifts) the IRS asks for a receipt photo once an expense is $75+ (lodging at any amount). Under $75 your text is the record — so I only ask when the code requires it.`,
+      `Good question! For strict categories (meals, travel, gifts) the IRS wants a receipt photo once an expense hits $75 (lodging at any amount). Under $75 your text is the record, so I only ask when the tax code requires it.`,
       pending,
     );
   }
 
   if (pending?.contextState === 'awaiting_recurring_optin') {
     return reply(
-      `I noticed this one repeats — tracking it means I'll check in each month so you don't have to re-text it. Nothing gets logged until you confirm. Reply YES to track it.`,
+      `I noticed this one repeats! Tracking it means I'll check in each month so you don't have to re-text it. Nothing gets logged until you say so. Reply YES to track it.`,
       pending,
     );
   }
@@ -578,7 +578,7 @@ async function handleExpenseFlow(user: AppUser, msg: InboundMessage): Promise<Pr
     // "Why do you need it?" mid-ask → explain but KEEP the partial (Priya edge b); don't drop it.
     if (EXPLAIN_RE.test(msg.body)) {
       return {
-        smsText: `I just need the amount to log it — what did it come to?\n\n${CPA_NOTE}`,
+        smsText: `I just need the amount to log it. What did it come to?\n\n${CPA_NOTE}`,
         receiptId: null,
         contextState: 'awaiting_amount',
         pendingData: { priorText: pendingAmt.priorText, amountAttempts: pendingAmt.attempts },
@@ -715,7 +715,7 @@ export async function handleInboundSms(msg: InboundMessage): Promise<void> {
   if (['HELP', 'INFO'].includes(keyword)) {
     await safeSend(
       phone,
-      'Tally: log business expenses by text. Help: support@tallywhy.com. Msg & data rates may apply. Reply STOP to opt out.',
+      "Tally here! I log your business expenses by text. Need a hand? Email support@tallywhy.com. Msg & data rates may apply. Reply STOP to opt out.",
       msg.channel,
     );
     return;
@@ -725,7 +725,7 @@ export async function handleInboundSms(msg: InboundMessage): Promise<void> {
   const isResubscribe = ['START', 'UNSTOP'].includes(keyword) || (keyword === 'YES' && !!user.sms_opted_out_at);
   if (isResubscribe) {
     await updateUser(user.id, { sms_opted_out_at: null });
-    await safeSend(phone, "You're re-subscribed to Tally. Send an expense any time.", msg.channel);
+    await safeSend(phone, "Welcome back! 👋 You're re-subscribed to Tally. Send me an expense anytime.", msg.channel);
     return;
   }
 
@@ -736,7 +736,7 @@ export async function handleInboundSms(msg: InboundMessage): Promise<void> {
   const recentInbound = await countRecentInbound(user.id, since);
   if (recentInbound > INBOUND_MAX) {
     if (recentInbound <= INBOUND_MAX + 5) {
-      await safeSend(phone, "You're sending a lot at once — I'll catch up. Give it a few minutes and resend anything I missed.", msg.channel);
+      await safeSend(phone, "Whoa, that's a lot at once! Give me a few minutes to catch up, then resend anything I missed.", msg.channel);
     }
     log.warn('inbound_rate_limited', { user: user.id, recent: recentInbound });
     return;

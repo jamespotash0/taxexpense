@@ -35,7 +35,7 @@ test('sends exactly once on first activation', async () => {
   const result = await sendSubscriptionWelcome('org1', h.deps);
   assert.equal(result, 'sent');
   assert.equal(h.sends.length, 1);
-  assert.match(h.sends[0].body, /locked in, Jane/); // first name only
+  assert.match(h.sends[0].body, /officially in, Jane/); // first name only
   assert.equal(h.sends[0].to, '+15551230000');
 });
 
@@ -76,5 +76,5 @@ test('owner with no name still gets a (nameless) welcome', async () => {
   const h = harness({ ...OWNER, full_name: null });
   const result = await sendSubscriptionWelcome('org1', h.deps);
   assert.equal(result, 'sent');
-  assert.match(h.sends[0].body, /You're locked in 🎉/);
+  assert.match(h.sends[0].body, /You're officially in! 🎉/);
 });

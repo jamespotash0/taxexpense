@@ -96,7 +96,7 @@ test('bulkWaiveMessage: pluralizes and never over-claims', () => {
   assert.match(bulkWaiveMessage(3), /those 3 expenses/);
   for (const n of [1, 3]) {
     const m = bulkWaiveMessage(n);
-    assert.match(m, /won't ask again/i);
+    assert.match(m, /won't ask about .* again/i);
     assert.match(m, /accountant/i); // honest about the un-receipted gap
     for (const bad of ['audit-ready', 'complete', 'guaranteed']) {
       assert.ok(!m.toLowerCase().includes(bad), `"${bad}" must not appear: ${m}`);

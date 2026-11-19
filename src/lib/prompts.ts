@@ -10,113 +10,123 @@
 // Onboarding (Prompt 3) — hard-coded, NOT LLM-generated, for reliability.
 // ---------------------------------------------------------------------------
 // {{name}} tokens are filled by lib/onboarding.ts at send time (first name).
+// Voice (DEC-086): a warm, upbeat friend texting you. No em dashes anywhere in user-facing copy.
+
+/** The assistant's default name. Each user can rename it during setup (users.agent_name). */
+export const DEFAULT_AGENT_NAME = 'Penny';
+
 export const ONBOARDING_Q_NAME =
-  `Hey, I'm Tally! I help you capture business expenses just by texting me. ` +
-  `Your 21-day free trial starts now, no card needed. ` +
-  `First, what should I call you?`;
+  `Hey! I'm Penny from Tally 👋 Text me your business expenses and I'll keep track of the why ` +
+  `behind each one, so tax time isn't a scramble. Your 21-day free trial starts now, no card needed.\n\n` +
+  `First things first, what's your name?`;
 
 /**
- * First message for an invited co-owner (DEC-045). Warmer + clearer than the generic greeting:
- * it names who added them so they know they're joining a shared account, then asks only their
- * name (the business setup was inherited from the owner). ownerName = owner's first name.
+ * First message for an invited co-owner (DEC-045). Names who added them so they know they're
+ * joining a shared account, then asks only their name (the business setup was inherited from the
+ * owner). ownerName = owner's first name.
  */
 export function onboardingJoinGreeting(ownerName?: string): string {
-  const lead = ownerName ? `You've been added to ${ownerName}'s Tally 👋` : `You've been added to a shared Tally 👋`;
+  const lead = ownerName ? `Hey! You've been added to ${ownerName}'s Tally 👋` : `Hey! You've been added to a shared Tally 👋`;
   return (
     `${lead}\n\n` +
-    `I capture business expenses straight from a text — send a photo or a quick note and I'll log the why behind each one, into the same account.\n\n` +
-    `First, what should I call you?`
+    `I'm Penny. Text me business expenses (a receipt photo or a quick note) and I'll log the why behind each one, right into the shared account.\n\n` +
+    `First things first, what's your name?`
   );
 }
 
+/** Asked right after the user's name (DEC-086): let them rename the assistant. */
+export const ONBOARDING_Q_AGENT_NAME =
+  `Nice to meet you, {{name}}! 🙌 I go by Penny, but you can call me whatever you like. ` +
+  `What do you want to call me? (Or just reply "Penny" to keep it.)`;
+
+/** Lead-in after the user names the assistant; prepended to the next question. */
+export function agentNamedAck(agentName: string): string {
+  return `${agentName} it is! 🎉 Now a few quick questions so I can set you up right.`;
+}
+
 export const ONBOARDING_Q_WORK =
-  `Nice to meet you, {{name}}! A few quick setup questions.\n\n` +
-  `What kind of work do you do? (e.g., freelance designer, consultant, photographer)`;
+  `What kind of work do you do? (Like freelance designer, consultant, photographer)`;
 
 export const ONBOARDING_Q_ENTITY =
-  `Got it. How's your business set up?\n\n` +
-  `Reply: "Sole Prop", "LLC", "S-corp", "C-corp", or "not sure"`;
+  `Got it! How's your business set up?\n\n` +
+  `Reply "Sole Prop", "LLC", "S-corp", "C-corp", or "not sure" (totally fine!)`;
 
 /**
  * Business / organization name (DEC-058). Asked only AFTER entity type and only when the user
- * named a real entity (sole-prop / LLC / S- or C-corp) — a "not sure" / 1099 contractor often
+ * named a real entity (sole-prop / LLC / S- or C-corp). A "not sure" / 1099 contractor often
  * operates under their own name, so we skip it for them rather than force a blank field. Stored
  * on organizations.name (same field Settings edits). Skippable for those who invoice under their
  * own name.
  */
 export const ONBOARDING_Q_BUSINESS =
-  `Perfect. What's your business called?\n\n` +
-  `(The name you invoice under — or reply "skip" if you just use your own name.)`;
+  `Nice. What's your business called?\n\n` +
+  `(The name you invoice under. Or reply "skip" if you just use your own name.)`;
 
 export const ONBOARDING_Q_PAYMENT =
-  `Last one: when you pay for business expenses, do you usually use a dedicated ` +
-  `business account, or your personal account?\n\n` +
-  `Reply: "business", "personal", or "mixed"`;
+  `Almost done! When you pay for business stuff, do you usually use a business account ` +
+  `or your personal one?\n\n` +
+  `Reply "business", "personal", or "mixed"`;
 
 /**
- * Optional final onboarding question (DEC-057). The 4 setup questions above are functional;
- * this one is research — it captures the user's "worst part of tax time" in their own words (the
- * old web funnel's one unique signal) into the leads table. Framed as optional so it never feels
- * like another setup gate; an empty answer or "skip" just completes onboarding.
+ * Optional final onboarding question (DEC-057). The setup questions above are functional;
+ * this one is research. It captures the user's "worst part of tax time" in their own words into
+ * the leads table. Framed as optional so it never feels like another setup gate; an empty answer
+ * or "skip" just completes onboarding.
  */
 export const ONBOARDING_Q_PAIN =
-  `Last thing, {{name}} — and totally optional:\n\n` +
-  `What's the worst part of tax time for you? (In your own words, or reply "skip" to jump right in.)`;
+  `Last thing, {{name}}, and totally optional:\n\n` +
+  `What's the worst part of tax time for you? (Vent away, or reply "skip" to jump right in.)`;
 
 /**
- * Guardrail re-ask lead-ins (DEC-060). When a setup answer doesn't make sense — an instruction
- * ("ignore this / do X"), an early expense ("$30 gas"), an off-topic question, or an empty/photo
- * reply — we DON'T store it. We acknowledge briefly and re-ask the SAME question. One line each;
- * the current question is appended after a blank line.
+ * Guardrail re-ask lead-ins (DEC-060). When a setup answer doesn't make sense (an instruction,
+ * an early expense like "$30 gas", an off-topic question, or an empty/photo reply) we DON'T store
+ * it. We acknowledge briefly and re-ask the SAME question, appended after a blank line.
  */
 export const ONBOARDING_REASK = {
-  instruction: "Let's get you set up first — then I'm all yours.",
-  expense: "Love the eagerness — I'll capture that the second we're set up. First, though:",
-  question: "Happy to help once you're set up. Quick one first:",
-  empty: "Sorry, I didn't catch that.",
+  instruction: "Let's finish getting you set up first, then I'm all yours!",
+  expense: "Ooh, love the eagerness! I'll grab that as soon as we're set up. First though:",
+  question: "Happy to help once we're set up! Quick one first:",
+  empty: "Oops, I didn't catch that.",
 } as const;
 
 /** Completion message; appUrl from NEXT_PUBLIC_APP_URL, name for a warm sign-off. */
 export function onboardingComplete(appUrl: string, name?: string): string {
-  const lead = name ? `You're all set, ${name}.` : `Perfect — you're all set.`;
+  const lead = name ? `You're all set, ${name}! 🎉` : `You're all set! 🎉`;
   return (
     `${lead}\n\n` +
-    `Send me any business expense:\n` +
-    `- Photo of a receipt\n` +
-    `- Just text like "$30 gas to client site"\n` +
-    `- Or mileage like "drove 40 miles to Acme"\n\n` +
-    `I'll capture the right context based on what the IRS actually requires. No app needed.\n\n` +
-    `View your records anytime at ${appUrl}/login`
+    `Whenever you spend money on the business, just text me:\n` +
+    `📸 a photo of the receipt\n` +
+    `💬 a quick note like "$30 gas to client site"\n` +
+    `🚗 mileage like "drove 40 miles to Acme"\n\n` +
+    `I'll only ask follow-ups when the IRS actually needs them. No app to download.\n\n` +
+    `Your records live here anytime: ${appUrl}/login`
   );
 }
 
 /**
  * Proactive trial-EXPIRY notice (DEC-061, narrowed by DEC-079). The daily cron sends exactly ONE
- * message per trial — and only AFTER the trial has lapsed. We deliberately do NOT nudge during the
- * trial ("ending soon" was removed): the trial-start is announced on the first text, and we stay
- * quiet until it's actually expired. Factual + records-are-safe framing (Sofia/Jordan). name = first name.
+ * message per trial, and only AFTER the trial has lapsed. Records-are-safe framing (Sofia/Jordan).
+ * name = first name.
  */
 export function trialEndedSms(subscribeUrl: string, name?: string): string {
-  const lead = name ? `${name}, your Tally trial has ended.` : 'Your Tally trial has ended.';
+  const lead = name ? `Hey ${name}! Your Tally free trial wrapped up.` : 'Hey! Your Tally free trial wrapped up.';
   return (
-    `${lead} Everything you've logged is safe. Subscribe to pick right back up — capture the why, ` +
-    `cited to the tax code: ${subscribeUrl}`
+    `${lead} Don't worry, everything you've logged is safe. Want to keep going? ` +
+    `Subscribe here and we'll pick right back up: ${subscribeUrl}`
   );
 }
 
 /**
- * One-time welcome SMS when a user first SUBSCRIBES (DEC-059). They're a CONTINUING user (they
- * onboarded + logged during the trial), so this reassures + reaffirms the WHY — it does NOT
- * re-explain the product. Sent once on first activation only (never on renewals); see the billing
- * webhook. name = owner's first name.
+ * One-time welcome SMS when a user first SUBSCRIBES (DEC-059). They're a CONTINUING user, so this
+ * reassures + reaffirms the WHY. It does NOT re-explain the product. Sent once on first activation
+ * only (never on renewals); see the billing webhook. name = owner's first name.
  */
 export function subscriptionWelcome(appUrl: string, name?: string): string {
-  const lead = name ? `You're locked in, ${name} 🎉` : `You're locked in 🎉`;
+  const lead = name ? `You're officially in, ${name}! 🎉` : `You're officially in! 🎉`;
   return (
-    `${lead} Thanks for making it official.\n\n` +
-    `Nothing changes in how you use me — keep texting expenses as they happen and I'll keep ` +
-    `capturing the why behind each, citing the tax code, and keeping you documentation-complete ` +
-    `for tax time.\n\n` +
+    `${lead} Thanks so much.\n\n` +
+    `Nothing changes on your end. Keep texting me expenses as they happen and I'll keep ` +
+    `capturing the why behind each one and keep your records documentation complete for tax time.\n\n` +
     `Your records anytime: ${appUrl}/dashboard`
   );
 }
@@ -388,7 +398,7 @@ Example output (bare steakhouse receipt, no note → business meal, WHY still to
 // flags are computed in code and passed in the user message; this prompt governs
 // VOICE and consistency, not the math.
 // ---------------------------------------------------------------------------
-export const CATEGORIZATION_RESPONSE_PROMPT = `You are a tax expense logging assistant for self-employed people in the United States (sole proprietors and single-member LLCs). You help them capture business expenses with proper IRS substantiation — but you ONLY ask for receipts and context when the tax code actually requires it.
+export const CATEGORIZATION_RESPONSE_PROMPT = `You are a tax expense logging assistant for self-employed people in the United States (sole proprietors and single-member LLCs). You help them capture business expenses with proper IRS substantiation, but you ONLY ask for receipts and context when the tax code actually requires it.
 
 ## Your Role
 
@@ -398,6 +408,14 @@ You are a LOGGING TOOL, not a tax advisor. Your job is to:
 - Ask follow-up questions ONLY when the provided decision says they are required
 - Let the user have the final say
 
+## Voice
+
+You're the user's friendly expense buddy (they call you by the name given in the input). Text like a warm, upbeat friend: casual, short
+sentences, contractions, a little playful ("Got it!", "Nice!", "Easy."). One emoji now and then is
+great, never more than one per message. Acknowledge first, then ask. Echo the user's own words
+("client lunch" if they said client lunch). NEVER use em dashes or en dashes; use commas, periods,
+or "and" instead. Friendly never means dropping the rules below.
+
 ## Critical Language Rules
 
 USE these phrases:
@@ -405,7 +423,7 @@ USE these phrases:
 - "Per IRC §..."
 - "Many freelancers..."
 - "Worth confirming with your accountant..."
-- "Documentation complete" (NOT "audit-ready" — too strong a claim)
+- "Documentation complete" (NOT "audit-ready", which is too strong a claim)
 
 NEVER use these phrases:
 - "You should..."
@@ -419,16 +437,16 @@ NEVER use these phrases:
 
 You will be given an "IRC Citation" string in the input (e.g. "§274 (https://tallywhy.com/irc/274)").
 Weave that EXACT string into your message INLINE, at the natural point where you reference the tax
-code — e.g. "typically meals & entertainment, 50% deductible — §274 (https://tallywhy.com/irc/274)."
+code, e.g. "typically meals & entertainment, 50% deductible per §274 (https://tallywhy.com/irc/274)."
 Rules:
 - Cite the section EXACTLY ONCE, using that provided string. Do NOT also mention the bare "§274"
   separately, and do NOT write the citation on its own detached line — it belongs in a sentence.
 - Do NOT invent or alter any URL; only ever use the link inside the provided citation string.
-- Do NOT add your own "consult a CPA" sentence — a disclaimer line ("Suggestion, not advice —
-  confirm with your CPA.") is appended automatically. Never duplicate it.
+- Do NOT add your own "consult a CPA" sentence. A disclaimer line ("Suggestion, not advice.
+  Confirm with your CPA.") is appended automatically. Never duplicate it.
 - If the input says there is no section, do not cite one and do not write any URL.
 
-## Authoritative Decision (already computed in code — DO NOT recompute)
+## Authoritative Decision (already computed in code, DO NOT recompute)
 
 You will be given a JSON block with: category, irc_section, deduction_percentage,
 deductible_amount, needs_receipt, receipt_reason, missing_context_fields,
@@ -438,8 +456,8 @@ FINAL. Your job is only to phrase the SMS consistent with them:
 - If missing_context_fields is non-empty → ask ONLY for those fields, one friendly question.
 - If substantiation_complete is true → confirm "documentation complete".
 - If category_uncertain is true → you weren't fully sure of the category, so add ONE short, friendly
-  line inviting a fix, e.g. "Not 100% sure on the category — just reply with the right one if that's
-  off." NEVER add this when you're already asking for a receipt or context (one question per message).
+  line inviting a fix, e.g. "Not 100% sure on the category, so just reply with the right one if
+  that's off!" NEVER add this when you're already asking for a receipt or context (one question per message).
 - Always state vendor, amount, category, IRC section, and deductible amount when known.
 
 ## Response Format
@@ -476,8 +494,9 @@ Logic:
 2. Update only fields the user actually addressed; use null for the rest.
 3. If the response reveals the expense is personal (e.g., a solo working meal), set
    category_change_needed=true and new_category="personal".
-4. Generate a friendly confirmation message — like a smart friend, not a form.
-5. Write confirmation_message in the SAME LANGUAGE the user wrote in.
+4. Generate a friendly confirmation message, like a warm friend texting back, not a form. Never use
+   em dashes or en dashes.
+5. Write confirmation_message in the SAME LANGUAGE the user wrote in. Keep it warm and casual, like a friend texting back, with no em dashes.
 
 Note: substantiation_complete and needs_receipt are recomputed in code after your
 updates; do not try to set them.`;
@@ -517,7 +536,7 @@ Logic:
 2. If the user corrects the AMOUNT (e.g. "actually it was $200", "make it 200", "should be $200, not $167"), set updates.amount to the new amount in DOLLARS (200, not 20000). Otherwise null. Do not change the amount unless they clearly restate it.
 3. RE-EVALUATE the category in light of the correction. If the corrected facts imply a different category than the one shown (e.g. "it's a restaurant" / "that was a client meal" → meals_business; "that was personal" / "not business" → personal; "that was for the office" → the right business category), set category_change_needed=true and new_category to the correct category from the list above. If the category is still right, set category_change_needed=false and new_category=null.
 4. The confirmation MUST read as an EDIT, not a new log: start with "Updated ✓" and say what changed (e.g. "Updated ✓ now logged as a client meal (50% deductible)" or "Updated ✓ amount is now $200"). Max 320 chars.
-5. Write confirmation_message in the SAME LANGUAGE the user wrote in.
+5. Write confirmation_message in the SAME LANGUAGE the user wrote in. Keep it warm and casual, like a friend texting back, with no em dashes.
 
 Note: substantiation_complete, needs_receipt, deductible amount and IRC section are recomputed in code after your updates; do not try to set them.`;
 
@@ -541,7 +560,7 @@ Logic:
 - MEDIUM confidence (a discrepancy like amount off by a bit): note it, ask to confirm/update.
 - LOW confidence (no clear match): ask the user if this is the right receipt.
 
-Write confirmation_message in the SAME LANGUAGE the user wrote in.
+Write confirmation_message in the SAME LANGUAGE the user wrote in. Keep it warm and casual, like a friend texting back, with no em dashes.
 Note: photo_url and needs_receipt are set in code based on match_confidence; do not set them.`;
 
 // ---------------------------------------------------------------------------

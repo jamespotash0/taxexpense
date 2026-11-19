@@ -18,6 +18,7 @@ test('sole-prop: completes, stores user fields + business name on the org', asyn
   const turns = await converse(s, [
     'hi', // trigger
     'Jane',
+    'Penny', // keep the assistant's default name
     'freelance photographer',
     'sole prop',
     'Jane Photography',
@@ -25,6 +26,7 @@ test('sole-prop: completes, stores user fields + business name on the org', asyn
     'skip', // optional pain question
   ]);
   assert.equal(s.user.full_name, 'Jane');
+  assert.equal(s.user.agent_name, 'Penny');
   assert.equal(s.user.business_type, 'freelance photographer');
   assert.equal(s.user.entity_type, 'sole_prop');
   assert.equal(s.orgName, 'Jane Photography'); // persisted to the ORG
@@ -36,7 +38,7 @@ test('sole-prop: completes, stores user fields + business name on the org', asyn
 
 test('1099 / "not sure": business-name question is SKIPPED, org name stays null', async () => {
   const s = makeStore();
-  const turns = await converse(s, ['hi', 'Sam', 'rideshare driver', 'not sure', 'business', 'skip']);
+  const turns = await converse(s, ['hi', 'Sam', 'keep it', 'rideshare driver', 'not sure', 'business', 'skip']);
   assert.equal(s.user.entity_type, 'unknown');
   assert.equal(s.orgName, null, 'no business name should be captured for a not-sure/1099 user');
   assert.equal(s.user.onboarding_completed, true);
@@ -45,7 +47,9 @@ test('1099 / "not sure": business-name question is SKIPPED, org name stays null'
 
 test('"skip" at the business-name step stores null but still completes', async () => {
   const s = makeStore();
-  await converse(s, ['hi', 'Dana', 'consultant', 'LLC', 'skip', 'personal', 'skip']);
+  const turns = await converse(s, ['hi', 'Dana', 'call you Max', 'consultant', 'LLC', 'skip', 'personal', 'skip']);
+  assert.equal(s.user.agent_name, 'Max'); // renamed the assistant (DEC-086)
+  assert.ok(said(turns, /Max it is!/), 'celebrates the new name');
   assert.equal(s.user.entity_type, 'smllc');
   assert.equal(s.orgName, null); // explicit skip → null
   assert.equal(s.user.default_payment_account, 'personal');
@@ -59,7 +63,7 @@ test('early expense at the NAME step is not stored as a name — it re-asks', as
   const turns = await converse(s, ['hi', '$30 gas to client site']);
   assert.equal(s.user.full_name, null, 'an expense must never become the user name');
   assert.match(last(turns).tally, /eagerness|set up/i); // expense re-ask copy
-  assert.ok(said(turns, /call you/i), 're-asks the name question');
+  assert.ok(said(turns, /your name/i), 're-asks the name question');
   // …and a real name right after still works.
   await converse(s, ['Jane']);
   assert.equal(s.user.full_name, 'Jane');
@@ -91,7 +95,7 @@ test('empty / photo (no caption) re-asks, never advances', async () => {
 
 test('off-topic question at a STRUCTURED step (entity) re-asks instead of storing junk', async () => {
   const s = makeStore();
-  await converse(s, ['hi', 'Jane', 'designer']);
+  await converse(s, ['hi', 'Jane', 'Penny', 'designer']);
   const [{ tally }] = await converse(s, ['wait, what is an LLC?']);
   assert.equal(s.user.entity_type, null, 'a question must not be parsed into entity_type');
   assert.match(tally, /set up/i);
@@ -102,7 +106,7 @@ test('off-topic question at a STRUCTURED step (entity) re-asks instead of storin
 test('FREEFORM steps tolerate "$" and "?" in genuine answers', async () => {
   // Work type may legitimately mention money; business name may end with punctuation.
   const s = makeStore();
-  await converse(s, ['hi', 'Mia', 'I sell $5 candles & repair bikes']);
+  await converse(s, ['hi', 'Mia', 'Penny', 'I sell $5 candles & repair bikes']);
   assert.equal(s.user.business_type, 'I sell $5 candles & repair bikes', 'freeform work answer must store as-is');
 });
 

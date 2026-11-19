@@ -20,6 +20,7 @@ export function makeStore(overrides: Partial<AppUser> = {}): SimStore {
     organization_id: 'sim-org',
     phone_number: '+15550000000',
     full_name: null,
+    agent_name: null,
     email: null,
     business_type: null,
     entity_type: null,

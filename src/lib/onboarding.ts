@@ -1,7 +1,7 @@
 // Onboarding (TSNAP-017, DEC-013/014/058). Config-driven + deterministic — NOT
 // LLM-generated (reliability at the highest-drop-off moment). OWNER: Raj + Sofia.
 //
-// Setup questions: name → work type → entity type → [business name] → default payment account,
+// Setup questions: name → assistant name (DEC-086) → work type → entity type → [business name] → default payment account,
 // then one OPTIONAL pain-research question ("worst part of tax time?", DEC-057) that lands in the
 // leads table. Business name (DEC-058) is asked ONLY for users who named a real entity
 // (sole-prop / LLC / S- or C-corp) and persists to organizations.name; a "not sure"/1099 user who
@@ -18,6 +18,9 @@
 
 import {
   ONBOARDING_Q_NAME,
+  ONBOARDING_Q_AGENT_NAME,
+  DEFAULT_AGENT_NAME,
+  agentNamedAck,
   ONBOARDING_Q_WORK,
   ONBOARDING_Q_ENTITY,
   ONBOARDING_Q_BUSINESS,
@@ -32,7 +35,7 @@ import { insertLead } from './leads';
 import { looksInstructionShaped } from './review';
 import { PUBLIC_ENV } from './env';
 
-type UserKey = 'full_name' | 'business_type' | 'entity_type' | 'default_payment_account';
+type UserKey = 'full_name' | 'agent_name' | 'business_type' | 'entity_type' | 'default_payment_account';
 type OnboardingKey = UserKey | 'organization_name';
 
 interface OnboardingQuestion {
@@ -57,6 +60,24 @@ export function parseName(text: string): string {
     .replace(/[.!]+$/, '')
     .trim()
     .slice(0, 80);
+}
+
+/** What the user wants to call the assistant (DEC-086). "keep it" / "Penny's fine" / "skip" keep
+ *  the default; "call you Max" → "Max". Always returns a name so the question counts as answered. */
+export function parseAgentName(text: string): string {
+  const t = text
+    .trim()
+    .replace(/^["'“”]+|["'“”.!]+$/g, '')
+    .replace(/^(i'?ll call you|call you|let'?s go with|let'?s do|how about|you'?re|your name is|name you)\s+/i, '')
+    .trim();
+  if (
+    !t ||
+    /^(keep( it)?|skip|same|fine|sure|ok(ay)?|yes|yep|no|nope|nah|default|that'?s fine)$/i.test(t) ||
+    /^penny\b/i.test(t)
+  ) {
+    return DEFAULT_AGENT_NAME;
+  }
+  return (t.charAt(0).toUpperCase() + t.slice(1)).slice(0, 30);
 }
 
 /** Map free text to an entity_type enum value (TSNAP-017 keyword rules). */
@@ -132,6 +153,7 @@ export function classifyOnboardingInput(text: string): OnboardingInputKind {
 // email is still collected at the dashboard (DEC-014).
 export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
   { key: 'full_name', target: 'user', prompt: ONBOARDING_Q_NAME, parse: parseName },
+  { key: 'agent_name', target: 'user', prompt: ONBOARDING_Q_AGENT_NAME, parse: parseAgentName, freeform: true },
   { key: 'business_type', target: 'user', prompt: ONBOARDING_Q_WORK, parse: (t) => t.trim().slice(0, 100), freeform: true },
   { key: 'entity_type', target: 'user', prompt: ONBOARDING_Q_ENTITY, parse: parseEntityType },
   // Business name — org-level, asked only after entity type and only for real entities (DEC-058).
@@ -270,7 +292,7 @@ export async function handleOnboarding(
 
   // A name must contain an actual letter (Unicode-aware, so non-Latin names pass) — an
   // emoji/punctuation-only reply like "🤷" isn't a name, so re-ask instead of storing it.
-  if (current.key === 'full_name' && !/\p{L}/u.test(value ?? '')) {
+  if ((current.key === 'full_name' || current.key === 'agent_name') && !/\p{L}/u.test(value ?? '')) {
     return reAsk('empty', current.prompt, firstName(user.full_name));
   }
 
@@ -301,15 +323,18 @@ export async function handleOnboarding(
     nextIndex++;
   }
 
+  // Naming the assistant gets a little celebration before the next question (DEC-086).
+  const lead = current.key === 'agent_name' && value ? `${agentNamedAck(value)}\n\n` : '';
+
   if (nextIndex < ONBOARDING_QUESTIONS.length) {
     patch.onboarding_step = nextIndex + 1;
     await deps.updateUser(user.id, patch);
-    return render(ONBOARDING_QUESTIONS[nextIndex].prompt, name);
+    return lead + render(ONBOARDING_QUESTIONS[nextIndex].prompt, name);
   }
 
   // All setup questions answered → ask the one optional research question, then complete on the
   // next inbound (handled by the step >= length+1 branch above). DEC-057.
   patch.onboarding_step = ONBOARDING_QUESTIONS.length + 1;
   await deps.updateUser(user.id, patch);
-  return render(ONBOARDING_Q_PAIN, name);
+  return lead + render(ONBOARDING_Q_PAIN, name);
 }
