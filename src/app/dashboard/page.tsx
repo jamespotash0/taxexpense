@@ -6,7 +6,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/session';
-import { getMonthlySummary, listReceipts, type ReceiptFilter } from '@/lib/receipts';
+import { getMonthlySummary, getReceiptYears, listReceipts, type ReceiptFilter } from '@/lib/receipts';
 import { getOrgEntitlement } from '@/lib/subscription';
 import { getUserAgencyIds, getOrgAgencyId } from '@/lib/agency';
 import { AppShell } from '@/components/AppShell';
@@ -44,13 +44,16 @@ export default async function DashboardPage({
     filterParam === 'needs_attention' || filterParam === 'this_month' ? filterParam : 'all';
   const justSubscribed = sub === 'success';
 
-  const [summary, { rows }, entitlement, agencyIds, managedAgencyId] = await Promise.all([
+  const [summary, { rows }, entitlement, agencyIds, managedAgencyId, years] = await Promise.all([
     getMonthlySummary(user.organization_id),
     listReceipts(user.organization_id, { filter, limit: 50 }),
     getOrgEntitlement(user.organization_id),
     getUserAgencyIds(user.id),
     getOrgAgencyId(user.organization_id),
+    getReceiptYears(user.organization_id),
   ]);
+  // "Text us to get started" only for an account that has never logged anything.
+  const hasHistory = years.length > 0;
   // Agency staff get a link to the multi-client view (Spec 10). A MANAGED creator (their org is
   // owned by an agency) pays nothing and sees no billing UI. The agency covers them.
   const isAgencyStaff = agencyIds.length > 0;
@@ -121,11 +124,7 @@ export default async function DashboardPage({
 
   // What still needs the user. `compact` = desktop rail size.
   const todo = (compact: boolean) =>
-    summary.count === 0 ? (
-      <section className={`rounded-[28px] bg-primary text-white ${compact ? 'p-6' : 'px-6 py-7'}`}>
-        <h1 className="text-[1.75rem] font-bold leading-[1.15] tracking-[-0.03em] text-balance">{emptyLine}</h1>
-      </section>
-    ) : needCount > 0 ? (
+    needCount > 0 ? (
       <section className={`rounded-[28px] bg-primary text-white ${compact ? 'p-6' : 'px-6 py-7'}`}>
         <h1 className={`font-bold leading-[1.15] tracking-[-0.03em] text-balance ${compact ? 'text-[1.5rem]' : 'text-[1.75rem]'}`}>
           {fmt(needCount === 1 ? d.todoOne : d.todoOther, { count: needCount })}
@@ -204,94 +203,103 @@ export default async function DashboardPage({
     </>
   );
 
-  const empty = <p className="mt-6 rounded-3xl bg-fill px-6 py-10 text-center text-[0.9375rem] text-muted">{emptyLine}</p>;
+  const empty = <p className="mt-6 rounded-3xl bg-fill px-6 py-10 text-center text-[0.9375rem] text-muted">{d.noMatches}</p>;
+
+  // Top of the page on every size: this month's spend, with export + month-end review beside it.
+  // Rendered once (MonthEndReview holds draft state), so it is responsive rather than duplicated.
+  const topRow = (
+    <section className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+      <div>
+        <p className="text-sm font-semibold text-muted">{d.spent} · <span className="capitalize">{monthName}</span></p>
+        <p className="display-amount mt-2">{formatMoney(summary.total_cents)}</p>
+        <div className="mt-4">{stats}</div>
+      </div>
+      {hasHistory && (
+        <div className="flex flex-wrap gap-2 lg:justify-end">
+          {exportLinks('btn btn-secondary btn-sm')}
+          <MonthEndReview hasAccountantEmail={!!user.accountant_email} />
+        </div>
+      )}
+    </section>
+  );
 
   return (
     <AppShell nav={t.app.nav} active="home" showAgency={isAgencyStaff} width="max-w-3xl lg:max-w-7xl">
-      {/* ── Phone / tablet: app-style feed ─────────────────────────────────────── */}
-      <div className="space-y-4 lg:hidden">
-        {subscribed}
-        {todo(false)}
-        {trial}
+      {subscribed && <div className="mb-6">{subscribed}</div>}
+      {topRow}
 
-        <section className="pt-5">
-          <p className="text-sm font-semibold text-muted">{d.spent} · <span className="capitalize">{monthName}</span></p>
-          <p className="display-amount mt-2">{formatMoney(summary.total_cents)}</p>
-          <div className="mt-4">{stats}</div>
+      {!hasHistory ? (
+        // Brand-new account: one job, text the number.
+        <section className="mt-8 rounded-[28px] bg-primary px-6 py-8 text-white sm:px-8 sm:py-10">
+          <h1 className="max-w-xl text-[1.75rem] font-bold leading-[1.15] tracking-[-0.03em] text-balance sm:text-[2.25rem]">{emptyLine}</h1>
         </section>
+      ) : (
+        <>
+          {/* ── Phone / tablet: app-style feed ─────────────────────────────────── */}
+          <div className="mt-8 space-y-4 lg:hidden">
+            {todo(false)}
+            {trial}
 
-        <section className="pt-6">
-          <h2 className="text-xl font-bold tracking-[-0.02em]">{d.activity}</h2>
-          <div className="mt-3 overflow-x-auto">{filters}</div>
-          <div className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1">{exportLinks('btn btn-secondary btn-sm')}</div>
+            <section className="pt-6">
+              <h2 className="text-xl font-bold tracking-[-0.02em]">{d.activity}</h2>
+              <div className="mt-3 overflow-x-auto">{filters}</div>
 
-          {rows.length === 0 ? empty : months.map((m) => (
-            <section key={m.key} className="mt-6">
-              {/* Sticky month header under the top bar while scrolling that month. */}
-              <h3 className="sticky top-14 z-10 -mx-4 flex items-baseline justify-between bg-white/95 px-4 py-2 backdrop-blur">
-                <span className="text-[0.9375rem] font-bold capitalize">{m.label}</span>
-                <span className="num text-sm font-semibold text-muted">{formatMoney(m.total)}</span>
-              </h3>
-              <ul className="divide-y divide-border">
-                {m.rows.map((r) => <li key={r.id}><ReceiptRow {...rowProps(r)} /></li>)}
-              </ul>
-            </section>
-          ))}
-        </section>
-      </div>
-
-      {/* ── Desktop: workspace with a sticky rail and a month-by-month ledger ───── */}
-      <div className="hidden lg:grid lg:grid-cols-[22rem_minmax(0,1fr)] lg:gap-12">
-        <aside className="sticky top-24 space-y-5 self-start">
-          {subscribed}
-          {todo(true)}
-          <section className="sheet p-6">
-            <p className="text-sm font-semibold text-muted">{d.spent} · <span className="capitalize">{monthName}</span></p>
-            <p className="mt-2 text-[2.25rem] font-[650] leading-none tracking-[-0.04em] num">{formatMoney(summary.total_cents)}</p>
-            <div className="mt-5">{stats}</div>
-          </section>
-          {trial}
-          <div className="flex flex-wrap gap-2">{exportLinks('btn btn-secondary btn-sm')}</div>
-        </aside>
-
-        <section className="min-w-0">
-          <div className="flex items-center justify-between gap-4">
-            <h2 className="text-[1.75rem] font-bold tracking-[-0.03em]">{d.activity}</h2>
-            {filters}
-          </div>
-
-          {rows.length === 0 ? empty : (
-            <div className="mt-6">
-              <div className="grid grid-cols-[4.5rem_minmax(0,1fr)_7.5rem_12rem_6.5rem] gap-4 border-b border-border px-3 pb-2 text-xs font-semibold text-muted">
-                <span>{t.app.receipt.date}</span>
-                <span>{t.app.receipt.vendor}</span>
-                <span>{d.deductible}</span>
-                <span>{d.colStatus}</span>
-                <span className="text-right">{d.colAmount}</span>
-              </div>
-              {months.map((m) => (
-                <section key={m.key}>
-                  <h3 className="sticky top-16 z-10 flex items-baseline justify-between border-b border-border bg-white/95 px-3 pb-2 pt-6 backdrop-blur">
-                    <span className="text-base font-bold capitalize">{m.label}</span>
-                    <span className="text-sm text-muted">
-                      {fmt(d.monthCount, { count: m.rows.length })} · <span className="num font-semibold text-foreground">{formatMoney(m.total)}</span>
-                    </span>
+              {rows.length === 0 ? empty : months.map((m) => (
+                <section key={m.key} className="mt-6">
+                  {/* Sticky month header under the top bar while scrolling that month. */}
+                  <h3 className="sticky top-14 z-10 -mx-4 flex items-baseline justify-between bg-white/95 px-4 py-2 backdrop-blur">
+                    <span className="text-[0.9375rem] font-bold capitalize">{m.label}</span>
+                    <span className="num text-sm font-semibold text-muted">{formatMoney(m.total)}</span>
                   </h3>
                   <ul className="divide-y divide-border">
-                    {m.rows.map((r) => <li key={r.id}><ReceiptLedgerRow {...rowProps(r)} taxLine={r.deduction_percentage === 0 ? d.nonDeductible : `${r.deduction_percentage ?? 100}%`} /></li>)}
+                    {m.rows.map((r) => <li key={r.id}><ReceiptRow {...rowProps(r)} /></li>)}
                   </ul>
                 </section>
               ))}
-            </div>
-          )}
-        </section>
-      </div>
+            </section>
+          </div>
 
-      {/* Month-end review agent (Phase 2, AGENTS-VS-WORKFLOWS.md): on-demand, draft-only. One
-          instance (it holds draft state), placed after both layouts. */}
-      <div className="lg:ml-[calc(22rem+3rem)]">
-        <MonthEndReview hasAccountantEmail={!!user.accountant_email} />
-      </div>
+          {/* ── Desktop: sticky rail beside a month-by-month ledger ─────────────── */}
+          <div className="mt-10 hidden lg:grid lg:grid-cols-[22rem_minmax(0,1fr)] lg:gap-12">
+            <aside className="sticky top-24 space-y-5 self-start">
+              {todo(true)}
+              {trial}
+            </aside>
+
+            <section className="min-w-0">
+              <div className="flex items-center justify-between gap-4">
+                <h2 className="text-[1.75rem] font-bold tracking-[-0.03em]">{d.activity}</h2>
+                {filters}
+              </div>
+
+              {rows.length === 0 ? empty : (
+                <div className="mt-6">
+                  <div className="grid grid-cols-[4.5rem_minmax(0,1fr)_7.5rem_12rem_6.5rem] gap-4 border-b border-border px-3 pb-2 text-xs font-semibold text-muted">
+                    <span>{t.app.receipt.date}</span>
+                    <span>{t.app.receipt.vendor}</span>
+                    <span>{d.deductible}</span>
+                    <span>{d.colStatus}</span>
+                    <span className="text-right">{d.colAmount}</span>
+                  </div>
+                  {months.map((m) => (
+                    <section key={m.key}>
+                      <h3 className="sticky top-16 z-10 flex items-baseline justify-between border-b border-border bg-white/95 px-3 pb-2 pt-6 backdrop-blur">
+                        <span className="text-base font-bold capitalize">{m.label}</span>
+                        <span className="text-sm text-muted">
+                          {fmt(m.rows.length === 1 ? d.monthCountOne : d.monthCount, { count: m.rows.length })} · <span className="num font-semibold text-foreground">{formatMoney(m.total)}</span>
+                        </span>
+                      </h3>
+                      <ul className="divide-y divide-border">
+                        {m.rows.map((r) => <li key={r.id}><ReceiptLedgerRow {...rowProps(r)} taxLine={r.deduction_percentage === 0 ? d.nonDeductible : `${r.deduction_percentage ?? 100}%`} /></li>)}
+                      </ul>
+                    </section>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+        </>
+      )}
     </AppShell>
   );
 }

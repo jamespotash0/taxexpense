@@ -42,7 +42,7 @@ const COPY = {
   sentTo: 'Sent to',
   draftOnly: 'This is a draft. Nothing is sent until you click “Send”.',
   historyTitle: 'Past reviews',
-  noHistory: 'No past reviews yet. Run one above.',
+  noHistory: 'No past reviews yet.',
   close: 'Close',
 };
 
@@ -167,6 +167,7 @@ export function MonthEndReview({ hasAccountantEmail }: { hasAccountantEmail: boo
   const [bodyText, setBodyText] = useState('');
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [history, setHistory] = useState<PastRun[]>([]);
+  const [open, setOpen] = useState(false);
 
   // Past-run modal ("a new view"): its own editable copy + send state, so opening one never
   // touches the current-month draft above.
@@ -185,19 +186,22 @@ export function MonthEndReview({ hasAccountantEmail }: { hasAccountantEmail: boo
     }
   }, []);
 
+  // Escape closes the top-most layer: the past-run view first, then the sheet.
   useEffect(() => {
-    void loadHistory();
-  }, [loadHistory]);
-
-  // Close the modal on Escape (alongside the backdrop click / ✕ button).
-  useEffect(() => {
-    if (!viewing) return;
+    if (!open && !viewing) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setViewing(null);
+      if (e.key !== 'Escape') return;
+      if (viewing) setViewing(null);
+      else setOpen(false);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [viewing]);
+  }, [open, viewing]);
+
+  function openSheet() {
+    setOpen(true);
+    void loadHistory();
+  }
 
   function openRun(r: PastRun) {
     setViewing(r);
@@ -238,26 +242,50 @@ export function MonthEndReview({ hasAccountantEmail }: { hasAccountantEmail: boo
     if (ok) setViewSentTo(data?.sent_to ?? '');
   }
 
+  const closeBtn = (onClick: () => void) => (
+    <button
+      onClick={onClick}
+      aria-label={COPY.close}
+      className="flex size-10 shrink-0 items-center justify-center rounded-full bg-fill text-muted hover:text-foreground"
+    >
+      <Icon name="close" size={18} />
+    </button>
+  );
+
   return (
-    <section className="sheet mt-12 p-5 sm:p-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <>
+      <button onClick={openSheet} className="btn btn-secondary btn-sm">
+        <Icon name="sparkle" size={16} />
+        {COPY.title}
+      </button>
+
+      {open && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-[#0b0b12]/45 sm:items-start sm:p-8"
+          onClick={() => setOpen(false)}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-label={COPY.title}
+            className="rise-in mt-16 w-full max-w-2xl rounded-t-[28px] bg-white p-5 shadow-[0_24px_64px_-16px_rgba(11,11,18,0.35)] sm:my-8 sm:rounded-[28px] sm:p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+      <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold tracking-[-0.02em]">{COPY.title}</h2>
           <p className="mt-1 max-w-prose text-sm text-muted">{COPY.blurb}</p>
         </div>
-        <button
-          onClick={review}
-          disabled={run.busy}
-          className="btn btn-primary w-full shrink-0 sm:w-auto"
-        >
-          {run.busy ? COPY.running : draft ? COPY.rerun : COPY.run}
-        </button>
+        {closeBtn(() => setOpen(false))}
       </div>
+      <button onClick={review} disabled={run.busy} className="btn btn-primary mt-4 w-full sm:w-auto">
+        {run.busy ? COPY.running : draft ? COPY.rerun : COPY.run}
+      </button>
 
       {run.error && <p className="mt-3 text-sm text-error-600">{run.error}</p>}
 
       {draft && (
-        <div className="mt-5 rounded-3xl bg-white p-5">
+        <div className="mt-5 rounded-3xl bg-fill p-5">
           <DraftEditor
             draft={draft}
             subject={subject}
@@ -274,12 +302,12 @@ export function MonthEndReview({ hasAccountantEmail }: { hasAccountantEmail: boo
       )}
 
       {/* Past runs — click one to open it in the modal below */}
-      <div className="mt-5 border-t border-fill-strong pt-4">
+      <div className="mt-5 border-t border-border pt-4">
         <p className="text-sm font-semibold">{COPY.historyTitle}</p>
         {history.length === 0 ? (
           <p className="mt-1 text-sm text-muted">{COPY.noHistory}</p>
         ) : (
-          <ul className="mt-1 divide-y divide-fill-strong">
+          <ul className="mt-1 divide-y divide-border">
             {history.map((r) => (
               <li key={r.runId}>
                 <button
@@ -297,10 +325,14 @@ export function MonthEndReview({ hasAccountantEmail }: { hasAccountantEmail: boo
         )}
       </div>
 
-      {/* Past-run modal — click the backdrop, ✕, or Escape to dismiss */}
+          </section>
+        </div>
+      )}
+
+      {/* Past-run view, layered over the sheet: backdrop, close button, or Escape dismisses */}
       {viewing && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-[#0b0b12]/45 sm:items-start sm:p-8"
+          className="fixed inset-0 z-[60] flex items-end justify-center overflow-y-auto bg-[#0b0b12]/45 sm:items-start sm:p-8"
           onClick={() => setViewing(null)}
         >
           <div
@@ -314,13 +346,7 @@ export function MonthEndReview({ hasAccountantEmail }: { hasAccountantEmail: boo
                   {STATUS_LABEL[viewing.status]} · {runDate(viewing.createdAt)}
                 </p>
               </div>
-              <button
-                onClick={() => setViewing(null)}
-                aria-label={COPY.close}
-                className="flex size-10 shrink-0 items-center justify-center rounded-full bg-fill text-muted hover:text-foreground"
-              >
-                <Icon name="close" size={18} />
-              </button>
+              {closeBtn(() => setViewing(null))}
             </div>
             <div className="mt-4">
               <DraftEditor
@@ -339,6 +365,6 @@ export function MonthEndReview({ hasAccountantEmail }: { hasAccountantEmail: boo
           </div>
         </div>
       )}
-    </section>
+    </>
   );
 }

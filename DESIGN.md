@@ -206,7 +206,7 @@ A near-monochrome white-and-ink canvas with a single electric violet and two wor
 **Character:** One modern grotesk at every level, with stylistic sets ss01 and cv11 on. Hierarchy comes from weight and tight negative tracking on large sizes, not from a second family.
 
 ### Hierarchy
-- **Display**: the month's spent total on phones. Desktop rail uses the same treatment fixed at 2.25rem.
+- **Display**: the month's spent total, at the top of the dashboard on every size.
 - **Headline**: the to-do panel sentence (1.5rem in compact mode) and the desktop "Activity" heading; balanced wrapping.
 - **Title**: section headings on phones ("Activity").
 - **Body / Body Strong**: row vendor names (strong), panel body copy, editor copy.
@@ -223,8 +223,10 @@ A near-monochrome white-and-ink canvas with a single electric violet and two wor
 The app shell is a sticky white top bar (56px phone, 64px desktop, translucent with backdrop blur) whose content caps at 1280px (max-w-7xl): wordmark left, pill nav right. Page content sits in a centered column (768px default, wider where a page asks for it) with 16px phone and 24px desktop gutters.
 
 **Two layouts, not one stack (founder requirement).**
-- **Desktop (lg, 1024px and up):** a 352px sticky left rail (to-do panel, spent sheet, trial notice, export buttons) plus a 48px gap and a month-grouped ledger table. The ledger uses a fixed column grid (Date 4.5rem, Vendor flexible, Deductible 7.5rem, Status 12rem, Amount 6.5rem right-aligned) with a slate caption header row and sticky month headers that show count and month total.
-- **Phone (below lg):** an app-style feed. To-do panel first, then the display-scale total and stats, then the "Activity" title, segmented filter, export pills, and the feed with sticky month headers (month name left, total right). Below 640px a fixed bottom tab bar (icon over label, respects the safe-area inset) replaces the header nav; content gets 112px bottom padding to clear it.
+- **Top row (every size):** "Spent this month" with the display total and stats on the left; the actions (Export CSV, QuickBooks, Month-end review) on the right on desktop, wrapping below on phones. Rendered once, not per layout. Month-end review is a button that opens a sheet; it never gets its own section on the page.
+- **Brand-new account (no receipts ever):** the top row (without actions) plus one violet panel: "No receipts yet. Text {number} to get started." That copy appears ONLY when the account has no history; an empty filter shows "Nothing here right now."
+- **Desktop (lg, 1024px and up):** below the top row, a 352px sticky left rail (to-do panel, trial notice) plus a 48px gap and a month-grouped ledger table. The ledger uses a fixed column grid (Date 4.5rem, Vendor flexible, Deductible 7.5rem, Status 12rem, Amount 6.5rem right-aligned) with a slate caption header row and sticky month headers that show count and month total.
+- **Phone (below lg):** an app-style feed. Below the top row: the to-do panel, trial notice, then the "Activity" title, segmented filter, and the feed with sticky month headers (month name left, total right). Below 640px a fixed bottom tab bar (icon over label, respects the safe-area inset) replaces the header nav; content gets 112px bottom padding to clear it.
 
 Activity is always grouped by month, newest first, on both layouts. Stats are an inline definition list (term in slate, value semibold tabular) rather than stat cards.
 

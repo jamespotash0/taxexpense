@@ -2619,4 +2619,7 @@ under default-deny for V1; only add an anon read policy if rendering them client
   into "The why" / "The details"; added the City input (location_city was a required context
   field with no UI).
 - **Docs:** PRODUCT.md (product truth), DESIGN.md + .impeccable/design.json (the system).
+- **Follow-up (same day, founder):** "No receipts yet, text {number}" shows only for accounts
+  with no history at all; "Spent this month" + export buttons moved to a top row; month-end
+  review is now a button that opens a sheet (no dedicated page section).
 - Verified with synthetic data only (founder chose no session minting on hosted Supabase).
