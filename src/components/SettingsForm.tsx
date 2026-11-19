@@ -56,25 +56,25 @@ export function SettingsForm({ initial, t }: { initial: Initial; t: SettingsCopy
     }
   }
 
-  const field = 'w-full rounded-md border border-border bg-surface px-3 py-2 text-base outline-none focus:border-primary';
-  const labelCls = 'text-xs font-medium text-muted';
+  const field = 'field';
+  const labelCls = 'label';
 
   return (
-    <form onSubmit={save} className="space-y-4">
-      <div><label className={labelCls}>{t.yourName}</label><input className={field} value={form.full_name} onChange={(e) => set('full_name', e.target.value)} /></div>
-      <div><label className={labelCls}>{t.email}</label><input type="email" className={field} value={form.email} onChange={(e) => set('email', e.target.value)} placeholder="you@example.com" /></div>
-      <div><label className={labelCls}>{t.businessName}</label><input className={field} value={form.organization_name} onChange={(e) => set('organization_name', e.target.value)} /></div>
-      <div>
-        <label className={labelCls}>{t.workType}</label>
+    <form onSubmit={save} className="space-y-5">
+      <label className="block"><span className={labelCls}>{t.yourName}</span><input className={field} value={form.full_name} onChange={(e) => set('full_name', e.target.value)} /></label>
+      <label className="block"><span className={labelCls}>{t.email}</span><input type="email" className={field} value={form.email} onChange={(e) => set('email', e.target.value)} placeholder="you@example.com" /></label>
+      <label className="block"><span className={labelCls}>{t.businessName}</span><input className={field} value={form.organization_name} onChange={(e) => set('organization_name', e.target.value)} /></label>
+      <label className="block">
+        <span className={labelCls}>{t.workType}</span>
         <input className={field} value={form.business_type} onChange={(e) => set('business_type', e.target.value)} placeholder="e.g. real estate agent" />
-        <p className="mt-1 text-xs text-muted">{t.workTypeHint}</p>
-      </div>
-      <div>
-        <label className={labelCls}>{t.accountantEmail}</label>
+        <span className="mt-1.5 block text-xs text-muted">{t.workTypeHint}</span>
+      </label>
+      <label className="block">
+        <span className={labelCls}>{t.accountantEmail}</span>
         <input type="email" className={field} value={form.accountant_email} onChange={(e) => set('accountant_email', e.target.value)} placeholder="accountant@example.com" />
-      </div>
+      </label>
       <div className="flex items-center gap-3">
-        <button type="submit" disabled={busy} className="rounded-md bg-primary hover:bg-primary-hover px-4 py-2 text-white disabled:opacity-50">{t.save}</button>
+        <button type="submit" disabled={busy} className="btn btn-primary px-8">{t.save}</button>
         {error ? <span className="text-sm text-error-600">{error}</span> : saved && <span className="text-sm text-muted">{t.saved}</span>}
       </div>
     </form>

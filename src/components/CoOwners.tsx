@@ -80,20 +80,20 @@ export function CoOwners({
 
   return (
     <div>
-      <h2 className="text-sm font-medium">{t.heading}</h2>
-      <p className="mb-3 mt-1 text-sm text-muted">{t.body}</p>
+      <h2 className="text-lg font-bold tracking-[-0.02em]">{t.heading}</h2>
+      <p className="mb-4 mt-1 text-[0.9375rem] text-muted">{t.body}</p>
 
       <ul className="mb-4 space-y-2">
         {members.map((m) => (
-          <li key={m.id} className="flex items-center justify-between rounded-md border border-border bg-surface px-3 py-2 text-sm">
+          <li key={m.id} className="flex min-h-12 items-center justify-between rounded-2xl bg-fill px-4 py-2.5 text-sm">
             <span className="min-w-0">
-              <span className="font-medium">{m.full_name || formatUsPhone(m.phone_number)}</span>
+              <span className="font-semibold">{m.full_name || formatUsPhone(m.phone_number)}</span>
               {m.id === currentUserId && <span className="text-muted"> · {t.you}</span>}
             </span>
             <span className="flex shrink-0 items-center gap-2">
               <span className="text-xs text-muted">{m.role === 'owner' ? t.owner : t.coowner}</span>
               {m.status === 'pending' && (
-                <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">{t.pending}</span>
+                <span className="chip chip-need h-6">{t.pending}</span>
               )}
             </span>
           </li>
@@ -101,14 +101,14 @@ export function CoOwners({
       </ul>
 
       {!entitled ? (
-        <p className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-muted">
+        <p className="rounded-2xl bg-fill px-4 py-3 text-sm text-muted">
           {t.locked}{' '}
           <a href="/pricing" className="font-medium text-primary hover:underline">
             {t.subscribe}
           </a>
         </p>
       ) : atCap ? (
-        <p className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-muted">{t.full}</p>
+        <p className="rounded-2xl bg-fill px-4 py-3 text-sm text-muted">{t.full}</p>
       ) : (
         <>
           <form onSubmit={add} className="flex gap-2">
@@ -118,13 +118,13 @@ export function CoOwners({
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder={t.placeholder}
-              className="min-w-0 flex-1 rounded-md border border-border bg-surface px-3 py-2 text-sm"
+              className="field min-w-0 flex-1"
               required
             />
             <button
               type="submit"
               disabled={busy || phone.trim().length === 0}
-              className="shrink-0 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover disabled:opacity-50"
+              className="btn btn-primary shrink-0"
             >
               {busy ? t.adding : t.add}
             </button>

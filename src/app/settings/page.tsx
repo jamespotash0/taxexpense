@@ -1,5 +1,4 @@
 // Settings page (DEC-014). Server loads current values; client form saves them.
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/session';
 import { getSupabaseAdmin } from '@/lib/supabase';
@@ -8,6 +7,8 @@ import { EmailAccountantButton } from '@/components/EmailAccountantButton';
 import { DeleteAccountButton } from '@/components/DeleteAccountButton';
 import { ManageBillingButton } from '@/components/ManageBillingButton';
 import { CoOwners } from '@/components/CoOwners';
+import { AppShell } from '@/components/AppShell';
+import { getUserAgencyIds } from '@/lib/agency';
 import { LocaleSwitcher } from '@/components/LocaleSwitcher';
 import { getOrgEntitlement } from '@/lib/subscription';
 import { getOrgMembers, getOrgOwnerId } from '@/lib/users';
@@ -16,6 +17,16 @@ import { getI18n } from '@/i18n/server';
 import { fmt } from '@/i18n/config';
 import { formatUsPhone } from '@/lib/phone';
 
+function Section({ title, body, tone, children }: { title: string; body?: string; tone?: 'danger'; children: React.ReactNode }) {
+  return (
+    <section className="border-t border-border py-8">
+      <h2 className={`text-lg font-bold tracking-[-0.02em] ${tone === 'danger' ? 'text-error-700' : ''}`}>{title}</h2>
+      {body && <p className="mb-4 mt-1 text-[0.9375rem] text-muted">{body}</p>}
+      {children}
+    </section>
+  );
+}
+
 export default async function SettingsPage() {
   const user = await getCurrentUser();
   if (!user) redirect('/login?returnTo=/settings');
@@ -23,11 +34,12 @@ export default async function SettingsPage() {
   const { locale, t } = await getI18n();
   const s = t.app.settings;
 
-  const [{ data: org }, entitlement, members, ownerId] = await Promise.all([
+  const [{ data: org }, entitlement, members, ownerId, agencyIds] = await Promise.all([
     getSupabaseAdmin().from('organizations').select('name').eq('id', user.organization_id).maybeSingle(),
     getOrgEntitlement(user.organization_id),
     getOrgMembers(user.organization_id),
     getOrgOwnerId(user.organization_id),
+    getUserAgencyIds(user.id),
   ]);
   const isOwner = ownerId === user.id;
 
@@ -39,14 +51,15 @@ export default async function SettingsPage() {
         : s.billingLapsed;
 
   return (
-    <main className="mx-auto max-w-lg p-4 sm:p-8">
-      <div className="flex items-center justify-between">
-        <Link href="/dashboard" className="text-sm text-muted hover:text-foreground">{t.app.nav.back}</Link>
-        <LocaleSwitcher current={locale} />
+    <AppShell nav={t.app.nav} active="settings" showAgency={agencyIds.length > 0} width="max-w-xl">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-[2rem] font-bold leading-tight tracking-[-0.03em]">{s.title}</h1>
+          <p className="mt-1 text-[0.9375rem] text-muted">{fmt(s.loggedInAs, { phone: formatUsPhone(user.phone_number) })}</p>
+        </div>
+        <LocaleSwitcher current={locale} variant="text" />
       </div>
-      <h1 className="mt-4 text-xl font-semibold">{s.title}</h1>
-      <p className="mt-1 text-sm text-muted">{fmt(s.loggedInAs, { phone: formatUsPhone(user.phone_number) })}</p>
-      <div className="mt-6">
+      <div className="mt-8 pb-8">
         <SettingsForm
           t={t.app.settingsForm}
           initial={{
@@ -59,20 +72,16 @@ export default async function SettingsPage() {
         />
       </div>
 
-      <div className="mt-8 border-t border-border pt-6">
-        <h2 className="text-sm font-medium">{s.accountant}</h2>
-        <p className="mb-3 mt-1 text-sm text-muted">{s.accountantBody}</p>
+      <Section title={s.accountant} body={s.accountantBody}>
         <EmailAccountantButton hasAccountantEmail={!!user.accountant_email} t={t.app.emailAccountant} />
-      </div>
+      </Section>
 
-      <div className="mt-8 border-t border-border pt-6">
-        <h2 className="text-sm font-medium">{s.billing}</h2>
-        <p className="mb-3 mt-1 text-sm text-muted">{billingLine}</p>
+      <Section title={s.billing} body={billingLine}>
         <ManageBillingButton t={t.app.billing} />
-      </div>
+      </Section>
 
       {isOwner && (
-        <div className="mt-8 border-t border-border pt-6">
+        <section className="border-t border-border py-8">
           <CoOwners
             t={t.app.coOwners}
             members={members}
@@ -80,14 +89,12 @@ export default async function SettingsPage() {
             entitled={entitlement.entitled}
             atCap={members.length >= 1 + MAX_CO_OWNERS}
           />
-        </div>
+        </section>
       )}
 
-      <div className="mt-8 border-t border-border pt-6">
-        <h2 className="text-sm font-medium text-error-700">{s.dangerZone}</h2>
-        <p className="mb-3 mt-1 text-sm text-muted">{s.dangerBody}</p>
+      <Section title={s.dangerZone} body={s.dangerBody} tone="danger">
         <DeleteAccountButton t={t.app.deleteAccount} />
-      </div>
-    </main>
+      </Section>
+    </AppShell>
   );
 }

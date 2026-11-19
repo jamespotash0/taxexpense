@@ -2,6 +2,8 @@
 // Suspense because it reads useSearchParams. Localized per DEC-026.
 import Link from 'next/link';
 import { Suspense } from 'react';
+import { AppShell } from '@/components/AppShell';
+import { Icon } from '@/components/AppIcons';
 import { LoginForm } from '@/components/LoginForm';
 import { LocaleSwitcher } from '@/components/LocaleSwitcher';
 import { getI18n } from '@/i18n/server';
@@ -21,28 +23,29 @@ export default async function LoginPage() {
     : '/start';
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center p-8">
-      <div className="mb-6 flex items-center justify-between">
-        <Link href="/" className="text-sm text-muted hover:text-foreground">
-          {t.app.login.backHome}
-        </Link>
-        <LocaleSwitcher current={locale} />
+    <AppShell wordmarkHref="/" width="max-w-md">
+      <div className="flex min-h-[calc(100dvh-10rem)] flex-col justify-center py-6">
+        <div className="mb-8 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-1 rounded-full bg-fill py-2 pl-2.5 pr-4 text-sm font-semibold hover:bg-fill-strong">
+            <Icon name="back" size={18} />
+            {t.app.login.backHome.replace(/^←\s*/, '')}
+          </Link>
+          <LocaleSwitcher current={locale} variant="text" />
+        </div>
+        <Suspense fallback={<p className="text-sm text-muted">{t.app.login.loading}</p>}>
+          <LoginForm t={t.app.login} />
+        </Suspense>
+        <div className="mt-10 rounded-3xl bg-fill px-5 py-4 text-[0.9375rem]">
+          <p className="text-muted">{t.app.login.noAccount}</p>
+          <Link href={startHref} className="mt-1 inline-block font-semibold text-primary hover:underline">
+            {number ? (() => {
+              // Split on the {number} token so the phone number itself stays unbreakable.
+              const [before, after] = t.app.login.noAccountCta.split('{number}');
+              return (<>{before}<span className="whitespace-nowrap">{number}</span>{after}</>);
+            })() : t.app.login.noAccountCtaFallback}
+          </Link>
+        </div>
       </div>
-      <Suspense fallback={<p className="text-sm text-muted">{t.app.login.loading}</p>}>
-        <LoginForm t={t.app.login} />
-      </Suspense>
-      <p className="mt-8 border-t border-border pt-6 text-sm text-muted">
-        {t.app.login.noAccount}{' '}
-        <Link href={startHref} className="font-medium text-primary hover:underline">
-          {number ? (() => {
-            // Split on the {number} token so the phone number itself stays unbreakable -- its
-            // internal spaces/hyphen are break points that would otherwise split it mid-number
-            // (e.g. "475-" wrapping away from "4986"). Mirrors the dashboard empty-state pattern.
-            const [before, after] = t.app.login.noAccountCta.split('{number}');
-            return (<>{before}<span className="whitespace-nowrap">{number}</span>{after}</>);
-          })() : t.app.login.noAccountCtaFallback}
-        </Link>
-      </p>
-    </main>
+    </AppShell>
   );
 }

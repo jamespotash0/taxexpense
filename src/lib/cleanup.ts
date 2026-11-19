@@ -99,7 +99,7 @@ export function checkMissingContext(receipts: ReceiptRow[]): CleanupIssue[] {
       type: 'missing_context' as const,
       receipt_ids: [r.id],
       fields: r.substantiation_missing_fields ?? [],
-      message: `Missing ${humanizeFields(r.substantiation_missing_fields ?? [])} — the IRS asks for this on ${
+      message: `Missing ${humanizeFields(r.substantiation_missing_fields ?? [])}. The IRS asks for this on ${
         r.category ? categoryLabel(r.category).toLowerCase() : 'this category'
       }.`,
     }));

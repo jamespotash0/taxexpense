@@ -13,6 +13,10 @@ _Last updated: 2026-11-19_
 
 ## Now working on
 
+- **App UI redesign shipped to working tree (DEC-088).** New consumer-fintech app world
+  (see DESIGN.md), month-grouped activity, separate desktop/phone dashboards. Pending:
+  founder check with real data, then commit.
+
 - **iMessage extras (DEC-087).** Tapbacks, threaded follow-ups, edit-to-correct, failure logging,
   confetti. Pending: run migrations 0032 + 0033, deploy, live-test on a phone. Contact card is
   gated off (shared line can't); polls deferred until the vote payload is captured.

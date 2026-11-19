@@ -54,11 +54,11 @@ export function LoginForm({ t }: { t: LoginCopy }) {
 
   return (
     <div className="w-full max-w-sm">
-      <h1 className="text-2xl font-semibold tracking-tight">{t.title}</h1>
-      <p className="mt-1 text-sm text-muted">{t.subtitle}</p>
+      <h1 className="text-[2rem] font-bold leading-tight tracking-[-0.03em]">{t.title}</h1>
+      <p className="mt-2 text-[0.9375rem] text-muted">{t.subtitle}</p>
 
       {phase === 'phone' ? (
-        <form onSubmit={requestCode} className="mt-6 space-y-3">
+        <form onSubmit={requestCode} className="mt-8 space-y-3">
           <input
             type="tel"
             inputMode="tel"
@@ -67,18 +67,19 @@ export function LoginForm({ t }: { t: LoginCopy }) {
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             required
-            className="w-full rounded-md border border-border bg-surface px-3 py-2 text-base outline-none focus:border-primary"
+            aria-label={t.phonePlaceholder}
+            className="field min-h-14 text-lg"
           />
           <button
             type="submit"
             disabled={busy}
-            className="w-full rounded-md bg-primary hover:bg-primary-hover px-4 py-2 text-white disabled:opacity-50"
+            className="btn btn-primary min-h-14 w-full text-base"
           >
             {busy ? t.sending : t.sendCode}
           </button>
         </form>
       ) : (
-        <form onSubmit={verify} className="mt-6 space-y-3">
+        <form onSubmit={verify} className="mt-8 space-y-3">
           <input
             type="text"
             inputMode="numeric"
@@ -88,26 +89,27 @@ export function LoginForm({ t }: { t: LoginCopy }) {
             value={code}
             onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
             required
-            className="w-full rounded-md border border-border bg-surface px-3 py-2 text-center text-lg tracking-[0.4em] outline-none focus:border-primary"
+            aria-label={t.codePlaceholder}
+            className="field num min-h-14 text-center text-2xl font-semibold tracking-[0.4em]"
           />
           <button
             type="submit"
             disabled={busy || code.length !== 6}
-            className="w-full rounded-md bg-primary hover:bg-primary-hover px-4 py-2 text-white disabled:opacity-50"
+            className="btn btn-primary min-h-14 w-full text-base"
           >
             {busy ? t.verifying : t.verify}
           </button>
           <button
             type="button"
             onClick={() => { setPhase('phone'); setCode(''); setError(null); }}
-            className="w-full text-sm text-muted underline"
+            className="w-full py-2 text-sm font-semibold text-muted hover:text-foreground"
           >
             {t.useDifferent}
           </button>
         </form>
       )}
 
-      {error && <p className="mt-3 text-sm text-error-600">{error}</p>}
+      {error && <p role="alert" className="mt-3 text-sm font-medium text-error-600">{error}</p>}
     </div>
   );
 }

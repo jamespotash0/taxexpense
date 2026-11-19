@@ -1,6 +1,7 @@
-// Substantiation status badge (TSNAP-039). Green complete / amber needs-something / gray pending.
+// Substantiation status pill (TSNAP-039). Green complete / amber needs-something / gray pending.
 // Wording uses "Documentation complete" not "audit-ready" (Jordan/Marcus liability).
 // Labels are passed in localized (DEC-026).
+import { Icon } from '@/components/AppIcons';
 
 interface BadgeLabels {
   complete: string;
@@ -17,26 +18,8 @@ interface Props {
 }
 
 export function SubstantiationBadge({ substantiationComplete, needsReceipt, missingFields, labels }: Props) {
-  let label: string;
-  let cls: string;
-
-  if (substantiationComplete) {
-    label = labels.complete;
-    cls = 'bg-success-50 text-success-700 ring-success-600/20';
-  } else if (needsReceipt) {
-    label = labels.needsReceipt;
-    cls = 'bg-warning-50 text-warning-700 ring-warning-600/20';
-  } else if (missingFields && missingFields.length > 0) {
-    label = labels.needsContext;
-    cls = 'bg-warning-50 text-warning-700 ring-warning-600/20';
-  } else {
-    label = labels.pending;
-    cls = 'bg-gray-100 text-gray-600 ring-gray-500/20';
-  }
-
-  return (
-    <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${cls}`}>
-      {label}
-    </span>
-  );
+  if (substantiationComplete) return <span className="chip chip-done h-8 px-3 text-[0.8125rem]"><Icon name="checkCircle" size={16} />{labels.complete}</span>;
+  if (needsReceipt) return <span className="chip chip-need h-8 px-3 text-[0.8125rem]"><Icon name="receipt" size={16} />{labels.needsReceipt}</span>;
+  if (missingFields && missingFields.length > 0) return <span className="chip chip-need h-8 px-3 text-[0.8125rem]"><Icon name="pen" size={16} />{labels.needsContext}</span>;
+  return <span className="chip chip-muted h-8 px-3 text-[0.8125rem]"><Icon name="clock" size={16} />{labels.pending}</span>;
 }

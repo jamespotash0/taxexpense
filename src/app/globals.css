@@ -61,6 +61,10 @@
   --color-info-600: #2563eb;
   --color-info-700: #1d4ed8;
 
+  /* App surfaces only (see .app below): soft gray fill that replaces borders. */
+  --color-fill: #f4f4f7;
+  --color-fill-strong: #e9e9ef;
+
   /* Sky accent — chart highlights + data points only (too bright for text on white). */
   --color-sky: #a9c6ff;
 
@@ -181,4 +185,105 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .ken-burns, .panel-rise { animation: none !important; }
   .scene-fade { transition: none !important; }
+}
+
+/* ── App world (dashboard, receipts, cleanup, settings, login, agency, IRC, legal) ──
+   Consumer-fintech clarity (Lemonade / Jerry / Robinhood class, founder-pinned). Scoped to
+   .app so the landing page keeps its own tokens. White ground, gray fills instead of borders,
+   one electric violet, green = documentation complete, amber = needs you. */
+.app {
+  --color-background: #ffffff;
+  --color-surface: #ffffff;
+  --color-foreground: #0b0b12;
+  --color-muted: #696978;
+  --color-border: #ececf1;
+  --color-primary: #4f3bff;
+  --color-primary-hover: #3d2ae0;
+  --color-primary-50: #efedff;
+  --color-accent: #4f3bff;
+  --color-accent-hover: #3d2ae0;
+  --color-accent-50: #efedff;
+  --color-success-50: #e3f8ee;
+  --color-success-500: #00b86b;
+  --color-success-600: #00965a;
+  --color-success-700: #007a45;
+  --color-warning-50: #fff4dc;
+  --color-warning-500: #ffb224;
+  --color-warning-600: #d98e00;
+  --color-warning-700: #8a5300;
+  --color-error-50: #fdecec;
+  --color-error-600: #d93036;
+  --color-error-700: #b4232a;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-app), var(--font-sans);
+  font-feature-settings: "ss01", "cv11";
+  caret-color: var(--color-primary);
+  -webkit-tap-highlight-color: transparent;
+}
+.app ::selection { background: var(--color-primary-50); color: var(--color-primary-hover); }
+.app :focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; border-radius: 10px; }
+.app a { text-underline-offset: 3px; }
+.app { scrollbar-color: var(--color-fill-strong) transparent; }
+
+@layer components {
+  .num { font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+  .display-amount { font-size: clamp(2.5rem, 7vw, 3.5rem); line-height: 1; font-weight: 650; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+    min-height: 2.75rem; padding: 0 1.25rem; border-radius: 999px;
+    font-size: 0.9375rem; font-weight: 600; white-space: nowrap; cursor: pointer;
+    transition: background-color 0.18s ease, transform 0.18s var(--ease-out-expo), color 0.18s ease;
+  }
+  .btn:active:not(:disabled) { transform: scale(0.97); }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn-primary { background: var(--color-primary); color: #fff; }
+  .btn-primary:hover:not(:disabled) { background: var(--color-primary-hover); }
+  .btn-secondary { background: var(--color-fill); color: var(--color-foreground); }
+  .btn-secondary:hover:not(:disabled) { background: var(--color-fill-strong); }
+  .btn-white { background: #fff; color: var(--color-primary); }
+  .btn-white:hover { background: var(--color-primary-50); }
+  .btn-danger { background: var(--color-error-50); color: var(--color-error-700); }
+  .btn-danger:hover:not(:disabled) { background: #fadada; }
+  .btn-sm { min-height: 2.25rem; padding: 0 0.95rem; font-size: 0.875rem; }
+
+  .field {
+    width: 100%; min-height: 3rem; border-radius: 14px; border: 1.5px solid transparent;
+    background: var(--color-fill); padding: 0.7rem 0.95rem; font-size: 1rem; color: var(--color-foreground);
+    outline: none; transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .field::placeholder { color: #8b8b99; }
+  .field:hover { background: var(--color-fill-strong); }
+  .field:focus { background: #fff; border-color: var(--color-primary); box-shadow: 0 0 0 4px var(--color-primary-50); }
+  .field-needed { background: var(--color-warning-50); border-color: var(--color-warning-500); }
+  .field-needed:hover { background: #ffedc4; }
+  select.field { appearance: none; padding-right: 2.5rem; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23696978' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.9rem center; }
+  .label { display: block; margin-bottom: 0.4rem; font-size: 0.8125rem; font-weight: 600; color: var(--color-foreground); }
+
+  .seg { display: inline-flex; gap: 0.25rem; padding: 0.25rem; border-radius: 999px; background: var(--color-fill); }
+  .seg > * { display: inline-flex; align-items: center; min-height: 2.25rem; padding: 0 0.95rem; border-radius: 999px; font-size: 0.875rem; font-weight: 600; color: var(--color-muted); transition: background-color 0.18s ease, color 0.18s ease; white-space: nowrap; }
+  .seg > *:hover { color: var(--color-foreground); }
+  .seg > [aria-current="page"] { background: #fff; color: var(--color-foreground); box-shadow: 0 1px 2px rgba(11, 11, 18, 0.08), 0 2px 8px -2px rgba(11, 11, 18, 0.08); }
+
+  .chip { display: inline-flex; align-items: center; gap: 0.3rem; height: 1.6rem; padding: 0 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; white-space: nowrap; }
+  .chip-done { background: var(--color-success-50); color: var(--color-success-700); }
+  .chip-need { background: var(--color-warning-50); color: var(--color-warning-700); }
+  .chip-muted { background: var(--color-fill); color: var(--color-muted); }
+
+  .sheet { border-radius: 28px; background: var(--color-fill); }
+  .row-press { transition: background-color 0.15s ease, transform 0.2s var(--ease-out-expo); }
+  .row-press:hover { background: var(--color-fill); }
+  .row-press:active { transform: scale(0.985); }
+}
+
+/* The one authored moment: the documented bar fills in when the dashboard lands. */
+@keyframes bar-grow { from { transform: scaleX(0.02); } to { transform: none; } }
+.bar-fill { transform-origin: left center; animation: bar-grow 1.2s var(--ease-out-expo) 0.15s both; }
+@keyframes rise-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.rise-in { animation: rise-in 0.5s var(--ease-out-expo) both; }
+@media (prefers-reduced-motion: reduce) {
+  .bar-fill, .rise-in { animation: none !important; }
+  .btn:active, .row-press:active { transform: none !important; }
 }

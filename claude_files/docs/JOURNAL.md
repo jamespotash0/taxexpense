@@ -2601,3 +2601,22 @@ under default-deny for V1; only add an anon read policy if rendering them client
   3. **Hardcoded indexed figures** — left as prose for V1 (only §179's number is seeded);
      `tax_year_figures` table deferred to V2 (Raj).
 - Full persona reviews are in this session's transcript.
+
+## DEC-088: App UI redesign, consumer-fintech world (2026-11-19)
+
+- **What:** Replaced the indigo card-stack look on every logged-in and reference surface
+  (dashboard, cleanup, receipt detail, settings, login, agency, IRC, privacy, terms) with a
+  new world pinned by the founder: "Lemonade / Jerry / Robinhood: simple, clean, modern,
+  intuitive but captivating." White ground, gray fills instead of borders, one violet,
+  green = documentation complete, amber = needs you, Geist, pill controls. Light only.
+- **Founder requirements:** dashboard leads with what's missing (the violet panel names the
+  expenses); activity grouped by month; desktop and phone are DIFFERENT layouts (desktop =
+  sticky rail + month-grouped ledger table; phone = app feed + sticky month headers + bottom
+  tab bar).
+- **Scope guard:** the new tokens live under `.app` (src/app/globals.css) and apply via
+  `AppShell`; the landing page (/, /pricing, /start) keeps its own tokens on purpose.
+- **Receipt editor:** missing substantiation fields are highlighted ("Needed"); fields split
+  into "The why" / "The details"; added the City input (location_city was a required context
+  field with no UI).
+- **Docs:** PRODUCT.md (product truth), DESIGN.md + .impeccable/design.json (the system).
+- Verified with synthetic data only (founder chose no session minting on hosted Supabase).

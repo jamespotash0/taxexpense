@@ -1,0 +1,374 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-19T23:16:51.438211+00:00",
+  "title": "Design System: Tally (app world)",
+  "extensions": {
+    "colorMeta": {
+      "violet": {
+        "role": "primary",
+        "displayName": "Electric Violet",
+        "tonalRamp": [
+          "oklch(15% 0.2 275)",
+          "oklch(25% 0.2 275)",
+          "oklch(38% 0.2 275)",
+          "oklch(50% 0.2 275)",
+          "oklch(62% 0.2 275)",
+          "oklch(75% 0.2 275)",
+          "oklch(87% 0.2 275)",
+          "oklch(95% 0.2 275)"
+        ]
+      },
+      "violet-deep": {
+        "role": "primary",
+        "displayName": "Deep Violet"
+      },
+      "violet-mist": {
+        "role": "primary",
+        "displayName": "Violet Mist"
+      },
+      "complete": {
+        "role": "secondary",
+        "displayName": "Documentation Green",
+        "tonalRamp": [
+          "oklch(15% 0.13 158)",
+          "oklch(25% 0.13 158)",
+          "oklch(38% 0.13 158)",
+          "oklch(50% 0.13 158)",
+          "oklch(62% 0.13 158)",
+          "oklch(75% 0.13 158)",
+          "oklch(87% 0.13 158)",
+          "oklch(95% 0.13 158)"
+        ]
+      },
+      "complete-strong": {
+        "role": "secondary",
+        "displayName": "Documentation Green Strong"
+      },
+      "complete-ink": {
+        "role": "secondary",
+        "displayName": "Documentation Green Ink"
+      },
+      "complete-tint": {
+        "role": "secondary",
+        "displayName": "Documentation Green Tint"
+      },
+      "needs": {
+        "role": "tertiary",
+        "displayName": "Needs-You Amber",
+        "tonalRamp": [
+          "oklch(15% 0.14 75)",
+          "oklch(25% 0.14 75)",
+          "oklch(38% 0.14 75)",
+          "oklch(50% 0.14 75)",
+          "oklch(62% 0.14 75)",
+          "oklch(75% 0.14 75)",
+          "oklch(87% 0.14 75)",
+          "oklch(95% 0.14 75)"
+        ]
+      },
+      "needs-ink": {
+        "role": "tertiary",
+        "displayName": "Needs-You Amber Ink"
+      },
+      "needs-tint": {
+        "role": "tertiary",
+        "displayName": "Needs-You Amber Tint"
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "tonalRamp": [
+          "#0b0b12",
+          "#24242e",
+          "#3d3d4a",
+          "#56566a",
+          "#696978",
+          "#8b8b99",
+          "#e9e9ef",
+          "#f4f4f7"
+        ]
+      },
+      "slate-muted": {
+        "role": "neutral",
+        "displayName": "Slate"
+      },
+      "placeholder": {
+        "role": "neutral",
+        "displayName": "Placeholder Gray"
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Paper"
+      },
+      "fill": {
+        "role": "neutral",
+        "displayName": "Fill"
+      },
+      "fill-strong": {
+        "role": "neutral",
+        "displayName": "Fill Strong"
+      },
+      "hairline": {
+        "role": "neutral",
+        "displayName": "Hairline"
+      },
+      "error": {
+        "role": "neutral",
+        "displayName": "Error Red",
+        "tonalRamp": [
+          "oklch(15% 0.17 25)",
+          "oklch(25% 0.17 25)",
+          "oklch(38% 0.17 25)",
+          "oklch(50% 0.17 25)",
+          "oklch(62% 0.17 25)",
+          "oklch(75% 0.17 25)",
+          "oklch(87% 0.17 25)",
+          "oklch(95% 0.17 25)"
+        ]
+      },
+      "error-ink": {
+        "role": "neutral",
+        "displayName": "Error Ink"
+      },
+      "error-tint": {
+        "role": "neutral",
+        "displayName": "Error Tint"
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Month spent total on phones; desktop rail fixes it at 2.25rem."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "To-do panel sentence and desktop Activity heading."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Phone section headings."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Panel and editor copy."
+      },
+      "body-strong": {
+        "displayName": "Body Strong",
+        "purpose": "Vendor names, button text."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Form labels, stat terms, row metadata."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Chips, ledger column headers, tab labels."
+      }
+    },
+    "shadows": [
+      {
+        "name": "segment-lift",
+        "value": "0 1px 2px rgba(11,11,18,0.08), 0 2px 8px -2px rgba(11,11,18,0.08)",
+        "purpose": "Selected option in a segmented control."
+      },
+      {
+        "name": "floating-bar",
+        "value": "0 8px 32px -8px rgba(11,11,18,0.25)",
+        "purpose": "Sticky save bar in the receipt editor (with a 1px hairline ring)."
+      },
+      {
+        "name": "modal",
+        "value": "0 24px 64px -16px rgba(11,11,18,0.35)",
+        "purpose": "Dialogs and bottom sheets."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out-expo",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "All authored motion and press transforms."
+      },
+      {
+        "name": "bar-grow",
+        "value": "scaleX(0.02) to none, 1.2s ease-out-expo, 0.15s delay",
+        "purpose": "Documented bar fills on dashboard load. The one authored moment."
+      },
+      {
+        "name": "rise-in",
+        "value": "opacity 0 + translateY(8px) to rest, 0.5s ease-out-expo",
+        "purpose": "Arriving notices and dialogs."
+      },
+      {
+        "name": "press",
+        "value": "scale(0.97) buttons, scale(0.985) rows",
+        "purpose": "Tactile press feedback; off under reduced motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px",
+        "purpose": "Header nav replaces bottom tab bar."
+      },
+      {
+        "name": "lg",
+        "value": "1024px",
+        "purpose": "Phone feed switches to rail plus ledger."
+      }
+    ],
+    "scope": {
+      "appliesTo": [
+        "/dashboard",
+        "/dashboard/cleanup",
+        "/receipts/[id]",
+        "/settings",
+        "/login",
+        "/agency",
+        "/agency/[orgId]",
+        "/irc/[section]",
+        "/privacy",
+        "/terms"
+      ],
+      "excludes": [
+        "/",
+        "/pricing",
+        "/start"
+      ],
+      "note": "Landing keeps its own older indigo tokens in the root @theme. Intentional; do not unify."
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Main action; violet pill.",
+      "html": "<button class=\"ds-btn-primary\">Review my month</button>",
+      "css": ".ds-btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 20px;border:0;border-radius:999px;font:600 15px/1 Geist,system-ui,sans-serif;cursor:pointer;transition:background-color .18s ease,transform .18s cubic-bezier(0.16, 1, 0.3, 1);background:#4f3bff;color:#fff} .ds-btn-primary:hover{background:#3d2ae0} .ds-btn-primary:active{transform:scale(.97)} .ds-btn-primary:focus-visible{outline:2px solid #4f3bff;outline-offset:2px;}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Lesser actions such as exports; gray fill pill.",
+      "html": "<button class=\"ds-btn-secondary\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14\"/></svg>Export CSV</button>",
+      "css": ".ds-btn-secondary{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 20px;border:0;border-radius:999px;font:600 15px/1 Geist,system-ui,sans-serif;cursor:pointer;transition:background-color .18s ease,transform .18s cubic-bezier(0.16, 1, 0.3, 1);background:#f4f4f7;color:#0b0b12} .ds-btn-secondary:hover{background:#e9e9ef} .ds-btn-secondary:active{transform:scale(.97)} .ds-btn-secondary:focus-visible{outline:2px solid #4f3bff;outline-offset:2px;}"
+    },
+    {
+      "name": "To-do Panel",
+      "kind": "card",
+      "refersTo": "todo-panel",
+      "description": "Violet region that owns what still needs the user; bar fills on load.",
+      "html": "<section class=\"ds-todo\"><h1>4 expenses need a little more from you</h1><div class=\"ds-todo-bar\"><div class=\"ds-todo-track\"><div class=\"ds-todo-fill\"></div></div><span>50% documented</span></div><a class=\"ds-todo-row\" href=\"#\"><span>Blue Bottle Coffee<small>Needs context</small></span><b>$18.40</b></a><button class=\"ds-btn-white\">Start fixing</button></section>",
+      "css": ".ds-todo{background:#4f3bff;color:#fff;border-radius:28px;padding:28px 24px;font-family:Geist,system-ui,sans-serif;max-width:352px} .ds-todo h1{margin:0;font-size:1.75rem;font-weight:700;line-height:1.15;letter-spacing:-.03em} .ds-todo-bar{display:flex;align-items:center;gap:12px;margin-top:20px;font-size:14px;font-weight:600} .ds-todo-track{flex:1;height:8px;border-radius:999px;background:rgba(255,255,255,.2);overflow:hidden} .ds-todo-fill{width:50%;height:100%;border-radius:999px;background:#fff;transform-origin:left;animation:ds-grow 1.2s cubic-bezier(0.16, 1, 0.3, 1) .15s both} @keyframes ds-grow{from{transform:scaleX(.02)}to{transform:none}} .ds-todo-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:20px;padding:12px 16px;border-radius:16px;background:rgba(255,255,255,.12);color:#fff;text-decoration:none;font-weight:600;transition:background-color .15s} .ds-todo-row:hover{background:rgba(255,255,255,.2)} .ds-todo-row small{display:block;font-weight:400;font-size:14px;color:rgba(255,255,255,.8)} .ds-todo-row b{font-variant-numeric:tabular-nums} .ds-btn-white{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 20px;border:0;border-radius:999px;font:600 15px/1 Geist,system-ui,sans-serif;cursor:pointer;transition:background-color .18s ease,transform .18s cubic-bezier(0.16, 1, 0.3, 1);margin-top:20px;width:100%;background:#fff;color:#4f3bff} .ds-btn-white:hover{background:#efedff} .ds-btn-white:focus-visible{outline:2px solid #fff;outline-offset:2px}"
+    },
+    {
+      "name": "Field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "Filled input; amber when the record still needs it.",
+      "html": "<label class=\"ds-label\">Business purpose</label><input class=\"ds-field\" placeholder=\"Who and why\"><label class=\"ds-label\" style=\"margin-top:12px\">Attendees</label><input class=\"ds-field ds-field-needed\" placeholder=\"Needed\">",
+      "css": ".ds-label{display:block;margin-bottom:6px;font:600 13px Geist,system-ui,sans-serif;color:#0b0b12} .ds-field{width:100%;min-height:48px;border-radius:14px;border:1.5px solid transparent;background:#f4f4f7;padding:11px 15px;font:16px Geist,system-ui,sans-serif;color:#0b0b12;outline:none;transition:border-color .15s,background-color .15s,box-shadow .15s} .ds-field::placeholder{color:#8b8b99} .ds-field:hover{background:#e9e9ef} .ds-field:focus{background:#fff;border-color:#4f3bff;box-shadow:0 0 0 4px #efedff} .ds-field-needed{background:#fff4dc;border-color:#ffb224} .ds-field-needed:hover{background:#ffedc4}"
+    },
+    {
+      "name": "Status Chips",
+      "kind": "chip",
+      "refersTo": "chip-done",
+      "description": "Done green, needs amber, pending muted; icon plus words.",
+      "html": "<span class=\"ds-chip ds-chip-done\"><svg viewBox=\"0 0 24 24\" width=\"14\" height=\"14\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"m8.3 12.2 2.6 2.6 4.8-5\"/></svg>Documentation complete</span> <span class=\"ds-chip ds-chip-need\"><svg viewBox=\"0 0 24 24\" width=\"14\" height=\"14\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 3.5v17l2-1.2 2 1.2 2-1.2 2 1.2 2-1.2 2 1.2v-17l-2 1.2-2-1.2-2 1.2-2-1.2-2 1.2z\"/><path d=\"M9 9h6M9 12.5h6M9 16h3.5\"/></svg>Needs receipt</span>",
+      "css": ".ds-chip{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 10px;border-radius:999px;font:600 12px Geist,system-ui,sans-serif;white-space:nowrap} .ds-chip-done{background:#e3f8ee;color:#007a45} .ds-chip-need{background:#fff4dc;color:#8a5300}"
+    },
+    {
+      "name": "Segmented Filter",
+      "kind": "nav",
+      "refersTo": "segmented",
+      "description": "Fill track; selected option lifts to white.",
+      "html": "<nav class=\"ds-seg\"><a href=\"#\" aria-current=\"page\">All</a><a href=\"#\">Needs attention</a><a href=\"#\">This month</a></nav>",
+      "css": ".ds-seg{display:inline-flex;gap:4px;padding:4px;border-radius:999px;background:#f4f4f7;font-family:Geist,system-ui,sans-serif} .ds-seg a{display:inline-flex;align-items:center;min-height:36px;padding:0 15px;border-radius:999px;font-size:14px;font-weight:600;color:#696978;text-decoration:none;transition:background-color .18s,color .18s} .ds-seg a:hover{color:#0b0b12} .ds-seg a:focus-visible{outline:2px solid #4f3bff;outline-offset:2px} .ds-seg a[aria-current=page]{background:#fff;color:#0b0b12;box-shadow:0 1px 2px rgba(11,11,18,.08),0 2px 8px -2px rgba(11,11,18,.08)}"
+    },
+    {
+      "name": "Phone Feed Row",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Monogram, vendor, meta, tabular amount and status; hairline-divided, press-scales.",
+      "html": "<a class=\"ds-row\" href=\"#\"><span class=\"ds-mono ds-mono-need\">M</span><span class=\"ds-row-text\"><b>Marriott Downtown Austin</b><span>Nov 14 · Travel: Lodging</span><span class=\"ds-need\">Needs receipt</span><span class=\"ds-tax\">100% deductible · §162</span></span><span class=\"ds-row-end\"><b>$412.50</b><span class=\"ds-chip-i\"><svg viewBox=\"0 0 24 24\" width=\"14\" height=\"14\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 3.5v17l2-1.2 2 1.2 2-1.2 2 1.2 2-1.2 2 1.2v-17l-2 1.2-2-1.2-2 1.2-2-1.2-2 1.2z\"/><path d=\"M9 9h6M9 12.5h6M9 16h3.5\"/></svg></span></span></a>",
+      "css": ".ds-row{display:flex;align-items:center;gap:14px;padding:12px;border-radius:16px;color:#0b0b12;text-decoration:none;font-family:Geist,system-ui,sans-serif;max-width:400px;transition:background-color .15s,transform .2s cubic-bezier(0.16, 1, 0.3, 1)} .ds-row:hover{background:#f4f4f7} .ds-row:active{transform:scale(.985)} .ds-row:focus-visible{outline:2px solid #4f3bff;outline-offset:2px} .ds-mono{display:flex;width:44px;height:44px;flex:none;align-items:center;justify-content:center;border-radius:50%;font-weight:700;font-size:17px;background:#f4f4f7} .ds-mono-need{background:#fff4dc;color:#8a5300} .ds-row-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;font-size:13px;color:#696978} .ds-row-text b{font-size:15px;color:#0b0b12} .ds-need{font-size:12px;font-weight:600;color:#8a5300} .ds-tax{font-size:12px} .ds-row-end{display:flex;flex-direction:column;align-items:flex-end;gap:6px} .ds-row-end b{font-size:15px;font-variant-numeric:tabular-nums;letter-spacing:-.02em} .ds-chip-i{display:inline-flex;align-items:center;height:26px;padding:0 8px;border-radius:999px;background:#fff4dc;color:#8a5300}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Clear Ledger",
+    "overview": "**Creative North Star: \"The Clear Ledger\"**\n\nThe app world is consumer-fintech clarity in the Lemonade / Jerry / Robinhood class: a white ground, soft gray fills where other products draw borders, near-black ink, and one electric violet that owns the to-do region. Every screen opens on what still needs the user, not on a stack of bordered cards. Success is quiet (a green check), anything that needs the user is loud (an amber chip that names what is missing).\n\nDensity is calm on phones and ledger-tight on desktop. Money is the hero type: large, tight, tabular amounts in Geist. Depth comes from tonal fills, not shadows. Motion is limited to one authored moment (the documented bar filling on load) plus press feedback on rows and buttons.\n\n**Scope.** This world applies only to the app surfaces rendered inside the app shell: `/dashboard`, `/dashboard/cleanup`, `/receipts/[id]`, `/settings`, `/login`, `/agency`, `/agency/[orgId]`, `/irc/[section]`, `/privacy`, `/terms`. The landing surfaces (`/`, `/pricing`, `/start`) deliberately keep their own older indigo tokens (`#5b57e0`, system font stack, 6px radius) defined in the root `@theme`. The divergence is intentional. Do not \"fix\" the landing to match this world, and do not pull landing tokens into the app. App tokens are scoped by the `.app` class so the two never bleed.",
+    "keyCharacteristics": [
+      "Light mode only. No dark theme.",
+      "White ground, gray fills instead of borders, hairlines only between list rows.",
+      "One violet brand color; green means documentation complete, amber means needs you.",
+      "Geist with tabular, tightly tracked numerals; big amounts at display scale.",
+      "Pills for actions, filters and status; 24 to 28px radii for panels.",
+      "Desktop and phone are two deliberately different layouts, not one responsive stack.",
+      "Activity is always grouped by month."
+    ],
+    "rules": [
+      {
+        "name": "The One Violet Rule",
+        "body": "Violet is the only brand hue and it belongs to action and to the to-do region. Never use it for status, decoration, or charts.",
+        "section": "colors"
+      },
+      {
+        "name": "The Status Pair Rule",
+        "body": "Green means documentation complete and nothing else; amber means the user must act and nothing else. Status is always carried by an icon or word as well as the hue.",
+        "section": "colors"
+      },
+      {
+        "name": "The Fill-Not-Border Rule",
+        "body": "Group content with a gray fill, not an outline. Borders exist only as hairlines between rows and under sticky chrome.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tabular Money Rule",
+        "body": "Every amount, date in a ledger column, percentage and count uses tabular numerals with -0.02em tracking (the `num` treatment) so columns align.",
+        "section": "typography"
+      },
+      {
+        "name": "The No Kicker Rule",
+        "body": "Headings stand alone. No eyebrow, kicker, or small uppercase label above a heading; context such as \"Spent this month · November 2026\" sits as a muted label directly above the number it describes.",
+        "section": "typography"
+      },
+      {
+        "name": "The Two Dashboards Rule",
+        "body": "Do not collapse the desktop ledger into stacked cards or stretch the phone feed into a table. Each breakpoint gets its own layout.",
+        "section": "layout"
+      },
+      {
+        "name": "The Month Group Rule",
+        "body": "Lists of expenses are always grouped under sticky month headers carrying the month total.",
+        "section": "layout"
+      },
+      {
+        "name": "The Floats-Only Shadow Rule",
+        "body": "A shadow means the element floats over scrolling content. Resting panels, cards and rows never carry one.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do scope every app surface inside the app shell so the `.app` tokens and Geist apply.",
+      "Do lead each surface with what still needs the user; violet owns that region.",
+      "Do group content with gray fills (sheet, field, segmented track) instead of outlines.",
+      "Do set every amount, count and percentage in tabular numerals with tight tracking; hero totals at display scale.",
+      "Do pair every status color with an icon or word: green check for \"Documentation complete\", amber chip naming what is missing.",
+      "Do keep the desktop ledger and the phone feed as separate layouts, both grouped by month with sticky month headers.",
+      "Do use the single stroke icon set (24px grid, 2px stroke) for every icon.",
+      "Do honor reduced motion for bar grow, rise in and press scaling."
+    ],
+    "donts": [
+      "Don't apply these tokens to `/`, `/pricing` or `/start`, and don't port landing indigo, flags or the 6px radius into the app.",
+      "Don't add a dark mode; the app is light only.",
+      "Don't put an em dash in user-facing copy.",
+      "Don't write \"audit-ready\"; the status is \"Documentation complete\".",
+      "Don't place kickers or eyebrows (small uppercase labels) above headings.",
+      "Don't use emoji or Unicode glyphs as icons.",
+      "Don't use violet for status or green and amber for anything but their status meaning.",
+      "Don't put shadows on resting cards, panels or rows; shadows are for floating bars, selected segments and dialogs.",
+      "Don't wrap expenses in bordered cards or show an ungrouped activity list."
+    ]
+  }
+}

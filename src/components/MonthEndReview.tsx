@@ -9,6 +9,7 @@
 // Copy is kept in one COPY object below rather than the i18n dictionaries: this is a beta
 // feature and the agent's own output is English-only for now. Lift into src/i18n when it ships.
 import { useCallback, useEffect, useState } from 'react';
+import { Icon } from '@/components/AppIcons';
 import { useFormSubmit } from '@/lib/use-form-submit';
 
 interface FlaggedItem { id: string; reason: string }
@@ -93,23 +94,23 @@ function DraftEditor({
     <div className="space-y-5">
       {/* Summary */}
       <div>
-        <p className="text-sm">{draft.summary}</p>
+        <p className="text-[0.9375rem] leading-relaxed">{draft.summary}</p>
         <p className="mt-1 text-xs text-muted">{monthLabel(draft.month)}</p>
       </div>
 
       {/* Flagged items */}
       <div>
-        <p className="text-sm font-medium">{COPY.flaggedTitle}</p>
+        <p className="text-sm font-semibold">{COPY.flaggedTitle}</p>
         {draft.flagged.length === 0 ? (
           <p className="mt-1 text-sm text-muted">{COPY.noFlags}</p>
         ) : (
           <ul className="mt-2 space-y-2">
             {draft.flagged.map((f) => (
-              <li key={f.id} className="rounded-md border border-warning-600/30 bg-warning-50 p-2 text-sm">
-                <a href={`/receipts/${f.id}`} className="font-medium text-warning-700 underline">
+              <li key={f.id} className="rounded-2xl bg-warning-50 px-4 py-3 text-sm">
+                <a href={`/receipts/${f.id}`} className="font-semibold text-warning-700 underline">
                   View expense
                 </a>
-                <span className="text-muted"> · {f.reason}</span>
+                <span className="text-warning-700/85"> · {f.reason}</span>
               </li>
             ))}
           </ul>
@@ -117,34 +118,34 @@ function DraftEditor({
       </div>
 
       {/* Editable draft */}
-      <div className="space-y-2">
-        <label className="block text-sm font-medium">
+      <div className="space-y-3">
+        <label className="label">
           {COPY.subjectLabel}
           <input
             value={subject}
             onChange={(e) => onSubject(e.target.value)}
-            className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm"
+            className="field mt-1.5 font-normal"
           />
         </label>
-        <label className="block text-sm font-medium">
+        <label className="label">
           {COPY.bodyLabel}
           <textarea
             value={body}
             onChange={(e) => onBody(e.target.value)}
             rows={12}
-            className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2 font-mono text-xs leading-relaxed"
+            className="field mt-1.5 text-sm font-normal leading-relaxed"
           />
         </label>
         <p className="text-xs text-muted">{COPY.draftOnly}</p>
       </div>
 
       {/* Send */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <button
           onClick={onSend}
           disabled={sending || !hasAccountantEmail}
           title={hasAccountantEmail ? '' : COPY.addEmailFirst}
-          className="rounded-md border border-border bg-surface px-4 py-2 text-sm hover:bg-neutral-50 disabled:opacity-50"
+          className="btn btn-primary btn-sm"
         >
           {sending ? COPY.sending : COPY.send}
         </button>
@@ -238,16 +239,16 @@ export function MonthEndReview({ hasAccountantEmail }: { hasAccountantEmail: boo
   }
 
   return (
-    <section className="mt-6 rounded-lg border border-border bg-surface p-5 shadow-sm">
+    <section className="sheet mt-12 p-5 sm:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="font-semibold">{COPY.title}</h2>
+          <h2 className="text-lg font-bold tracking-[-0.02em]">{COPY.title}</h2>
           <p className="mt-1 max-w-prose text-sm text-muted">{COPY.blurb}</p>
         </div>
         <button
           onClick={review}
           disabled={run.busy}
-          className="w-full shrink-0 whitespace-nowrap rounded-md bg-primary px-4 py-2 text-center text-sm text-white hover:bg-primary-hover disabled:opacity-50 sm:w-[15rem]"
+          className="btn btn-primary w-full shrink-0 sm:w-auto"
         >
           {run.busy ? COPY.running : draft ? COPY.rerun : COPY.run}
         </button>
@@ -256,7 +257,7 @@ export function MonthEndReview({ hasAccountantEmail }: { hasAccountantEmail: boo
       {run.error && <p className="mt-3 text-sm text-error-600">{run.error}</p>}
 
       {draft && (
-        <div className="mt-5 border-t border-border pt-5">
+        <div className="mt-5 rounded-3xl bg-white p-5">
           <DraftEditor
             draft={draft}
             subject={subject}
@@ -273,19 +274,19 @@ export function MonthEndReview({ hasAccountantEmail }: { hasAccountantEmail: boo
       )}
 
       {/* Past runs — click one to open it in the modal below */}
-      <div className="mt-5 border-t border-border pt-5">
-        <p className="text-sm font-medium">{COPY.historyTitle}</p>
+      <div className="mt-5 border-t border-fill-strong pt-4">
+        <p className="text-sm font-semibold">{COPY.historyTitle}</p>
         {history.length === 0 ? (
           <p className="mt-1 text-sm text-muted">{COPY.noHistory}</p>
         ) : (
-          <ul className="mt-2 divide-y divide-border">
+          <ul className="mt-1 divide-y divide-fill-strong">
             {history.map((r) => (
               <li key={r.runId}>
                 <button
                   onClick={() => openRun(r)}
-                  className="flex w-full items-center justify-between gap-3 py-2 text-left text-sm text-muted hover:text-foreground"
+                  className="flex min-h-11 w-full items-center justify-between gap-3 py-2 text-left text-sm text-foreground hover:text-primary"
                 >
-                  <span className="font-medium">{monthLabel(r.month)}</span>
+                  <span className="font-semibold">{monthLabel(r.month)}</span>
                   <span className="shrink-0 text-xs text-muted">
                     {r.flagged.length} flagged · {STATUS_LABEL[r.status]} · {runDate(r.createdAt)}
                   </span>
@@ -299,16 +300,16 @@ export function MonthEndReview({ hasAccountantEmail }: { hasAccountantEmail: boo
       {/* Past-run modal — click the backdrop, ✕, or Escape to dismiss */}
       {viewing && (
         <div
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:p-8"
+          className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-[#0b0b12]/45 sm:items-start sm:p-8"
           onClick={() => setViewing(null)}
         >
           <div
-            className="my-8 w-full max-w-2xl rounded-lg border border-border bg-surface p-5 shadow-xl"
+            className="rise-in mt-16 w-full max-w-2xl rounded-t-[28px] bg-white p-5 shadow-[0_24px_64px_-16px_rgba(11,11,18,0.35)] sm:my-8 sm:rounded-[28px] sm:p-6"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-start justify-between gap-3 border-b border-border pb-3">
+            <div className="flex items-start justify-between gap-3 pb-2">
               <div>
-                <h3 className="font-semibold">{monthLabel(viewing.month)} review</h3>
+                <h3 className="text-lg font-bold tracking-[-0.02em]">{monthLabel(viewing.month)} review</h3>
                 <p className="mt-0.5 text-xs text-muted">
                   {STATUS_LABEL[viewing.status]} · {runDate(viewing.createdAt)}
                 </p>
@@ -316,9 +317,9 @@ export function MonthEndReview({ hasAccountantEmail }: { hasAccountantEmail: boo
               <button
                 onClick={() => setViewing(null)}
                 aria-label={COPY.close}
-                className="shrink-0 rounded-md px-2 py-1 text-muted hover:bg-neutral-50 hover:text-foreground"
+                className="flex size-10 shrink-0 items-center justify-center rounded-full bg-fill text-muted hover:text-foreground"
               >
-                ✕
+                <Icon name="close" size={18} />
               </button>
             </div>
             <div className="mt-4">

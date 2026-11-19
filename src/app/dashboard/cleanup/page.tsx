@@ -7,6 +7,9 @@ import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/session';
 import { getReceiptsForYear, getReceiptYears } from '@/lib/receipts';
 import { scanReceipts, scanWithMemoReview, type CleanupIssueType } from '@/lib/cleanup';
+import { getUserAgencyIds } from '@/lib/agency';
+import { AppShell } from '@/components/AppShell';
+import { Icon } from '@/components/AppIcons';
 import { getI18n } from '@/i18n/server';
 import { fmt } from '@/i18n/config';
 
@@ -50,9 +53,10 @@ export default async function CleanupPage({
   const withMemo = memoParam === '1';
   const memoQuery = withMemo ? '&memo=1' : '';
 
-  const [receipts, years] = await Promise.all([
+  const [receipts, years, agencyIds] = await Promise.all([
     getReceiptsForYear(user.organization_id, year),
     getReceiptYears(user.organization_id),
+    getUserAgencyIds(user.id),
   ]);
   // Make sure the requested year is always selectable, even if it has no receipts.
   const yearOptions = years.includes(year) ? years : [year, ...years].sort((a, b) => b - a);
@@ -67,55 +71,47 @@ export default async function CleanupPage({
   })).filter((g) => g.issues.length > 0);
 
   return (
-    <main className="mx-auto max-w-3xl p-4 sm:p-8">
-      <header className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold tracking-tight">{c.title}</h1>
-        <Link href="/dashboard" className="text-sm text-muted hover:text-foreground">
-          {c.back}
-        </Link>
-      </header>
+    <AppShell nav={t.app.nav} active="cleanup" showAgency={agencyIds.length > 0}>
+      <h1 className="text-[2rem] font-bold leading-tight tracking-[-0.03em]">{c.title}</h1>
+      <p className="mt-2 max-w-lg text-[0.9375rem] text-muted">{fmt(c.subtitle, { year })}</p>
 
-      <p className="mt-2 text-sm text-muted">{fmt(c.subtitle, { year })}</p>
-      <p className="mt-1 text-xs text-muted">{fmt(c.scanned, { count: report.scanned_count, year })}</p>
-
-      {yearOptions.length > 1 && (
-        <div className="mt-4 flex flex-wrap gap-1 text-sm">
-          {yearOptions.map((y) => (
-            <Link
-              key={y}
-              href={`/dashboard/cleanup?year=${y}${memoQuery}`}
-              aria-current={y === year ? 'page' : undefined}
-              className={`rounded-md px-3 py-1 ${y === year ? 'bg-primary text-white' : 'text-muted hover:bg-primary-50'}`}
-            >
-              {y}
-            </Link>
-          ))}
-        </div>
-      )}
+      <div className="mt-6 flex flex-wrap items-center gap-3">
+        {yearOptions.length > 1 && (
+          <nav className="seg" aria-label="Year">
+            {yearOptions.map((y) => (
+              <Link key={y} href={`/dashboard/cleanup?year=${y}${memoQuery}`} aria-current={y === year ? 'page' : undefined} className="num">
+                {y}
+              </Link>
+            ))}
+          </nav>
+        )}
+        <span className="text-sm text-muted">{fmt(c.scanned, { count: report.scanned_count, year })}</span>
+      </div>
 
       {grouped.length === 0 ? (
-        <div className="mt-8 rounded-lg border border-success-600 bg-success-50 p-6 text-center text-sm text-success-700">
-          {fmt(c.allClear, { year })}
-        </div>
+        <section className="mt-8 flex items-start gap-4 rounded-[28px] bg-success-50 px-6 py-7 sm:px-8">
+          <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-success-500 text-white">
+            <Icon name="check" size={26} />
+          </span>
+          <p className="pt-2.5 text-lg font-semibold text-success-700">{fmt(c.allClear, { year }).replace(/\s*✓$/, '')}</p>
+        </section>
       ) : (
-        <div className="mt-6 space-y-6">
+        <div className="mt-8 space-y-10">
           {grouped.map((g) => (
-            <section key={g.type} className="rounded-lg border border-border bg-surface shadow-sm">
-              <h2 className="flex items-center justify-between border-b border-border px-4 py-2 text-sm font-medium">
-                <span>{c[GROUP_LABEL[g.type]]}</span>
-                <span className="rounded-full bg-neutral-200 px-2 py-0.5 text-xs text-muted">{g.issues.length}</span>
+            <section key={g.type}>
+              <h2 className="flex items-center gap-2.5 text-lg font-bold tracking-[-0.02em]">
+                {c[GROUP_LABEL[g.type]]}
+                <span className="chip chip-need num">{g.issues.length}</span>
               </h2>
-              <ul className="divide-y divide-border">
+              <ul className="mt-2 divide-y divide-border">
                 {g.issues.map((issue, idx) => (
-                  <li key={`${issue.type}-${idx}`} className="flex items-center justify-between gap-3 px-4 py-3">
-                    <p className="min-w-0 text-sm text-foreground">{issue.message}</p>
-                    <Link
-                      href={`/receipts/${issue.receipt_ids[0]}`}
-                      className="shrink-0 rounded-md border border-border bg-surface px-3 py-1 text-xs hover:bg-neutral-50"
-                    >
-                      {issue.receipt_ids.length > 1
-                        ? fmt(c.openCount, { count: issue.receipt_ids.length })
-                        : c.open}
+                  <li key={`${issue.type}-${idx}`}>
+                    <Link href={`/receipts/${issue.receipt_ids[0]}`} className="row-press -mx-3 flex items-center gap-3 rounded-2xl px-3 py-3.5">
+                      <p className="min-w-0 flex-1 text-[0.9375rem]">{issue.message}</p>
+                      <span className="flex shrink-0 items-center gap-0.5 text-sm font-semibold text-primary">
+                        {issue.receipt_ids.length > 1 ? fmt(c.openCount, { count: issue.receipt_ids.length }) : c.open}
+                        <Icon name="chevron" size={16} />
+                      </span>
                     </Link>
                   </li>
                 ))}
@@ -125,17 +121,15 @@ export default async function CleanupPage({
         </div>
       )}
 
-      {/* Deep scan toggle — runs the vague-memo Haiku pass on top of deterministic checks. */}
+      {/* Deep scan: runs the vague-memo Haiku pass on top of deterministic checks. */}
       {!withMemo && (
-        <div className="mt-6">
-          <Link
-            href={`/dashboard/cleanup?year=${year}&memo=1`}
-            className="text-sm text-accent hover:underline"
-          >
+        <div className="mt-10 border-t border-border pt-6">
+          <Link href={`/dashboard/cleanup?year=${year}&memo=1`} className="btn btn-secondary btn-sm">
+            <Icon name="sparkle" size={16} />
             {c.deepScan}
           </Link>
         </div>
       )}
-    </main>
+    </AppShell>
   );
 }

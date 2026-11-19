@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CATEGORY_LABELS } from '@/lib/categories';
 import { useFormSubmit } from '@/lib/use-form-submit';
+import { Icon } from '@/components/AppIcons';
 
 interface Receipt {
   id: string;
@@ -23,6 +24,7 @@ interface Receipt {
   photo_url: string | null;
   needs_receipt: boolean;
   flagged_for_cpa: boolean;
+  substantiation_missing_fields?: string[] | null;
 }
 
 interface ReceiptCopy {
@@ -50,6 +52,13 @@ interface ReceiptCopy {
   receiptAttached: string;
   uploadFailed: string;
   deleteFailed: string;
+  whyTitle: string;
+  whatTitle: string;
+  location: string;
+  stillNeeds: string;
+  needed: string;
+  photo: string;
+  replacePhoto: string;
 }
 
 export function ReceiptEditor({
@@ -57,11 +66,14 @@ export function ReceiptEditor({
   photoUrl,
   t,
   categories,
+  explainer,
 }: {
   receipt: Receipt;
   photoUrl: string | null;
   t: ReceiptCopy;
   categories: Record<string, string>;
+  /** IRC explainer, shown inline on phones (desktop shows it in the sidebar). */
+  explainer?: React.ReactNode;
 }) {
   const router = useRouter();
   const { busy, error, submit } = useFormSubmit();
@@ -136,56 +148,140 @@ export function ReceiptEditor({
     }
   }
 
-  const field = 'w-full rounded-md border border-border bg-surface px-3 py-2 text-base outline-none focus:border-primary';
-  const labelCls = 'text-xs font-medium text-muted';
+  const missing = new Set(receipt.substantiation_missing_fields ?? []);
+  const LABEL: Record<string, string> = {
+    business_purpose: t.businessPurpose,
+    attendees: t.attendees,
+    business_relationship: t.businessRelationship,
+    location_city: t.location,
+    business_miles: t.businessMiles,
+  };
+  const missingLabels = [...missing].map((k) => LABEL[k]).filter(Boolean);
+
+  // One labelled input. Fields the IRS rules still need glow amber and say so.
+  function Field({ k, label, wide, children }: { k: keyof typeof form; label: string; wide?: boolean; children?: React.ReactNode }) {
+    const need = missing.has(k);
+    const id = `f-${k}`;
+    return (
+      <div className={wide ? 'sm:col-span-2' : undefined}>
+        <label htmlFor={id} className="label flex items-center justify-between gap-2">
+          {label}
+          {need && <span className="chip chip-need h-5 px-2 text-[0.6875rem]">{t.needed}</span>}
+        </label>
+        {children ?? (
+          <input
+            id={id}
+            className={`field ${need ? 'field-needed' : ''}`}
+            value={form[k]}
+            onChange={(e) => set(k, e.target.value)}
+            inputMode={k === 'amount' ? 'decimal' : k === 'business_miles' ? 'numeric' : undefined}
+          />
+        )}
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-4">
-      {photoUrl && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={photoUrl} alt="Receipt" className="max-h-72 rounded-md border border-border object-contain" />
+    <div className="space-y-8">
+      {(missingLabels.length > 0 || (receipt.needs_receipt && !photoUrl)) && (
+        <div className="rounded-3xl bg-warning-50 px-5 py-4 text-warning-700">
+          <p className="text-sm font-semibold">{t.stillNeeds}</p>
+          <p className="mt-1 text-[0.9375rem]">
+            {[...(receipt.needs_receipt && !photoUrl ? [t.photo] : []), ...missingLabels].join(' · ')}
+          </p>
+        </div>
       )}
-      {!photoUrl && receipt.needs_receipt && (
-        <label className="flex cursor-pointer items-center justify-center rounded-md border border-dashed border-warning-600 bg-warning-50 px-4 py-6 text-sm text-warning-700">
-          <input type="file" accept="image/*,.pdf" className="hidden" onChange={upload} disabled={busy} />
+
+      {photoUrl ? (
+        <div className="sheet flex justify-center p-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={photoUrl} alt={t.photo} className="max-h-80 rounded-2xl object-contain" />
+        </div>
+      ) : receipt.needs_receipt ? (
+        <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-3xl border-2 border-dashed border-warning-500 bg-warning-50 px-4 py-8 text-center text-[0.9375rem] font-semibold text-warning-700 transition-colors hover:bg-[#ffedc4]">
+          <input type="file" accept="image/*,.pdf" className="sr-only" onChange={upload} disabled={busy} />
+          <Icon name="camera" size={28} />
           {t.uploadPrompt}
+        </label>
+      ) : (
+        <label className="btn btn-secondary btn-sm cursor-pointer">
+          <input type="file" accept="image/*,.pdf" className="sr-only" onChange={upload} disabled={busy} />
+          <Icon name="camera" size={16} />
+          {t.replacePhoto}
         </label>
       )}
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div><label className={labelCls}>{t.vendor}</label><input className={field} value={form.vendor} onChange={(e) => set('vendor', e.target.value)} /></div>
-        <div><label className={labelCls}>{t.amount}</label><input className={field} inputMode="decimal" value={form.amount} onChange={(e) => set('amount', e.target.value)} /></div>
-        <div><label className={labelCls}>{t.date}</label><input type="date" className={field} value={form.transaction_date} onChange={(e) => set('transaction_date', e.target.value)} /></div>
-        <div>
-          <label className={labelCls}>{t.category}</label>
-          <select className={field} value={form.category} onChange={(e) => set('category', e.target.value)}>
-            {Object.keys(CATEGORY_LABELS).map((k) => <option key={k} value={k}>{categories[k] ?? CATEGORY_LABELS[k]}</option>)}
-          </select>
+      <section>
+        <h2 className="text-lg font-bold tracking-[-0.02em]">{t.whyTitle}</h2>
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {Field({ k: 'business_purpose', label: t.businessPurpose, wide: true })}
+          {Field({ k: 'attendees', label: t.attendees })}
+          {Field({ k: 'business_relationship', label: t.businessRelationship })}
+          {Field({ k: 'location_city', label: t.location })}
+          {Field({ k: 'business_miles', label: t.businessMiles })}
+          {Field({
+            k: 'notes',
+            label: t.notes,
+            wide: true,
+            children: <textarea id="f-notes" className="field" rows={3} value={form.notes} onChange={(e) => set('notes', e.target.value)} />,
+          })}
         </div>
-        <div>
-          <label className={labelCls}>{t.paymentAccount}</label>
-          <select className={field} value={form.payment_account} onChange={(e) => set('payment_account', e.target.value)}>
-            <option value="business">{t.business}</option>
-            <option value="personal">{t.personal}</option>
-            <option value="unknown">{t.unknown}</option>
-          </select>
-        </div>
-        <div><label className={labelCls}>{t.businessMiles}</label><input className={field} inputMode="numeric" value={form.business_miles} onChange={(e) => set('business_miles', e.target.value)} /></div>
-        <div className="sm:col-span-2"><label className={labelCls}>{t.businessPurpose}</label><input className={field} value={form.business_purpose} onChange={(e) => set('business_purpose', e.target.value)} /></div>
-        <div><label className={labelCls}>{t.attendees}</label><input className={field} value={form.attendees} onChange={(e) => set('attendees', e.target.value)} /></div>
-        <div><label className={labelCls}>{t.businessRelationship}</label><input className={field} value={form.business_relationship} onChange={(e) => set('business_relationship', e.target.value)} /></div>
-        <div className="sm:col-span-2"><label className={labelCls}>{t.notes}</label><textarea className={field} rows={2} value={form.notes} onChange={(e) => set('notes', e.target.value)} /></div>
-      </div>
+      </section>
 
-      <label className="flex cursor-pointer items-center gap-2 rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground">
-        <input type="checkbox" checked={flagged} onChange={(e) => setFlagged(e.target.checked)} className="h-4 w-4 accent-accent" />
-        {t.flagForCpa}
+      <section>
+        <h2 className="text-lg font-bold tracking-[-0.02em]">{t.whatTitle}</h2>
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {Field({ k: 'vendor', label: t.vendor })}
+          {Field({ k: 'amount', label: t.amount })}
+          {Field({
+            k: 'transaction_date',
+            label: t.date,
+            children: <input id="f-transaction_date" type="date" className="field" value={form.transaction_date} onChange={(e) => set('transaction_date', e.target.value)} />,
+          })}
+          {Field({
+            k: 'category',
+            label: t.category,
+            children: (
+              <select id="f-category" className="field" value={form.category} onChange={(e) => set('category', e.target.value)}>
+                {Object.keys(CATEGORY_LABELS).map((k) => <option key={k} value={k}>{categories[k] ?? CATEGORY_LABELS[k]}</option>)}
+              </select>
+            ),
+          })}
+          {Field({
+            k: 'payment_account',
+            label: t.paymentAccount,
+            children: (
+              <select id="f-payment_account" className="field" value={form.payment_account} onChange={(e) => set('payment_account', e.target.value)}>
+                <option value="business">{t.business}</option>
+                <option value="personal">{t.personal}</option>
+                <option value="unknown">{t.unknown}</option>
+              </select>
+            ),
+          })}
+        </div>
+      </section>
+
+      <label className="flex cursor-pointer items-center gap-3 rounded-2xl bg-fill px-4 py-3.5 text-[0.9375rem] font-medium">
+        <Icon name="flag" size={18} className="text-muted" />
+        <span className="flex-1">{t.flagForCpa}</span>
+        <input type="checkbox" checked={flagged} onChange={(e) => setFlagged(e.target.checked)} className="size-5 accent-[var(--color-primary)]" />
       </label>
 
-      <div className="flex items-center justify-between">
-        <button onClick={save} disabled={busy} className="rounded-md bg-primary hover:bg-primary-hover px-4 py-2 text-white disabled:opacity-50">{t.save}</button>
-        {error ? <span className="text-sm text-error-600">{error}</span> : notice && <span className="text-sm text-muted">{notice}</span>}
-        <button onClick={remove} disabled={busy} className="text-sm text-error-600 hover:underline">{t.delete}</button>
+      {/* Save stays in reach on a phone: pinned above the tab bar while editing. */}
+      <div className="sticky bottom-[calc(5.25rem+env(safe-area-inset-bottom))] z-20 flex items-center gap-3 rounded-full bg-white/95 p-1.5 pl-1.5 shadow-[0_8px_32px_-8px_rgba(11,11,18,0.25)] ring-1 ring-border backdrop-blur sm:bottom-6">
+        <button onClick={save} disabled={busy} className="btn btn-primary px-8">{t.save}</button>
+        <span aria-live="polite" className={`min-w-0 flex-1 truncate text-sm ${error ? 'text-error-600' : 'text-muted'}`}>
+          {error ?? notice ?? ''}
+        </span>
+      </div>
+
+      {explainer}
+
+      <div className="border-t border-border pt-6">
+        <button onClick={remove} disabled={busy} className="btn btn-danger btn-sm">
+          <Icon name="trash" size={16} />
+          {t.delete}
+        </button>
       </div>
     </div>
   );

@@ -10,12 +10,23 @@ const FLAGS: Record<Locale, { flag: string; name: string }> = {
   es: { flag: '🇪🇸', name: 'Español' },
 };
 
-export function LocaleSwitcher({ current }: { current: Locale }) {
+export function LocaleSwitcher({ current, variant = 'flags' }: { current: Locale; variant?: 'flags' | 'text' }) {
   const router = useRouter();
   function set(l: Locale) {
     // eslint-disable-next-line react-hooks/immutability -- document.cookie is a browser API, not external state
     document.cookie = `locale=${l}; path=/; max-age=31536000; samesite=lax`;
     router.refresh();
+  }
+  if (variant === 'text') {
+    return (
+      <div className="seg" role="group" aria-label="Language">
+        {LOCALES.map((l) => (
+          <button key={l} onClick={() => set(l)} aria-pressed={current === l} aria-current={current === l ? 'page' : undefined} lang={l} title={FLAGS[l].name}>
+            {l.toUpperCase()}
+          </button>
+        ))}
+      </div>
+    );
   }
   return (
     <div className="flex items-center gap-0.5">
