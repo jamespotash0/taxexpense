@@ -13,6 +13,10 @@ _Last updated: 2026-11-19_
 
 ## Now working on
 
+- **iMessage extras (DEC-087).** Tapbacks, threaded follow-ups, edit-to-correct, failure logging,
+  confetti. Pending: run migrations 0032 + 0033, deploy, live-test on a phone. Contact card is
+  gated off (shared line can't); polls deferred until the vote payload is captured.
+
 - **Penny voice + renamable assistant (DEC-086).** Friend-voice copy everywhere, no em dashes
   (enforced in `sendMessage`), onboarding asks what to call the assistant (default Penny), and
   Linq shows Read + typing. Pending: run migration 0032 in Supabase before deploying.

@@ -27,6 +27,7 @@ export interface AppUser {
   onboarding_step: number;
   sms_consent_at: string | null;
   sms_opted_out_at: string | null;
+  linq_card_shared_at?: string | null; // Penny's contact card dropped into their chat (DEC-087)
 }
 
 /** Look up a user by E.164 phone. Returns null if not found. */

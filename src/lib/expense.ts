@@ -37,6 +37,8 @@ export interface ProcessResult {
   contextState: ContextState | null;
   /** Structured payload persisted with the outbound (e.g. flag-disambiguation candidate ids). */
   pendingData?: import('./conversations').PendingData | null;
+  /** iMessage screen effect for a milestone reply (Linq only, DEC-087). */
+  effect?: import('./linq').SendOptions['effect'];
 }
 
 // Below this OCR/parse confidence, the model wasn't sure it read the expense itself right (the

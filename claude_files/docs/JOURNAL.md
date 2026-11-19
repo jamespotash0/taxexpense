@@ -7,6 +7,38 @@ Format: date, decision, who pushed back, resolution, rationale.
 
 ---
 
+## 2026-11-19 — iMessage extras via Linq
+
+### DEC-087 — Tapbacks, threaded follow-ups, edit-to-correct, failure alerts, confetti; polls + groups deferred
+
+- **Context.** With Linq live, founder asked to use the iMessage features Twilio never had.
+- **Built (all best-effort, iMessage only; the plain text reply always carries the information, so
+  Android/SMS users lose nothing):**
+  - **Tapbacks.** Logged with nothing left to ask → ❤️ the receipt photo, 👍 a text expense.
+  - **Threaded follow-ups.** Any reply that asks something (contextState set) is sent as a reply to
+    the user's message, so it's clear which expense Penny means.
+  - **Edit to correct.** `receipts.source_message_id` remembers the message that created each
+    receipt; an iMessage edit of it (`message.edited`) runs the existing correction path and
+    replies in-thread ("Updated ✓ ...").
+  - **Failure alerts.** `message.failed` logs `linq_message_failed` (code/reason/service, no PII).
+  - **Confetti.** Onboarding complete, first subscription, and a clean year review.
+  - **Safety net.** If Linq rejects a message with extras (reply_to / effect), it is resent once as
+    plain text, so an extra can never cost the user a reply.
+- **Contact card: built but OFF.** Linq refuses contact cards on shared (free) lines (403 / 2005,
+  verified). Gated behind `LINQ_CONTACT_CARD=1`. On a dedicated line: create the card once
+  (`POST /v3/contact_card` with phone_number, first_name "Penny", image_url
+  https://tallywhy.com/icon-512.png), then set the flag. Skipped for users who renamed Penny.
+- **Deferred: polls** (for "which expense should I flag?"). Linq does not document the vote webhook
+  payload and it can't be tested from here; a guess would fail silently. Capture a real
+  `poll.vote.added` with `linq webhooks listen`, then build. **Deferred: group chats** with the
+  accountant (Linq paid plan; V3 accountant-portal territory).
+- **Webhook.** Subscription ddd0a860 now sends message.received, message.edited, message.failed.
+- **Migration 0033** (receipts.source_message_id, users.linq_card_shared_at) must run before deploy.
+- **Cost levers.** Per-segment cost work in messaging-cost-levers.md is moot while on Linq (flat
+  pricing); the conditional-disclaimer question is now purely a legal call.
+
+---
+
 ## 2026-11-19 — Penny: friend voice, a renamable assistant, iMessage typing
 
 ### DEC-086 — The texting assistant is "Penny" (renamable), talks like a friend, no em dashes

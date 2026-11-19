@@ -2,13 +2,15 @@
 // The Twilio webhook at /api/sms/inbound stays in place as the alternative provider.
 //
 // 1. Verify the Standard Webhooks signature over the RAW body (Jordan: non-negotiable).
-// 2. Parse message.received into an InboundMessage; ignore every other event type.
+// 2. Route by event: message.received → the normal handler; message.edited → correct the receipt
+//    that message created (DEC-087); message.failed → log it so a lost reply is visible.
+//    Everything else is acked and ignored.
 // 3. Ack 200 immediately and process in after(): Linq retries anything not acked within 10s,
 //    and OCR + Sonnet can take longer, which would otherwise log duplicate expenses.
 
 import { NextResponse, after } from 'next/server';
-import { verifyLinqSignature, parseLinqInbound, showReadAndTyping } from '@/lib/linq';
-import { handleInboundSms } from '@/lib/sms-handler';
+import { verifyLinqSignature, parseLinqInbound, parseLinqEdit, showReadAndTyping, type LinqEvent } from '@/lib/linq';
+import { handleInboundSms, handleInboundEdit } from '@/lib/sms-handler';
 import { optionalEnv } from '@/lib/env';
 import { log } from '@/lib/log';
 
@@ -37,14 +39,38 @@ export async function POST(req: Request): Promise<NextResponse> {
     return new NextResponse('Bad Request', { status: 400 });
   }
 
-  const parsed = event as Parameters<typeof parseLinqInbound>[0];
+  const parsed = event as LinqEvent;
+
+  if (parsed.event_type === 'message.failed') {
+    // A reply that never reached the user. No PII: ids + Linq's error code/reason only.
+    log.error('linq_message_failed', {
+      code: parsed.data?.code ?? null,
+      reason: parsed.data?.reason ?? null,
+      service: parsed.data?.service ?? null,
+      messageId: parsed.data?.message_id ?? null,
+    });
+    return new NextResponse('', { status: 200 });
+  }
+
+  const edit = parseLinqEdit(parsed);
+  if (edit) {
+    after(async () => {
+      try {
+        await showReadAndTyping(edit.chatId);
+        await handleInboundEdit(edit);
+      } catch (err) {
+        log.error('inbound_edit_uncaught', { message: err instanceof Error ? err.message : 'unknown' });
+      }
+    });
+    return new NextResponse('', { status: 200 });
+  }
+
   const msg = parseLinqInbound(parsed);
   if (msg) {
-    const chatId = parsed.data?.chat?.id;
     after(async () => {
       try {
         // "Read" + "..." while Penny thinks, like a friend about to reply.
-        if (chatId) await showReadAndTyping(chatId);
+        if (msg.linq) await showReadAndTyping(msg.linq.chatId);
         await handleInboundSms(msg);
       } catch (err) {
         log.error('inbound_handler_uncaught', {

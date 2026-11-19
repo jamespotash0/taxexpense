@@ -18,7 +18,9 @@ import { log } from './log';
 import { getSupabaseAdmin } from './supabase';
 import { listReceipts, updateReceipt, getReceipt, getLatestReceiptSince, countFlaggedReceipts, waiveAllFlaggedReceipts, type ReceiptRow } from './receipts';
 import { formatMoney, shortDate } from './format';
-import type { AppUser } from './users';
+import { updateUser, type AppUser } from './users';
+import { parseAgentName } from './onboarding';
+import { DEFAULT_AGENT_NAME } from './prompts';
 import { processCorrection, type ProcessResult } from './expense';
 import {
   aggregateExpenses,
@@ -207,8 +209,12 @@ const ADVICE_DEFLECTION =
   "I'm your record keeper, not a tax advisor! For what you'll owe or whether something's deductible, check with a CPA. " +
   'But I can tell you what you\'ve logged. Try "how much on meals this year?" or "review my year".';
 
+// Greeting / help, signed with whatever this user calls the assistant (DEC-086).
+const helpText = (user: AppUser) =>
+  `Hey, it's ${user.agent_name ?? DEFAULT_AGENT_NAME}! 👋 ` + HELP_TEXT;
+
 const HELP_TEXT =
-  'Hey! Text me any expense (a receipt photo or a note like "$30 gas to client site") and I\'ll log it. ' +
+  'Text me any expense (a receipt photo or a note like "$30 gas to client site") and I\'ll log it. ' +
   'You can also ask me stuff like "how much on meals this year?" or "review my year".';
 
 // Grounded facts the capability answerer may rely on — keep accurate to the actual product so the
@@ -273,7 +279,9 @@ async function runQuery(orgId: string, intent: Extract<Intent, { kind: 'query' }
     case 'review_year': {
       // Year review already carries its own /dashboard/cleanup link, so no extra pointer here.
       const review = await reviewYear(orgId, defaultReviewYear());
-      return reply(formatYearReview(review, `${appBase()}/dashboard/cleanup`));
+      const out = reply(formatYearReview(review, `${appBase()}/dashboard/cleanup`));
+      // A clean year with expenses in it earns a little confetti (DEC-087).
+      return review.count > 0 && review.issueCount === 0 ? { ...out, effect: 'confetti' } : out;
     }
     case 'aggregate':
     default: {
@@ -290,6 +298,34 @@ async function runQuery(orgId: string, intent: Extract<Intent, { kind: 'query' }
 // "Flag for my CPA" — the router's only mutation (low-risk boolean; DEC-038/039). Regex-gated,
 // no classifier. Targets by amount/vendor; asks "which one?" when ambiguous.
 const FLAG_CPA_RE = /\bflag\b|\bcpa\b/i;
+
+// Talking to the assistant about its name (DEC-086). Deterministic, no classifier call.
+const ASK_NAME_RE = /\b(what'?s|what is|whats)\s+(your|ur)\s+name\b|\bwho\s+(are|r)\s+(you|u)\b|\bwhat\s+(should|do)\s+i\s+call\s+(you|u)\b/i;
+const RENAME_RE =
+  /^\s*(?:can i |i'?ll |i will |let me |i'?m (?:gonna|going to) |i want to )?(?:call you|call u|rename you(?: to)?|change your name to|your name is(?: now)?)\s+(.+)$/i;
+
+/** Is this message asking the assistant's name, or renaming it? Pure + exported for tests. */
+export function matchAgentNameMessage(text: string): { kind: 'ask' } | { kind: 'rename'; name: string } | null {
+  const rename = RENAME_RE.exec(text);
+  if (rename) {
+    const name = parseAgentName(rename[1]);
+    if (/\p{L}/u.test(name)) return { kind: 'rename', name };
+  }
+  if (ASK_NAME_RE.test(text)) return { kind: 'ask' };
+  return null;
+}
+
+async function agentNameReply(user: AppUser, m: { kind: 'ask' } | { kind: 'rename'; name: string }): Promise<ProcessResult> {
+  if (m.kind === 'rename') {
+    await updateUser(user.id, { agent_name: m.name });
+    return reply(`${m.name} it is! 🎉 Love it. Now, got any expenses for me?`);
+  }
+  const name = user.agent_name ?? DEFAULT_AGENT_NAME;
+  return reply(
+    `I'm ${name}! 👋 I keep track of your business expenses (and the why behind them) so tax time is easy. ` +
+      `Want to call me something else? Just text "call you" and a name.`,
+  );
+}
 
 export interface FlagTarget {
   amountCents?: number;
@@ -434,6 +470,10 @@ export async function routeTextMessage(user: AppUser, text: string): Promise<Pro
   // "Flag for my CPA" → target by amount/vendor, ask to pick if ambiguous (no classifier).
   if (FLAG_CPA_RE.test(text)) return flagForCpa(user, text);
 
+  // "What's your name?" / "call you Max" → answer or rename, no classifier.
+  const nameMsg = matchAgentNameMessage(text);
+  if (nameMsg) return agentNameReply(user, nameMsg);
+
   // Reason WITH receipt context: a reply like "don't have it / skip these / I'll send it later" is
   // only meaningful given the user has outstanding flagged receipts (e.g. answering the weekly
   // reminder, which sets no live pending context). One cheap count feeds the existing classify call —
@@ -450,7 +490,7 @@ export async function routeTextMessage(user: AppUser, text: string): Promise<Pro
     case 'advice':
       return reply(ADVICE_DEFLECTION);
     case 'help':
-      return reply(HELP_TEXT);
+      return reply(helpText(user));
     case 'capability':
       return answerCapability(text);
     case 'context_statement':

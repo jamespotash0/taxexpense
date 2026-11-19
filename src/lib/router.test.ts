@@ -3,7 +3,7 @@
 // Run: npm run test
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { looksLikeExpenseCapture, sanitizeIntent, parseFlagTarget, bulkWaiveMessage } from './router';
+import { looksLikeExpenseCapture, sanitizeIntent, parseFlagTarget, bulkWaiveMessage, matchAgentNameMessage } from './router';
 
 test('fast-path: obvious captures skip the classifier', () => {
   assert.equal(looksLikeExpenseCapture('$48 lunch with Sarah re partnership'), true);
@@ -101,5 +101,18 @@ test('bulkWaiveMessage: pluralizes and never over-claims', () => {
     for (const bad of ['audit-ready', 'complete', 'guaranteed']) {
       assert.ok(!m.toLowerCase().includes(bad), `"${bad}" must not appear: ${m}`);
     }
+  }
+});
+
+test('matchAgentNameMessage: name questions and renames (DEC-086)', () => {
+  for (const ask of ['Whats your name', "what's your name?", 'What is your name', 'who are you', 'what should I call you?', 'whats ur name']) {
+    assert.deepEqual(matchAgentNameMessage(ask), { kind: 'ask' }, ask);
+  }
+  assert.deepEqual(matchAgentNameMessage('call you Max'), { kind: 'rename', name: 'Max' });
+  assert.deepEqual(matchAgentNameMessage("I'm gonna call you ziggy!"), { kind: 'rename', name: 'Ziggy' });
+  assert.deepEqual(matchAgentNameMessage('change your name to Bob'), { kind: 'rename', name: 'Bob' });
+  // Expenses and unrelated chatter never match.
+  for (const no of ['$40 lunch with Sam', 'what did I spend on meals?', 'hi', 'call my client about the invoice']) {
+    assert.equal(matchAgentNameMessage(no), null, no);
   }
 });

@@ -24,7 +24,7 @@ export interface WelcomeDeps {
 const realDeps: WelcomeDeps = {
   claim: claimSubscriptionWelcome,
   getOwner: getOrgOwnerContact,
-  send: (to, body) => sendMessage(to, body, 'sms'),
+  send: (to, body) => sendMessage(to, body, 'sms', { effect: 'confetti' }), // DEC-087
 };
 
 /**

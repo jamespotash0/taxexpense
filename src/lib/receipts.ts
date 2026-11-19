@@ -12,6 +12,7 @@ import { todayISO } from './format';
 
 export interface ReceiptRow {
   id: string;
+  source_message_id?: string | null; // Linq message that created it (DEC-087)
   organization_id: string;
   user_id: string;
   vendor: string | null;
@@ -92,6 +93,13 @@ export async function saveReceipt(args: {
 /** Fetch one receipt (org-scoped). */
 export async function getReceipt(orgId: string, receiptId: string): Promise<ReceiptRow | null> {
   const { data, error } = await orgTable('receipts', orgId).select().eq('id', receiptId).maybeSingle();
+  if (error) throw error;
+  return (data as ReceiptRow | null) ?? null;
+}
+
+/** The receipt a given Linq message created (org-scoped), for applying iMessage edits (DEC-087). */
+export async function getReceiptBySourceMessage(orgId: string, messageId: string): Promise<ReceiptRow | null> {
+  const { data, error } = await orgTable('receipts', orgId).select().eq('source_message_id', messageId).maybeSingle();
   if (error) throw error;
   return (data as ReceiptRow | null) ?? null;
 }

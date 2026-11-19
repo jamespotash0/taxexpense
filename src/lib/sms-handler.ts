@@ -3,7 +3,7 @@
 // This function owns the conversation flow and ALWAYS sends exactly one reply.
 
 import { normalizeToE164 } from './phone';
-import { getOrCreateUserByPhone, touchLastActive, updateUser, type AppUser } from './users';
+import { getOrCreateUserByPhone, getUserByPhone, touchLastActive, updateUser, type AppUser } from './users';
 import { notifyAdminNewSignup } from './admin-notify';
 import { logConversation, getPendingContext, countRecentInbound, getPendingFlagChoice, getPendingAmount, type ContextState, type PendingContext } from './conversations';
 import { getSubstantiationRule } from './substantiation';
@@ -23,7 +23,9 @@ import type { CategoryResult } from './categorize';
 import { ensureBusinessProfile } from './businessProfile';
 import { routeTextMessage, resolveFlagChoice, looksLikeExpenseCapture } from './router';
 import { subscribeUrl } from './subscribe-link';
-import { getReceipt, getLatestReceiptSince, waiveReceipt } from './receipts';
+import { getReceipt, getLatestReceiptSince, waiveReceipt, updateReceipt, getReceiptBySourceMessage } from './receipts';
+import { reactLinq, shareContactCard, type SendOptions } from './linq';
+import { DEFAULT_AGENT_NAME } from './prompts';
 import { todayISO } from './format';
 import {
   isAffirmative,
@@ -53,6 +55,8 @@ export interface InboundMessage {
   numMedia: number;
   mediaUrls: string[];
   channel: Channel;
+  /** Linq ids for this message (iMessage extras: reactions, threading, edits). Absent on Twilio. */
+  linq?: { messageId: string; chatId: string };
 }
 
 // Inbound rate limits (DEC-034/036): cap LLM-heavy processing per user to blunt cost/abuse.
@@ -782,14 +786,23 @@ export async function handleInboundSms(msg: InboundMessage): Promise<void> {
       const enriched = await ensureBusinessProfile(user);
       reply = await handleExpenseFlow(enriched, msg);
     } else {
-      reply = { smsText: await handleOnboarding(user, msg.body), receiptId: null, contextState: null };
+      const smsText = await handleOnboarding(user, msg.body);
+      // Finishing setup is a milestone: confetti (DEC-087). onboardingComplete() always opens this way.
+      const done = /^You're all set/.test(smsText);
+      reply = { smsText, receiptId: null, contextState: null, effect: done ? 'confetti' : undefined };
     }
   } catch (err) {
     log.error('sms_processing_failed', { user: user.id, message: errMsg(err) });
     reply = { smsText: MSG.failure, receiptId: null, contextState: null };
   }
 
-  await safeSend(phone, reply.smsText, msg.channel);
+  // Follow-up questions thread under the message they're about (DEC-087).
+  const opts: SendOptions = {
+    chatId: msg.linq?.chatId,
+    replyTo: reply.contextState ? msg.linq?.messageId : undefined,
+    effect: reply.effect,
+  };
+  await safeSend(phone, reply.smsText, msg.channel, opts);
   await logConversation({
     userId: user.id,
     organizationId: user.organization_id,
@@ -799,15 +812,85 @@ export async function handleInboundSms(msg: InboundMessage): Promise<void> {
     contextState: reply.contextState,
     pendingData: reply.pendingData,
   });
+  if (msg.linq) await afterLinqReply(user, msg, reply, msg.linq);
+}
+
+/**
+ * iMessage extras after a reply lands (DEC-087), all best-effort:
+ *  - Logged with nothing left to ask → tapback the user's message (❤️ a receipt photo, 👍 a text).
+ *  - Remember which message created the receipt, so an iMessage edit of it can correct it.
+ *  - Drop Penny's contact card into the chat once (skipped for users who renamed her, since the
+ *    card is set per line and would say "Penny").
+ */
+async function afterLinqReply(
+  user: AppUser,
+  msg: InboundMessage,
+  reply: ProcessResult,
+  linq: { messageId: string; chatId: string },
+): Promise<void> {
+  try {
+    if (reply.receiptId) {
+      await updateReceipt(user.organization_id, reply.receiptId, { source_message_id: linq.messageId });
+      if (!reply.contextState) await reactLinq(linq.messageId, msg.numMedia > 0 ? 'love' : 'like');
+    }
+    const keepsPenny = !user.agent_name || user.agent_name === DEFAULT_AGENT_NAME;
+    if (keepsPenny && !user.linq_card_shared_at && (await shareContactCard(linq.chatId))) {
+      await updateUser(user.id, { linq_card_shared_at: new Date().toISOString() });
+    }
+  } catch (err) {
+    log.warn('linq_extras_failed', { user: user.id, message: errMsg(err) });
+  }
+}
+
+/**
+ * The user edited one of their texts in iMessage (DEC-087), e.g. "$45 lunch" → "$54 lunch". If that
+ * message created a receipt, apply the new text as a correction (the same trusted edit path as a
+ * post-log correction) and reply in a thread under it. Edits of anything else are ignored.
+ */
+export async function handleInboundEdit(edit: { from: string; messageId: string; chatId: string; text: string }): Promise<void> {
+  const phone = normalizeToE164(edit.from);
+  const user = phone ? await getUserByPhone(phone) : null;
+  if (!phone || !user || user.sms_opted_out_at) return;
+  const receipt = await getReceiptBySourceMessage(user.organization_id, edit.messageId);
+  if (!receipt) return;
+
+  await logConversation({
+    userId: user.id,
+    organizationId: user.organization_id,
+    direction: 'inbound',
+    messageText: `[edited] ${edit.text}`,
+    receiptId: receipt.id,
+  });
+  let result: ProcessResult;
+  try {
+    result = await processCorrection(
+      user,
+      receipt.id,
+      `I edited my original message for this expense. It now reads: "${edit.text}"`,
+    );
+  } catch (err) {
+    log.error('inbound_edit_failed', { user: user.id, message: errMsg(err) });
+    return;
+  }
+  await safeSend(phone, result.smsText, 'sms', { chatId: edit.chatId, replyTo: edit.messageId });
+  await logConversation({
+    userId: user.id,
+    organizationId: user.organization_id,
+    direction: 'outbound',
+    messageText: result.smsText,
+    receiptId: result.receiptId,
+    contextState: result.contextState,
+    pendingData: result.pendingData,
+  });
 }
 
 function errMsg(err: unknown): string {
   return err instanceof Error ? err.message : 'unknown';
 }
 
-async function safeSend(to: string, body: string, channel: Channel): Promise<void> {
+async function safeSend(to: string, body: string, channel: Channel, opts: SendOptions = {}): Promise<void> {
   try {
-    await sendMessage(to, body, channel);
+    await sendMessage(to, body, channel, opts);
   } catch (err) {
     log.error('message_send_failed', { to: maskPhone(to), channel, message: errMsg(err) });
   }

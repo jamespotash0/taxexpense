@@ -5,7 +5,7 @@
 
 import twilio from 'twilio';
 import { requireEnv, optionalEnv, isLinq } from './env';
-import { sendLinq } from './linq';
+import { sendLinq, type SendOptions } from './linq';
 import { analyzeSegments, redactNonGsmForLog } from './sms-segments';
 import { log } from './log';
 
@@ -29,11 +29,16 @@ export function stripDashes(body: string): string {
  * `whatsapp:` address prefixes and a WhatsApp-enabled sender (TWILIO_WHATSAPP_FROM, e.g.
  * "whatsapp:+14155238886" — the Twilio sandbox number works for testing).
  */
-export async function sendMessage(to: string, rawBody: string, channel: Channel = 'sms'): Promise<string> {
+export async function sendMessage(
+  to: string,
+  rawBody: string,
+  channel: Channel = 'sms',
+  opts: SendOptions = {}, // iMessage extras; Linq only, Twilio ignores them
+): Promise<string> {
   const body = stripDashes(rawBody);
   // MESSAGING_PROVIDER=linq routes SMS through Linq (flat-rate, no segment billing, so no
   // segment logging). WhatsApp stays on Twilio. Every caller goes through here.
-  if (isLinq() && channel === 'sms') return sendLinq(to, body);
+  if (isLinq() && channel === 'sms') return sendLinq(to, body, opts);
 
   const from =
     channel === 'whatsapp'
