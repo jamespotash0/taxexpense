@@ -1,7 +1,6 @@
-// Dashboard (TSNAP-038/039/044). Two deliberately different layouts over the same data:
-//  - Phone: an app-style feed. To-do panel, the month, then activity grouped by month.
-//  - Desktop (lg+): a workspace. Sticky left rail (to-do, month, export) beside a ledger
-//    table of activity grouped by month.
+// Dashboard (TSNAP-038/039/044). One rail (month, to-do, export/review) + activity:
+//  - Phone: rail stacks above an app-style feed grouped by month.
+//  - Desktop (lg+): rail on the left beside a ledger table grouped by month.
 // Server Component.
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -122,14 +121,13 @@ export default async function DashboardPage({
     </div>
   ) : null;
 
-  // What still needs the user. `compact` = desktop rail size.
-  const todo = (compact: boolean) =>
+  // What still needs the user.
+  const todo =
     needCount > 0 ? (
-      <section className={`rounded-[28px] bg-primary text-white ${compact ? 'p-6' : 'px-6 py-7'}`}>
-        <h1 className={`font-bold leading-[1.15] tracking-[-0.03em] text-balance ${compact ? 'text-[1.5rem]' : 'text-[1.75rem]'}`}>
+      <section className={"rounded-[28px] bg-primary p-6 text-white"}>
+        <h1 className={"text-[1.5rem] font-bold leading-[1.15] tracking-[-0.03em] text-balance"}>
           {fmt(needCount === 1 ? d.todoOne : d.todoOther, { count: needCount })}
         </h1>
-        {!compact && <p className="mt-2 text-[0.9375rem] text-white/80">{d.todoBody}</p>}
         <div className="mt-5 flex items-center gap-3">
           <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/20" role="progressbar" aria-valuenow={completePct} aria-valuemin={0} aria-valuemax={100} aria-label={fmt(d.documentedPct, { pct: completePct })}>
             <div className="bar-fill h-full rounded-full bg-white" style={{ width: `${completePct}%` }} />
@@ -159,18 +157,18 @@ export default async function DashboardPage({
             )}
           </ul>
         )}
-        <Link href="/dashboard?filter=needs_attention" className={`btn btn-white mt-5 ${compact ? 'w-full' : ''}`}>
+        <Link href="/dashboard?filter=needs_attention" className={"btn btn-white mt-5 w-full"}>
           {d.todoCta}
           <Icon name="chevron" size={18} />
         </Link>
       </section>
     ) : (
-      <section className="flex items-start gap-4 rounded-[28px] bg-success-50 px-6 py-7">
+      <section className="flex items-start gap-4 rounded-[28px] bg-success-50 p-6">
         <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-success-500 text-white">
           <Icon name="check" size={26} />
         </span>
         <div>
-          <h1 className="text-[1.5rem] font-bold leading-tight tracking-[-0.03em] text-success-700">{d.allDoneTitle}</h1>
+          <h1 className="text-[1.25rem] font-bold leading-tight tracking-[-0.02em] text-success-700 text-balance">{d.allDoneTitle}</h1>
           <p className="mt-1 text-[0.9375rem] text-success-700/85">{d.allDoneBody}</p>
         </div>
       </section>
@@ -205,75 +203,68 @@ export default async function DashboardPage({
 
   const empty = <p className="mt-6 rounded-3xl bg-fill px-6 py-10 text-center text-[0.9375rem] text-muted">{d.noMatches}</p>;
 
-  // Top of the page on every size: this month's spend, with export + month-end review beside it.
-  // Rendered once (MonthEndReview holds draft state), so it is responsive rather than duplicated.
-  const topRow = (
-    <section className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-      <div>
+  // Left rail on desktop, top of the feed on phone: the month, what needs doing, and the
+  // tax-time actions. Rendered once (MonthEndReview holds draft state), so it's responsive.
+  const rail = (
+    <aside className="space-y-5">
+      {subscribed}
+      <section className="rounded-[28px] bg-fill px-6 py-6">
         <p className="text-sm font-semibold text-muted">{d.spent} · <span className="capitalize">{monthName}</span></p>
         <p className="display-amount mt-2">{formatMoney(summary.total_cents)}</p>
-        <div className="mt-4">{stats}</div>
-      </div>
+        <div className="mt-5">{stats}</div>
+      </section>
       {hasHistory && (
-        <div className="flex flex-wrap gap-2 lg:justify-end">
-          {exportLinks('btn btn-secondary btn-sm')}
-          <MonthEndReview hasAccountantEmail={!!user.accountant_email} />
-        </div>
+        <>
+          {todo}
+          {trial}
+          <div className="grid grid-cols-2 gap-2 [&_.btn]:w-full">
+            {exportLinks('btn btn-secondary btn-sm')}
+            <div className="col-span-2">
+              <MonthEndReview hasAccountantEmail={!!user.accountant_email} />
+            </div>
+          </div>
+        </>
       )}
-    </section>
+    </aside>
   );
 
   return (
     <AppShell nav={t.app.nav} active="home" showAgency={isAgencyStaff} width="max-w-3xl lg:max-w-7xl">
-      {subscribed && <div className="mb-6">{subscribed}</div>}
-      {topRow}
+      <div className="space-y-10 lg:grid lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-start lg:gap-12 lg:space-y-0">
+        {rail}
 
-      {!hasHistory ? (
-        // Brand-new account: one job, text the number.
-        <section className="mt-8 rounded-[28px] bg-primary px-6 py-8 text-white sm:px-8 sm:py-10">
-          <h1 className="max-w-xl text-[1.75rem] font-bold leading-[1.15] tracking-[-0.03em] text-balance sm:text-[2.25rem]">{emptyLine}</h1>
-        </section>
-      ) : (
-        <>
-          {/* ── Phone / tablet: app-style feed ─────────────────────────────────── */}
-          <div className="mt-8 space-y-4 lg:hidden">
-            {todo(false)}
-            {trial}
+        {!hasHistory ? (
+          // Brand-new account: one job, text the number.
+          <section className="rounded-[28px] bg-primary px-6 py-8 text-white sm:px-8 sm:py-10">
+            <h1 className="max-w-xl text-[1.75rem] font-bold leading-[1.15] tracking-[-0.03em] text-balance sm:text-[2.25rem]">{emptyLine}</h1>
+          </section>
+        ) : (
+          <section className="min-w-0">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+              <h2 className="text-xl font-bold tracking-[-0.02em] lg:text-[1.75rem] lg:tracking-[-0.03em]">{d.activity}</h2>
+              <div className="overflow-x-auto">{filters}</div>
+            </div>
 
-            <section className="pt-6">
-              <h2 className="text-xl font-bold tracking-[-0.02em]">{d.activity}</h2>
-              <div className="mt-3 overflow-x-auto">{filters}</div>
+            {rows.length === 0 ? empty : (
+              <>
+                {/* Phone / tablet: app-style feed */}
+                <div className="lg:hidden">
+                  {months.map((m) => (
+                    <section key={m.key} className="mt-6">
+                      {/* Sticky month header under the top bar while scrolling that month. */}
+                      <h3 className="sticky top-14 z-10 -mx-4 flex items-baseline justify-between bg-white/95 px-4 py-2 backdrop-blur sm:top-16">
+                        <span className="text-[0.9375rem] font-bold capitalize">{m.label}</span>
+                        <span className="num text-sm font-semibold text-muted">{formatMoney(m.total)}</span>
+                      </h3>
+                      <ul className="divide-y divide-border">
+                        {m.rows.map((r) => <li key={r.id}><ReceiptRow {...rowProps(r)} /></li>)}
+                      </ul>
+                    </section>
+                  ))}
+                </div>
 
-              {rows.length === 0 ? empty : months.map((m) => (
-                <section key={m.key} className="mt-6">
-                  {/* Sticky month header under the top bar while scrolling that month. */}
-                  <h3 className="sticky top-14 z-10 -mx-4 flex items-baseline justify-between bg-white/95 px-4 py-2 backdrop-blur">
-                    <span className="text-[0.9375rem] font-bold capitalize">{m.label}</span>
-                    <span className="num text-sm font-semibold text-muted">{formatMoney(m.total)}</span>
-                  </h3>
-                  <ul className="divide-y divide-border">
-                    {m.rows.map((r) => <li key={r.id}><ReceiptRow {...rowProps(r)} /></li>)}
-                  </ul>
-                </section>
-              ))}
-            </section>
-          </div>
-
-          {/* ── Desktop: sticky rail beside a month-by-month ledger ─────────────── */}
-          <div className="mt-10 hidden lg:grid lg:grid-cols-[22rem_minmax(0,1fr)] lg:gap-12">
-            <aside className="sticky top-24 space-y-5 self-start">
-              {todo(true)}
-              {trial}
-            </aside>
-
-            <section className="min-w-0">
-              <div className="flex items-center justify-between gap-4">
-                <h2 className="text-[1.75rem] font-bold tracking-[-0.03em]">{d.activity}</h2>
-                {filters}
-              </div>
-
-              {rows.length === 0 ? empty : (
-                <div className="mt-6">
+                {/* Desktop: month-by-month ledger */}
+                <div className="mt-6 hidden lg:block">
                   <div className="grid grid-cols-[4.5rem_minmax(0,1fr)_7.5rem_12rem_6.5rem] gap-4 border-b border-border px-3 pb-2 text-xs font-semibold text-muted">
                     <span>{t.app.receipt.date}</span>
                     <span>{t.app.receipt.vendor}</span>
@@ -295,11 +286,11 @@ export default async function DashboardPage({
                     </section>
                   ))}
                 </div>
-              )}
-            </section>
-          </div>
-        </>
-      )}
+              </>
+            )}
+          </section>
+        )}
+      </div>
     </AppShell>
   );
 }

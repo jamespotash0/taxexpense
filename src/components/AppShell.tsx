@@ -46,13 +46,13 @@ export function AppShell({
     <div className={`app ${geist.variable} flex min-h-screen flex-1 flex-col`}>
       <header className="sticky top-0 z-30 border-b border-border/70 bg-white/90 backdrop-blur-md">
         <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between px-4 sm:h-16 sm:px-6">
-          <Link href={wordmarkHref} className="flex items-center gap-2 rounded-xl text-[1.0625rem] font-bold tracking-tight">
-            <TallyMark size={28} />
-            Tally
-          </Link>
-          {nav && (
-            <nav className="flex items-center gap-1">
-              <div className="hidden items-center gap-1 sm:flex">
+          <div className="flex items-center gap-8">
+            <Link href={wordmarkHref} className="flex items-center gap-2 rounded-xl text-[1.0625rem] font-bold tracking-tight">
+              <TallyMark size={28} />
+              Tally
+            </Link>
+            {nav && (
+              <nav aria-label="Primary" className="hidden items-center gap-1 sm:flex">
                 {tabs.map((t) => (
                   <Link
                     key={t.key}
@@ -65,15 +65,17 @@ export function AppShell({
                     {t.label}
                   </Link>
                 ))}
-              </div>
-              <form action="/api/auth/logout" method="post" className="flex">
-                <button type="submit" className="flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold text-muted transition-colors hover:text-foreground">
-                  <Icon name="logout" size={18} />
-                  <span className="hidden sm:inline">{nav.logout}</span>
-                  <span className="sr-only sm:hidden">{nav.logout}</span>
-                </button>
-              </form>
-            </nav>
+              </nav>
+            )}
+          </div>
+          {nav && (
+            <form action="/api/auth/logout" method="post" className="flex">
+              <button type="submit" className="flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold text-muted transition-colors hover:text-foreground">
+                <Icon name="logout" size={18} />
+                <span className="hidden sm:inline">{nav.logout}</span>
+                <span className="sr-only sm:hidden">{nav.logout}</span>
+              </button>
+            </form>
           )}
         </div>
       </header>
