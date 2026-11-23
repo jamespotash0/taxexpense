@@ -15,7 +15,7 @@ export default async function LoginPage() {
   return (
     <main className="min-h-screen bg-[#fafafa] px-3 pb-10 pt-4 text-[#101210] sm:px-6">
       <div className="mx-auto flex h-[3.25rem] max-w-[80rem] items-center justify-between px-2">
-        <TallyWordmark />
+        <TallyWordmark back />
       </div>
 
       <div className="hero-wash mx-auto mt-3 flex min-h-[calc(100dvh-9rem)] max-w-[80rem] flex-col items-center justify-center rounded-[32px] px-4 py-12 sm:rounded-[40px]">

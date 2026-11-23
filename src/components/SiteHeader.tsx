@@ -2,9 +2,19 @@
 // Log in and the red Get started on the right. Links collapse to just the two buttons on phones.
 import Link from 'next/link';
 
-export function TallyWordmark() {
+// `back`: on inner pages the wordmark is the way home, so a back arrow slides in on hover/focus
+// (and is always shown on touch screens, which have no hover).
+export function TallyWordmark({ back = false }: { back?: boolean }) {
   return (
-    <Link href="/" className="flex items-center gap-2" aria-label="Tally home">
+    <Link href="/" className="group flex items-center gap-2" aria-label={back ? 'Back to Tally home' : 'Tally home'}>
+      {back && (
+        <span
+          aria-hidden
+          className="-mr-2 flex w-0 items-center overflow-hidden text-[#101210] opacity-0 transition-all duration-200 group-hover:mr-0 group-hover:w-5 group-hover:opacity-100 group-focus-visible:mr-0 group-focus-visible:w-5 group-focus-visible:opacity-100 pointer-coarse:mr-0 pointer-coarse:w-5 pointer-coarse:opacity-100"
+        >
+          <svg viewBox="0 0 16 16" className="h-5 w-5 shrink-0" fill="none"><path d="M10 3.5 5.5 8l4.5 4.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </span>
+      )}
       <span aria-hidden className="flex h-7 w-7 items-center justify-center rounded-[8px] bg-[#101210]">
         <svg viewBox="0 0 100 100" className="h-[60%] w-[60%]" fill="none" stroke="#fff" strokeLinecap="round">
           <path d="M18 18h64M50 18v66" strokeWidth="12" />

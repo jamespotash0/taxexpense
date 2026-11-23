@@ -28,7 +28,7 @@ export default async function StartPage() {
   return (
     <main className="min-h-screen bg-[#fafafa] px-3 pb-10 pt-4 text-[#101210] sm:px-6">
       <div className="mx-auto flex h-[3.25rem] max-w-[80rem] items-center px-2">
-        <TallyWordmark />
+        <TallyWordmark back />
       </div>
 
       <div className="hero-wash mx-auto mt-3 grid max-w-[80rem] items-center gap-12 overflow-hidden rounded-[32px] px-6 py-12 sm:rounded-[40px] sm:px-10 lg:grid-cols-[1.1fr_0.9fr] lg:px-14 lg:py-16">

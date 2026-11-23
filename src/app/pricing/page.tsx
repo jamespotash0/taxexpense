@@ -16,7 +16,7 @@ export default async function PricingPage() {
   return (
     <main className="min-h-screen bg-[#fafafa] px-3 pb-16 pt-4 text-[#101210] sm:px-6">
       <div className="mx-auto flex h-[3.25rem] max-w-[80rem] items-center justify-between gap-3 px-2">
-        <TallyWordmark />
+        <TallyWordmark back />
         <div className="flex items-center gap-3">
           <Link href="/login" className="rounded-full px-4 py-[0.55rem] text-[0.9rem] font-medium ring-1 ring-black/[0.12] hover:bg-black/[0.03]">
             {t.nav.login}
