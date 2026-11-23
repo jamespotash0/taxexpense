@@ -1,5 +1,5 @@
 // Landing page (EPIC-5) — localized (DEC-025), trendy skin, cinematic scroll-reveal.
-// Server Component: resolves locale + dictionary, reads the Tally number.
+// Server Component: resolves locale + dictionary.
 import Link from 'next/link';
 import Image from 'next/image';
 import { HeroVideo } from '@/components/HeroVideo';
@@ -14,28 +14,15 @@ import { LocaleSwitcher } from '@/components/LocaleSwitcher';
 import { SiteHeader } from '@/components/SiteHeader';
 import { LandingPricing } from '@/components/LandingPricing';
 import { HeroCopy } from '@/components/HeroCopy';
-import { TextNumberCta } from '@/components/TextNumberCta';
 import { TrackedLink } from '@/components/TrackedLink';
 import { TrafficSource } from '@/components/TrafficSource';
 import { TRIAL_DAYS } from '@/lib/pricing';
-import { formatUsPhone } from '@/lib/phone';
 import { type HeroVariant } from '@/lib/ab';
 import { getI18n } from '@/i18n/server';
 import { fmt } from '@/i18n/config';
-import { publicSmsNumber } from '@/lib/env';
 
 export default async function Home() {
   const { locale, t } = await getI18n();
-  // Texting the number IS the product entry (and the only way to test the beta), so it's the
-  // primary CTA. The text-first hero must show even before the real Twilio number is wired, so
-  // fall back to a placeholder (reserved 555-01xx fictional range) — the core "just text it"
-  // mechanic stays visible. A real env number always wins and makes the CTA a live sms: link
-  // with a prefilled "Hi Tally" draft; with the placeholder, the CTA routes to /start instead.
-  const liveNumber = publicSmsNumber() || '';
-  const number = liveNumber ? formatUsPhone(liveNumber) : '+1 (415) 555-0134';
-  const smsHref = liveNumber
-    ? `sms:${liveNumber.replace(/[^\d+]/g, '')}?&body=${encodeURIComponent('Hi Tally')}`
-    : '/start';
   // Copy A/B is paused (DEC-079): render the single champion for everyone — including browsers
   // still holding an old ab_hero=B/C cookie from earlier testing. Re-enable by reading the cookie.
   const heroVariant: HeroVariant = 'A';
@@ -74,9 +61,9 @@ export default async function Home() {
               b={t.hero.vb}
             />
 
-            {/* Primary + secondary CTA. One primary action (start the trial); texting the number is
-                offered as a lighter, tappable line beneath — same intent, no competing buttons.
-                Centered on mobile, left-aligned from lg: to match the two-column layout. */}
+            {/* One CTA: start the trial. The number is revealed on /start after the visitor registers
+                theirs (Linq's shared line drops unregistered texters, DEC-089). Centered on mobile,
+                left-aligned from lg: to match the two-column layout. */}
             <div className="reveal-3 mt-8 flex flex-col items-center gap-3 lg:items-start">
               {/* Button + "or text …" share one row (wraps on narrow screens). Button uses
                   rounded-full to match the nav pill's CTA. */}
@@ -89,19 +76,6 @@ export default async function Home() {
                 >
                   {t.nav.getStarted}
                 </TrackedLink>
-                <p className="text-sm text-gray-500">
-                  {t.hero.ctaOr}{' '}
-                  <TextNumberCta
-                    number={number}
-                    smsHref={smsHref!}
-                    variant={heroVariant}
-                    hideIcon
-                    inline
-                    label={number}
-                    copiedLabel={t.hero.copied}
-                    className="font-semibold text-accent underline-offset-4 hover:underline"
-                  />
-                </p>
               </div>
               {/* Trial reassurance — the "free / no card" lever stays as subordinate microcopy.
                   Reuses the pricing badge copy. */}
@@ -176,7 +150,7 @@ export default async function Home() {
           <div className="relative z-10 px-8 py-12 text-center">
             <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t.cta.heading}</h2>
             <p className="mx-auto mt-2 max-w-md text-sm text-gray-300">
-              {number ? fmt(t.cta.sub, { number }) : t.cta.subNoNumber}
+              {t.cta.sub}
             </p>
             <div className="mt-6 flex flex-col items-center justify-center gap-2.5">
               <Link
@@ -185,19 +159,6 @@ export default async function Home() {
               >
                 {t.nav.getStarted}
               </Link>
-              <p className="text-sm text-gray-400">
-                {t.hero.ctaOr}{' '}
-                <TextNumberCta
-                  number={number}
-                  smsHref={smsHref}
-                  hideIcon
-                  inline
-                  label={number}
-                  copiedLabel={t.hero.copied}
-                  experiment="footer-cta"
-                  className="font-semibold text-indigo-300 underline-offset-4 hover:text-white hover:underline"
-                />
-              </p>
             </div>
           </div>
 
