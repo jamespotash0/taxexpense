@@ -16,8 +16,12 @@ _Last updated: 2026-11-23_
 - **Linq auto-add on unknown recipient (DEC-089).** `sendLinq` adds a number to the shared line's
   contacts on a 403/2008 and retries once. On Linq, /start's "Text to start" asks for the phone
   number first (`StartTextButton` → `/api/hero-optin`, which registers instead of texting), then
-  opens Messages. Not yet eyeballed in a browser. Pending: founder sets `LINQ_ORG_ID` in Vercel (the
-  `orgId` from `~/.linq/config.json`), deploys, and tests from a phone that isn't on the list yet.
+  opens Messages. LIVE and confirmed 2026-11-23: `LINQ_ORG_ID` set in Vercel prod, a new phone
+  registered via /start and got Penny's reply. The live landing page no longer shows the number
+  (Get started only). Open: the old Twilio number still receives texts (`/api/sms/inbound`) but
+  replies go out from Linq, so those users see two threads; agency co-owner invites (`CoOwners`)
+  still show the number to people who haven't registered; a stale `linq webhooks listen` relay
+  subscription (17af0127) can be deleted.
 
 - **App UI redesign shipped to working tree (DEC-088).** New consumer-fintech app world
   (see DESIGN.md), month-grouped activity, separate desktop/phone dashboards. Pending:
