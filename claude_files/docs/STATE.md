@@ -7,11 +7,17 @@ overwritten in place so it always reflects the present, not the history.
 **Read this first at session start** to orient, then read JOURNAL.md or the specific
 ticket file when you need detail.
 
-_Last updated: 2026-11-19_
+_Last updated: 2026-11-23_
 
 ---
 
 ## Now working on
+
+- **Linq auto-add on unknown recipient (DEC-089).** `sendLinq` adds a number to the shared line's
+  contacts on a 403/2008 and retries once. On Linq, /start's "Text to start" asks for the phone
+  number first (`StartTextButton` → `/api/hero-optin`, which registers instead of texting), then
+  opens Messages. Not yet eyeballed in a browser. Pending: founder sets `LINQ_ORG_ID` in Vercel (the
+  `orgId` from `~/.linq/config.json`), deploys, and tests from a phone that isn't on the list yet.
 
 - **App UI redesign shipped to working tree (DEC-088).** New consumer-fintech app world
   (see DESIGN.md), month-grouped activity, separate desktop/phone dashboards. Pending:

@@ -8,7 +8,7 @@ import { LoginForm } from '@/components/LoginForm';
 import { LocaleSwitcher } from '@/components/LocaleSwitcher';
 import { getI18n } from '@/i18n/server';
 import { formatUsPhone } from '@/lib/phone';
-import { publicSmsNumber } from '@/lib/env';
+import { publicSmsNumber, isLinq } from '@/lib/env';
 
 export default async function LoginPage() {
   const { locale, t } = await getI18n();
@@ -16,7 +16,8 @@ export default async function LoginPage() {
   // without an account need a way out: home, and the number to text to get started.
   // Mirror the hero's live-number logic — a real Twilio number makes the CTA an sms:
   // link; otherwise route to /start (the placeholder number isn't textable).
-  const liveNumber = publicSmsNumber() || '';
+  // On Linq the number only works after registering on /start (DEC-089), so send them there.
+  const liveNumber = isLinq() ? '' : publicSmsNumber() || '';
   const number = liveNumber ? formatUsPhone(liveNumber) : '';
   const startHref = liveNumber
     ? `sms:${liveNumber.replace(/[^\d+]/g, '')}?&body=${encodeURIComponent('Hi Tally')}`

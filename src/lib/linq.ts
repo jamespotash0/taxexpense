@@ -43,6 +43,29 @@ async function postMessage(to: string, body: string, opts: SendOptions): Promise
 }
 
 /**
+ * Add a number to the shared line's contact list (Hobby tier, 20-contact cap). This is the endpoint
+ * `linq contacts add` calls; it is not in the public API docs, so it may change. Needs LINQ_ORG_ID
+ * (`orgId` in ~/.linq/config.json). Returns false (logged, no PII) instead of throwing.
+ */
+export async function addLinqContact(phone: string): Promise<boolean> {
+  const orgId = optionalEnv('LINQ_ORG_ID');
+  if (!orgId) {
+    log.warn('linq_contact_add_skipped', { reason: 'no_org_id' });
+    return false;
+  }
+  const res = await fetch('https://prod.zero-service.linqapp.com/cli/contacts/add', {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ orgId, contactPhone: phone }),
+  }).catch(() => null);
+  // 409 = already on the list, which is the state we wanted.
+  const ok = !!res && (res.ok || res.status === 409);
+  if (!ok) log.warn('linq_contact_add_failed', { status: res?.status ?? null });
+  else log.info('linq_contact_added', {});
+  return ok;
+}
+
+/**
  * Send a text. If Linq rejects the extras (reply_to on an inbound id and effects are documented
  * loosely), retry once as a plain text so the reply always lands. An opted-out recipient (they
  * texted STOP) is 403 / code 2024: not retried.
@@ -52,6 +75,11 @@ export async function sendLinq(to: string, body: string, opts: SendOptions = {})
   // Any rejection with extras attached (e.g. a feature the shared line doesn't support) → plain retry.
   if (!res.ok && (opts.replyTo || opts.effect)) {
     log.warn('linq_extras_rejected', { replyTo: !!opts.replyTo, effect: opts.effect ?? null });
+    res = await postMessage(to, body, { chatId: opts.chatId });
+  }
+  // Shared (Hobby) line: a number not yet on the contact list is 403 / code 2008. Add it, retry once.
+  // Still fails if they haven't texted us yet (shared lines are inbound-first).
+  if (!res.ok && res.status === 403 && /\b2008\b/.test(await res.text()) && (await addLinqContact(to))) {
     res = await postMessage(to, body, { chatId: opts.chatId });
   }
   if (!res.ok) throw new Error(`linq_send_failed_${res.status}`);

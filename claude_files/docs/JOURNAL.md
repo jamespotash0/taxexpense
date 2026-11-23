@@ -7,6 +7,36 @@ Format: date, decision, who pushed back, resolution, rationale.
 
 ---
 
+## 2026-11-23 — Linq shared line: add unknown numbers, then retry the send
+
+### DEC-089 — On a 2008 "recipient not allowed", sendLinq adds the contact and retries once
+
+- **Context.** On the free Hobby (shared) line, Linq only talks to numbers on the org's contact list
+  (`linq contacts add`, 20-contact cap). Sends to anyone else fail with 403 / code 2008, so a new
+  person never got a reply or a login code until the founder added them by hand.
+- **Decision.** `sendLinq` spots a 403 whose body carries 2008, calls `addLinqContact` (the same
+  `POST https://prod.zero-service.linqapp.com/cli/contacts/add` the CLI uses, with `orgId` from the
+  new `LINQ_ORG_ID` env var), then retries the send once. Other 403s (2024 opted out) are untouched.
+  No phone numbers in logs.
+- **Limits, stated plainly.**
+  - The endpoint is the CLI's backend, not the documented Partner API. It can change without notice.
+    Ask Linq support whether calling it from the app is OK.
+  - Shared lines are inbound-first: even once added, Linq may refuse our first message until the
+    person texts the line. Then the retry also fails and the caller sees `linq_send_failed_403` as
+    before. Texts from numbers NOT on the list appear never to reach our webhook at all, so there is
+    no inbound hook to "self-heal" from; this only fixes the outbound side.
+  - The 20-contact cap still applies. We deliberately do NOT remove old contacts to make room.
+- **Register before the first text.** Since unknown numbers never reach us, the fix has to happen on
+  the site: on Linq, /start's one button takes the visitor's number, `/api/hero-optin` adds it (409
+  "already a contact" counts as success; no welcome text, the line is inbound-first), then the page
+  opens Messages and reveals the number. On Twilio, /start is unchanged. On Linq the landing page's
+  "or text (number)" links are hidden and /login's "text (number)" falls back to /start, so every
+  public way in goes through registration. Someone given the number directly still hits silence.
+- **Rejected.** Auto-removing contacts to rotate under the cap (works around Linq's limit, cuts off
+  real users). The real fix past 20 is Twilio for the public number or Linq paid (~$260/mo).
+
+---
+
 ## 2026-11-19 — iMessage extras via Linq
 
 ### DEC-087 — Tapbacks, threaded follow-ups, edit-to-correct, failure alerts, confetti; polls + groups deferred

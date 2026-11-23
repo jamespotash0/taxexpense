@@ -7,7 +7,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { getI18n } from '@/i18n/server';
 import { formatUsPhone } from '@/lib/phone';
-import { publicSmsNumber } from '@/lib/env';
+import { publicSmsNumber, isLinq } from '@/lib/env';
+import { StartTextButton } from '@/components/StartTextButton';
 
 export const metadata = { title: 'Get started · Tally' };
 
@@ -32,15 +33,12 @@ export default async function StartPage() {
       <h1 className="mt-5 text-3xl font-semibold tracking-tight sm:text-4xl">{o.startTitle}</h1>
       <p className="mt-3 text-gray-500 sm:text-lg">{o.startSub}</p>
 
-      <p className="mt-8 text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">{number}</p>
-
-      <a
-        href={smsHref}
-        className="press mt-6 inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-7 py-3.5 text-base font-medium text-white shadow-lg shadow-accent/20 transition-colors hover:bg-accent-hover"
-      >
-        <span aria-hidden>💬</span>
-        {o.startText}
-      </a>
+      <StartTextButton
+        register={isLinq()}
+        number={number}
+        smsHref={smsHref}
+        t={{ text: o.startText, placeholder: o.startPhonePlaceholder, error: o.startPhoneError }}
+      />
 
       <p className="mt-4 text-xs text-gray-400">{o.startDesktopNote}</p>
       <p className="mt-1 text-xs text-gray-400">{o.startDisclaimer}</p>

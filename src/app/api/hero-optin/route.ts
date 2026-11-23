@@ -7,7 +7,8 @@ import { z } from 'zod';
 import { parseBody, jsonError, serverError } from '@/lib/api';
 import { normalizeToE164 } from '@/lib/phone';
 import { sendSms } from '@/lib/twilio';
-import { publicSmsNumber } from '@/lib/env';
+import { publicSmsNumber, isLinq } from '@/lib/env';
+import { addLinqContact } from '@/lib/linq';
 import { createRateLimiter, getClientIp } from '@/lib/rate-limit';
 import { log, maskPhone } from '@/lib/log';
 
@@ -44,6 +45,14 @@ export async function POST(req: Request): Promise<NextResponse> {
     'Msg & data rates may apply. Reply HELP for help, STOP to opt out.';
 
   try {
+    // Linq shared line (DEC-089): register the number so their first text reaches us. No welcome
+    // text: shared lines are inbound-first, so the page opens Messages and they text us instead.
+    if (isLinq()) {
+      // A failed add is logged inside addLinqContact; still let them through to Messages rather
+      // than blame their number for our config.
+      if (await addLinqContact(phone)) log.info('hero_optin_linq_registered', { phone: maskPhone(phone) });
+      return NextResponse.json({ ok: true });
+    }
     if (publicSmsNumber()) {
       await sendSms(phone, welcome);
       log.info('hero_optin_sent', { phone: maskPhone(phone) });

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
-import { verifyLinqSignature, parseLinqInbound, parseLinqEdit, sendLinq } from './linq';
+import { verifyLinqSignature, parseLinqInbound, parseLinqEdit, sendLinq, addLinqContact } from './linq';
 
 const keyBytes = Buffer.from('test-signing-key-bytes');
 process.env.LINQ_WEBHOOK_SECRET = `whsec_${keyBytes.toString('base64')}`;
@@ -88,6 +88,64 @@ test('sendLinq: extras rejected → retries once as plain text so the reply stil
     const retry = bodies[1].message as Record<string, unknown>;
     assert.equal(retry.reply_to, undefined);
     assert.equal(retry.effect, undefined);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
+test('sendLinq: unknown recipient (2008) → adds the contact, then retries the send once', async () => {
+  process.env.LINQ_API_KEY = 'test';
+  process.env.LINQ_ORG_ID = 'org-1';
+  const calls: { url: string; body: Record<string, unknown> }[] = [];
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = (async (url: string, init: RequestInit) => {
+    calls.push({ url, body: JSON.parse(String(init.body)) });
+    if (calls.length === 1)
+      return new Response(JSON.stringify({ error: { code: 2008, message: 'Recipient not allowed' } }), { status: 403 });
+    if (url.includes('/cli/contacts/add')) return new Response('{"contactPhone":"+14155551234"}', { status: 200 });
+    return new Response(JSON.stringify({ message: { id: 'out-2' } }), { status: 202 });
+  }) as typeof fetch;
+  try {
+    assert.equal(await sendLinq('+14155551234', 'hi'), 'out-2');
+    assert.equal(calls.length, 3);
+    assert.match(calls[1].url, /\/cli\/contacts\/add$/);
+    assert.deepEqual(calls[1].body, { orgId: 'org-1', contactPhone: '+14155551234' });
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
+test('sendLinq: other 403s (e.g. 2024 opted out) do not add a contact', async () => {
+  process.env.LINQ_API_KEY = 'test';
+  process.env.LINQ_ORG_ID = 'org-1';
+  const urls: string[] = [];
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = (async (url: string) => {
+    urls.push(url);
+    return new Response(JSON.stringify({ error: { code: 2024 } }), { status: 403 });
+  }) as typeof fetch;
+  try {
+    await assert.rejects(sendLinq('+14155551234', 'hi'), /linq_send_failed_403/);
+    assert.equal(urls.length, 1);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
+test('addLinqContact: already on the list (409) counts as success; no org id skips the call', async () => {
+  process.env.LINQ_API_KEY = 'test';
+  const realFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = (async () => {
+    calls++;
+    return new Response('{}', { status: 409 });
+  }) as typeof fetch;
+  try {
+    process.env.LINQ_ORG_ID = 'org-1';
+    assert.equal(await addLinqContact('+14155551234'), true);
+    delete process.env.LINQ_ORG_ID;
+    assert.equal(await addLinqContact('+14155551234'), false);
+    assert.equal(calls, 1);
   } finally {
     globalThis.fetch = realFetch;
   }
