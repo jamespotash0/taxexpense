@@ -200,6 +200,8 @@ const realDeps: OnboardingDeps = {
   insertLead,
 };
 
+const GREETING = /^(hi+|hey+|hello+|hiya|howdy|yo+|sup|hola|test(ing)?)[\s!.,?👋]*$/iu;
+
 /** A re-ask reply: acknowledge the off-base input, then re-render the SAME question. No advance. */
 function reAsk(kind: Exclude<OnboardingInputKind, 'answer'>, question: string, name: string): string {
   return `${ONBOARDING_REASK[kind]}\n\n${render(question, name)}`;
@@ -294,6 +296,10 @@ export async function handleOnboarding(
   // emoji/punctuation-only reply like "🤷" isn't a name, so re-ask instead of storing it.
   if ((current.key === 'full_name' || current.key === 'agent_name') && !/\p{L}/u.test(value ?? '')) {
     return reAsk('empty', current.prompt, firstName(user.full_name));
+  }
+  // "Hi" / "hey!" is a greeting, not a name (it was stored as one: "Nice to meet you, Hi!").
+  if ((current.key === 'full_name' || current.key === 'agent_name') && GREETING.test(messageText.trim())) {
+    return `Hey! 👋\n\n${render(current.prompt, firstName(user.full_name))}`;
   }
 
   // Persist to the right place: the org's name for the business-name question, else a user column.

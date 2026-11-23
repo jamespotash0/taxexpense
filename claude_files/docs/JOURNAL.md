@@ -7,6 +7,24 @@ Format: date, decision, who pushed back, resolution, rationale.
 
 ---
 
+## 2026-11-23 — Onboarding: greetings aren't names, bursts get one reply
+
+### DEC-091 — Answer only the newest message of an onboarding burst; re-ask on a greeting
+
+- **Context.** Three texts ("Hi", "Hi", "Hey") reached us within 140ms, apparently released together
+  by Linq once the number was registered. Each was handled in parallel at the same onboarding step,
+  so each got "Nice to meet you, Hi!" and "Hi" was stored as the user's name.
+- **Decision.** (1) At the name and assistant-name steps, a bare greeting (hi, hey, hello, yo,
+  test...) re-asks with "Hey! 👋" instead of being stored. (2) During onboarding only, each inbound
+  waits 1.5s, then replies only if it is the user's newest inbound (`isNewestInbound`, ties broken by
+  id so concurrent handlers agree). Earlier messages in the burst are skipped silently.
+- **Not done after onboarding**: two quick texts there can be two real expenses; dropping one would
+  lose data. If bursts cause trouble post-onboarding, coalesce rather than drop.
+- **No webhook-id dedupe yet.** These were three distinct messages, not Linq retries. The route acks
+  immediately, so retries should be rare; add a processed-id check if `linq` duplicate rows appear.
+
+---
+
 ## 2026-11-23 — Penny introduces herself once
 
 ### DEC-090 — Greetings after onboarding get a friendly reply, not the intro again

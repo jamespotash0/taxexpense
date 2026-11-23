@@ -44,8 +44,9 @@ export interface LogConversationParams {
   pendingData?: PendingData | null;
 }
 
-export async function logConversation(p: LogConversationParams): Promise<void> {
-  const { error } = await getSupabaseAdmin().from('conversations').insert({
+/** Returns the new row's id (null if logging failed). */
+export async function logConversation(p: LogConversationParams): Promise<string | null> {
+  const { data, error } = await getSupabaseAdmin().from('conversations').insert({
     user_id: p.userId,
     organization_id: p.organizationId,
     direction: p.direction,
@@ -54,9 +55,25 @@ export async function logConversation(p: LogConversationParams): Promise<void> {
     receipt_id: p.receiptId ?? null,
     context_state: p.contextState ?? null,
     pending_data: p.pendingData ?? null,
-  });
+  }).select('id').single();
   // Logging failures must not break the SMS flow — warn and continue.
   if (error) log.warn('log_conversation_failed', { direction: p.direction, user: p.userId });
+  return data?.id ?? null;
+}
+
+/** True if `id` is this user's newest inbound message (ties broken by id, so concurrent handlers
+ *  agree). Used to answer only the last of an onboarding burst. Fails open. */
+export async function isNewestInbound(userId: string, id: string): Promise<boolean> {
+  const { data, error } = await getSupabaseAdmin()
+    .from('conversations')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('direction', 'inbound')
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+    .limit(1);
+  if (error || !data?.length) return true;
+  return data[0].id === id;
 }
 
 /** Count a user's inbound messages since `sinceIso` — for inbound rate limiting (cost/abuse). */

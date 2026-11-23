@@ -5,7 +5,7 @@
 import { normalizeToE164 } from './phone';
 import { getOrCreateUserByPhone, getUserByPhone, touchLastActive, updateUser, type AppUser } from './users';
 import { notifyAdminNewSignup } from './admin-notify';
-import { logConversation, getPendingContext, countRecentInbound, getPendingFlagChoice, getPendingAmount, type ContextState, type PendingContext } from './conversations';
+import { logConversation, isNewestInbound, getPendingContext, countRecentInbound, getPendingFlagChoice, getPendingAmount, type ContextState, type PendingContext } from './conversations';
 import { getSubstantiationRule } from './substantiation';
 import { categoryLabel } from './categories';
 import { handleOnboarding } from './onboarding';
@@ -60,6 +60,8 @@ export interface InboundMessage {
 }
 
 // Inbound rate limits (DEC-034/036): cap LLM-heavy processing per user to blunt cost/abuse.
+// ponytail: fixed 1.5s window for onboarding bursts; widen if bursts arrive further apart.
+const ONBOARDING_BURST_MS = 1500;
 // A 10-min burst cap stops floods; a daily cap backstops sustained low-rate abuse. Generous
 // enough for a real burst of receipts.
 const INBOUND_WINDOW_MIN = 10;
@@ -695,7 +697,7 @@ export async function handleInboundSms(msg: InboundMessage): Promise<void> {
   // Log inbound + bump activity (best-effort). Two independent writes — run them together
   // so every reply (the deterministic onboarding path especially) pays one round trip, not
   // two (DEC-063).
-  await Promise.all([
+  const [inboundId] = await Promise.all([
     logConversation({
       userId: user.id,
       organizationId: user.organization_id,
@@ -786,6 +788,16 @@ export async function handleInboundSms(msg: InboundMessage): Promise<void> {
       const enriched = await ensureBusinessProfile(user);
       reply = await handleExpenseFlow(enriched, msg);
     } else {
+      // Setup asks one question at a time, so a burst of texts (e.g. three "hi"s Linq released at
+      // once) would each answer it and each get a reply. Wait a beat and answer only the newest.
+      // Not done after onboarding: two quick texts there can be two real expenses.
+      if (inboundId) {
+        await new Promise((r) => setTimeout(r, ONBOARDING_BURST_MS));
+        if (!(await isNewestInbound(user.id, inboundId))) {
+          log.info('onboarding_burst_skipped', { user: user.id });
+          return;
+        }
+      }
       const smsText = await handleOnboarding(user, msg.body);
       // Finishing setup is a milestone: confetti (DEC-087). onboardingComplete() always opens this way.
       const done = /^You're all set/.test(smsText);

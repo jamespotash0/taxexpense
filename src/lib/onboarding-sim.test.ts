@@ -139,3 +139,13 @@ test('classifyOnboardingInput: weird inputs are flagged (not "answer")', () => {
   assert.equal(classifyOnboardingInput('how much do I owe?'), 'question');
   assert.equal(classifyOnboardingInput('what is an LLC?'), 'question');
 });
+
+test('a greeting at the NAME step is not stored as a name; "Hey!" and re-ask', async () => {
+  const s = makeStore();
+  const turns = await converse(s, ['hi', 'Hi', 'hey!', 'Hello']);
+  assert.equal(s.user.full_name, null, 'a greeting must never become the user name');
+  assert.ok(!said(turns, /Nice to meet you, H/), 'never "Nice to meet you, Hi!"');
+  assert.match(last(turns).tally, /^Hey! 👋/);
+  await converse(s, ['Jane']);
+  assert.equal(s.user.full_name, 'Jane');
+});
