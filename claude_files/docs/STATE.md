@@ -18,10 +18,11 @@ _Last updated: 2026-11-23_
   number first (`StartTextButton` → `/api/hero-optin`, which registers instead of texting), then
   opens Messages. LIVE and confirmed 2026-11-23: `LINQ_ORG_ID` set in Vercel prod, a new phone
   registered via /start and got Penny's reply. The live landing page no longer shows the number
-  (Get started only). Open: the old Twilio number still receives texts (`/api/sms/inbound`) but
-  replies go out from Linq, so those users see two threads; agency co-owner invites (`CoOwners`)
-  still show the number to people who haven't registered; a stale `linq webhooks listen` relay
-  subscription (17af0127) can be deleted.
+  (Get started only). Co-owner invites and agency creators are registered on Linq when created,
+  and a text to the old Twilio number registers the sender and replies "I have a new number" from
+  Twilio. Not yet live-tested: invite a co-owner, then text from that phone; text the old Twilio
+  number from an unregistered phone. Open: a stale `linq webhooks listen` relay subscription
+  (17af0127) can be deleted.
 
 - **App UI redesign shipped to working tree (DEC-088).** New consumer-fintech app world
   (see DESIGN.md), month-grouped activity, separate desktop/phone dashboards. Pending:

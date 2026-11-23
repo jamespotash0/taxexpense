@@ -8,6 +8,8 @@ import { log } from './log';
 import { maskPhone } from './log';
 import { MAX_CO_OWNERS, TRIAL_DAYS } from './pricing';
 import type { BusinessProfile } from './businessProfile';
+import { isLinq } from './env';
+import { addLinqContact } from './linq';
 
 export interface AppUser {
   id: string;
@@ -227,6 +229,9 @@ export async function inviteToOrg(
 
   await admin.from('user_roles').insert({ user_id: user.id, organization_id: orgId, role: 'editor' });
   log.info('user_invited', { org: orgId, phone: maskPhone(phoneE164) });
+  // Linq's shared line drops texts from numbers not on its contact list (DEC-089); the invitee
+  // joins by texting us, so register them now.
+  if (isLinq()) await addLinqContact(phoneE164);
   return { ok: true };
 }
 

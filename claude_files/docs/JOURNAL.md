@@ -46,6 +46,15 @@ Format: date, decision, who pushed back, resolution, rationale.
   opens Messages and reveals the number. On Twilio, /start is unchanged. On Linq the landing page's
   "or text (number)" links are hidden and /login's "text (number)" falls back to /start, so every
   public way in goes through registration. Someone given the number directly still hits silence.
+- **Every pre-registered phone goes on the Linq list (follow-up, same day).** Co-owner invites
+  (`inviteToOrg`) and agency creators (`provisionCreatorOrg`) both create a user who then joins by
+  texting us, so on Linq both now call `addLinqContact`. Without it their first text was dropped.
+- **Old Twilio number while on Linq.** A text to the Twilio number (`/api/sms/inbound`) used to get
+  its reply from the Linq number, a second thread. Now, on Linq, that route registers the sender on
+  Linq, replies FROM Twilio with "Heads up, I have a new number! Save (Linq number)...", then handles
+  the message as usual (answer from Linq). `sendViaTwilio` sends through Twilio regardless of
+  MESSAGING_PROVIDER; `sendMessage` delegates to it. Verified live: Linq can text a number first
+  (…76 received Penny's reply without being on the list); only their texts INTO the line need the list.
 - **Rejected.** Auto-removing contacts to rotate under the cap (works around Linq's limit, cuts off
   real users). The real fix past 20 is Twilio for the public number or Linq paid (~$260/mo).
 

@@ -7,9 +7,11 @@
 // 4. Return empty 200 (we reply via the Twilio REST API, not TwiML).
 
 import { NextResponse } from 'next/server';
-import { validateTwilioSignature } from '@/lib/twilio';
+import { validateTwilioSignature, sendViaTwilio } from '@/lib/twilio';
+import { addLinqContact } from '@/lib/linq';
 import { handleInboundSms, type InboundMessage } from '@/lib/sms-handler';
-import { optionalEnv } from '@/lib/env';
+import { optionalEnv, isLinq, publicSmsNumber } from '@/lib/env';
+import { formatUsPhone } from '@/lib/phone';
 import { log } from '@/lib/log';
 
 // AI processing (OCR + Sonnet) can take several seconds; give the function headroom.
@@ -54,6 +56,19 @@ export async function POST(req: Request): Promise<NextResponse> {
     channel: isWhatsApp ? 'whatsapp' : 'sms',
   };
 
+  // We're on Linq but they texted the old Twilio number (DEC-089). Register them on Linq so their
+  // replies there get through, tell them (from the number they texted) where Penny lives now,
+  // then handle the message as usual; that answer comes from the Linq number.
+  const linqNumber = publicSmsNumber();
+  if (isLinq() && !isWhatsApp && linqNumber) {
+    try {
+      await addLinqContact(msg.from);
+      await sendViaTwilio(msg.from, movedMessage(formatUsPhone(linqNumber)));
+    } catch (err) {
+      log.warn('twilio_moved_notice_failed', { message: err instanceof Error ? err.message : 'unknown' });
+    }
+  }
+
   try {
     await handleInboundSms(msg);
   } catch (err) {
@@ -64,4 +79,8 @@ export async function POST(req: Request): Promise<NextResponse> {
   }
 
   return new NextResponse('', { status: 200 });
+}
+
+function movedMessage(number: string): string {
+  return `Heads up, I have a new number! Save ${number} and text me there from now on. I'll answer this one from it too.`;
 }

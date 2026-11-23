@@ -39,7 +39,15 @@ export async function sendMessage(
   // MESSAGING_PROVIDER=linq routes SMS through Linq (flat-rate, no segment billing, so no
   // segment logging). WhatsApp stays on Twilio. Every caller goes through here.
   if (isLinq() && channel === 'sms') return sendLinq(to, body, opts);
+  return sendViaTwilio(to, body, channel);
+}
 
+/**
+ * Send through Twilio regardless of MESSAGING_PROVIDER. Used directly only to answer on the old
+ * Twilio number while we're on Linq (DEC-089), so a reply comes from the number they texted.
+ */
+export async function sendViaTwilio(to: string, rawBody: string, channel: Channel = 'sms'): Promise<string> {
+  const body = stripDashes(rawBody);
   const from =
     channel === 'whatsapp'
       ? requireEnv('TWILIO_WHATSAPP_FROM') // already "whatsapp:+1..."

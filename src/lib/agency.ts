@@ -7,6 +7,8 @@
 // posture as users.ts. OWNER: raj (schema) + jordan (the authz boundary, next chunk).
 
 import { getSupabaseAdmin } from './supabase';
+import { isLinq } from './env';
+import { addLinqContact } from './linq';
 import { log, maskPhone } from './log';
 import { getUserByPhone, type AppUser } from './users';
 import { getMonthlySummary, type MonthlySummary } from './receipts';
@@ -94,6 +96,8 @@ export async function provisionCreatorOrg(
   await admin.from('user_roles').insert({ user_id: user.id, organization_id: org.id, role: 'owner' });
 
   log.info('creator_provisioned', { agency: agencyId, org: org.id, phone: maskPhone(phoneE164) });
+  // The creator's first text must reach us on Linq's shared line (DEC-089).
+  if (isLinq()) await addLinqContact(phoneE164);
   return { ok: true, organizationId: org.id, userId: user.id };
 }
 
