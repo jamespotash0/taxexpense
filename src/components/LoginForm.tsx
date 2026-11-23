@@ -6,6 +6,12 @@ import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useFormSubmit } from '@/lib/use-form-submit';
 
+// Landing-world controls (the page no longer sits inside the app shell's .app tokens).
+const field =
+  'w-full min-h-14 rounded-full bg-[#f4f4f2] px-5 text-lg text-[#101210] outline-none ring-1 ring-transparent transition placeholder:text-[#8a8d88] focus:bg-white focus:ring-2 focus:ring-[#d92d20]/40';
+const btn =
+  'min-h-14 w-full rounded-full bg-[#d92d20] text-base font-medium text-white transition-colors hover:bg-[#b8241a] disabled:opacity-50';
+
 interface LoginCopy {
   title: string;
   subtitle: string;
@@ -53,9 +59,9 @@ export function LoginForm({ t }: { t: LoginCopy }) {
   }
 
   return (
-    <div className="w-full max-w-sm">
-      <h1 className="text-[2rem] font-bold leading-tight tracking-[-0.03em]">{t.title}</h1>
-      <p className="mt-2 text-[0.9375rem] text-muted">{t.subtitle}</p>
+    <div className="w-full">
+      <h1 className="text-[2rem] font-medium leading-[1.1] tracking-[-0.035em]">{t.title}</h1>
+      <p className="mt-3 text-pretty text-[1rem] leading-[1.5] text-[#6f726d]">{t.subtitle}</p>
 
       {phase === 'phone' ? (
         <form onSubmit={requestCode} className="mt-8 space-y-3">
@@ -68,12 +74,12 @@ export function LoginForm({ t }: { t: LoginCopy }) {
             onChange={(e) => setPhone(e.target.value)}
             required
             aria-label={t.phonePlaceholder}
-            className="field min-h-14 text-lg"
+            className={field}
           />
           <button
             type="submit"
             disabled={busy}
-            className="btn btn-primary min-h-14 w-full text-base"
+            className={btn}
           >
             {busy ? t.sending : t.sendCode}
           </button>
@@ -90,26 +96,26 @@ export function LoginForm({ t }: { t: LoginCopy }) {
             onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
             required
             aria-label={t.codePlaceholder}
-            className="field num min-h-14 text-center text-2xl font-semibold tracking-[0.4em]"
+            className={`${field} text-center text-2xl font-semibold tabular-nums tracking-[0.4em]`}
           />
           <button
             type="submit"
             disabled={busy || code.length !== 6}
-            className="btn btn-primary min-h-14 w-full text-base"
+            className={btn}
           >
             {busy ? t.verifying : t.verify}
           </button>
           <button
             type="button"
             onClick={() => { setPhase('phone'); setCode(''); setError(null); }}
-            className="w-full py-2 text-sm font-semibold text-muted hover:text-foreground"
+            className="w-full py-2 text-[0.92rem] font-medium text-[#6f726d] hover:text-[#101210]"
           >
             {t.useDifferent}
           </button>
         </form>
       )}
 
-      {error && <p role="alert" className="mt-3 text-sm font-medium text-error-600">{error}</p>}
+      {error && <p role="alert" className="mt-3 text-[0.92rem] font-medium text-[#b8241a]">{error}</p>}
     </div>
   );
 }

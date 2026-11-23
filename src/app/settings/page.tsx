@@ -9,7 +9,6 @@ import { ManageBillingButton } from '@/components/ManageBillingButton';
 import { CoOwners } from '@/components/CoOwners';
 import { AppShell } from '@/components/AppShell';
 import { getUserAgencyIds } from '@/lib/agency';
-import { LocaleSwitcher } from '@/components/LocaleSwitcher';
 import { getOrgEntitlement } from '@/lib/subscription';
 import { getOrgMembers, getOrgOwnerId } from '@/lib/users';
 import { MAX_CO_OWNERS } from '@/lib/pricing';
@@ -31,7 +30,7 @@ export default async function SettingsPage() {
   const user = await getCurrentUser();
   if (!user) redirect('/login?returnTo=/settings');
 
-  const { locale, t } = await getI18n();
+  const { t } = await getI18n();
   const s = t.app.settings;
 
   const [{ data: org }, entitlement, members, ownerId, agencyIds] = await Promise.all([
@@ -57,7 +56,6 @@ export default async function SettingsPage() {
           <h1 className="text-[2rem] font-bold leading-tight tracking-[-0.03em]">{s.title}</h1>
           <p className="mt-1 text-[0.9375rem] text-muted">{fmt(s.loggedInAs, { phone: formatUsPhone(user.phone_number) })}</p>
         </div>
-        <LocaleSwitcher current={locale} variant="text" />
       </div>
       <div className="mt-8 pb-8">
         <SettingsForm

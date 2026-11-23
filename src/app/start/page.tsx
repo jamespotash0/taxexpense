@@ -3,12 +3,14 @@
 // computer where sms: dead-ends, tell them to text from their phone) and offer a login link for
 // returning users. The old multi-step web question funnel was removed — its answers never
 // reached the SMS flow (no phone to key on), so users got re-asked. See JOURNAL DEC-056.
+// Visual: same world as the landing (pastel-wash panel, iMessage thread, red pill CTA).
 import Link from 'next/link';
-import Image from 'next/image';
 import { getI18n } from '@/i18n/server';
 import { formatUsPhone } from '@/lib/phone';
 import { publicSmsNumber, isLinq } from '@/lib/env';
 import { StartTextButton } from '@/components/StartTextButton';
+import { TallyWordmark } from '@/components/SiteHeader';
+import { HeroThread } from '@/components/HeroThread';
 
 export const metadata = { title: 'Get started · Tally' };
 
@@ -20,32 +22,44 @@ export default async function StartPage() {
   const rawNumber = publicSmsNumber() || '+1 (415) 555-0134';
   const number = formatUsPhone(rawNumber);
   const smsHref = `sms:${rawNumber.replace(/[^\d+]/g, '')}?&body=${encodeURIComponent('Hi Tally')}`;
+  // Linq: the visitor enters their number first, so copy can't say "text this number" yet.
+  const register = isLinq();
 
   return (
-    <main className="relative mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-12 text-center">
-      <Link href="/" aria-label={o.backHome} className="absolute left-6 top-6 flex items-center gap-2">
-        <Image src="/brand/tally-logo.svg" alt="" width={28} height={28} className="rounded-md" priority />
-        <span className="text-lg font-semibold tracking-tight">Tally</span>
-      </Link>
-      <span className="mx-auto inline-flex items-center gap-2 rounded-full bg-accent-50 px-3 py-1 text-xs font-medium text-accent">
-        {o.startBadge}
-      </span>
-      <h1 className="mt-5 text-3xl font-semibold tracking-tight sm:text-4xl">{o.startTitle}</h1>
-      <p className="mt-3 text-gray-500 sm:text-lg">{o.startSub}</p>
+    <main className="min-h-screen bg-[#fafafa] px-3 pb-10 pt-4 text-[#101210] sm:px-6">
+      <div className="mx-auto flex h-[3.25rem] max-w-[80rem] items-center px-2">
+        <TallyWordmark />
+      </div>
 
-      <StartTextButton
-        register={isLinq()}
-        number={number}
-        smsHref={smsHref}
-        t={{ text: o.startText, placeholder: o.startPhonePlaceholder, error: o.startPhoneError }}
-      />
+      <div className="hero-wash mx-auto mt-3 grid max-w-[80rem] items-center gap-12 overflow-hidden rounded-[32px] px-6 py-12 sm:rounded-[40px] sm:px-10 lg:grid-cols-[1.1fr_0.9fr] lg:px-14 lg:py-16">
+        <div>
+          <span className="inline-flex rounded-full bg-white px-3.5 py-1.5 text-[0.85rem] font-medium text-[#d92d20] ring-1 ring-black/[0.06]">
+            {o.startBadge}
+          </span>
+          <h1 className="mt-6 text-balance text-[clamp(2.4rem,5vw,3.75rem)] font-medium leading-[1.05] tracking-[-0.04em]">{o.startTitle}</h1>
+          <p className="mt-5 max-w-[30rem] text-pretty text-[1.15rem] leading-[1.5] text-[#4a4d48]">{register ? o.startSubRegister : o.startSub}</p>
 
-      <p className="mt-4 text-xs text-gray-400">{o.startDesktopNote}</p>
-      <p className="mt-1 text-xs text-gray-400">{o.startDisclaimer}</p>
+          <StartTextButton
+            register={register}
+            number={number}
+            smsHref={smsHref}
+            t={{ text: o.startText, placeholder: o.startPhonePlaceholder, error: o.startPhoneError }}
+          />
 
-      <p className="mt-10 border-t border-border pt-6 text-sm text-gray-500">
+          <p className="mt-5 text-[0.88rem] text-[#6f726d]">{register ? o.startDesktopNoteRegister : o.startDesktopNote}</p>
+          <p className="mt-1 text-[0.88rem] text-[#6f726d]">{o.startDisclaimer}</p>
+        </div>
+
+        <div className="hidden sm:block">
+          <HeroThread />
+        </div>
+      </div>
+
+      <p className="mx-auto mt-8 max-w-[80rem] px-2 text-[0.95rem] text-[#6f726d]">
         {o.startHaveAccount}{' '}
-        <Link href="/login" className="font-medium text-accent hover:underline">{t.nav.login}</Link>
+        <Link href="/login" className="font-medium text-[#101210] underline decoration-black/20 underline-offset-4 hover:decoration-[#101210]">
+          {t.nav.login}
+        </Link>
       </p>
     </main>
   );

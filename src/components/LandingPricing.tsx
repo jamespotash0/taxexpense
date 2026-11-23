@@ -1,8 +1,8 @@
 'use client';
 
-// Landing pricing block (DEC-027): single card + Monthly/Yearly toggle, trial badge,
-// what's-included checklist. CTA enters the funnel (/start) — checkout happens later,
-// after the trial, on /pricing. Prices come from the shared PLANS config.
+// Landing pricing (DEC-027): one plan, one wide white card. Left: billing-period switch, price,
+// CTA. Right: what's included. CTA enters the funnel (/start); checkout happens after the trial
+// on /pricing. Prices come from the shared PLANS config.
 import { useState } from 'react';
 import Link from 'next/link';
 import { PLANS, type PlanId } from '@/lib/pricing';
@@ -27,10 +27,9 @@ export function LandingPricing({ t, trialDays, ctaLabel }: { t: Dict['pricing'];
         : t.billedWeekly;
 
   return (
-    <div className="mx-auto max-w-md">
-      {/* Billing-period toggle */}
-      <div className="mb-8 flex justify-center">
-        <div className="inline-flex rounded-full border border-gray-200 bg-white p-1 text-sm">
+    <div className="grid overflow-hidden rounded-[28px] bg-white ring-1 ring-black/[0.06] lg:grid-cols-2">
+      <div className="p-6 sm:p-10">
+        <div className="inline-flex rounded-full bg-[#f0f0ee] p-1" role="group" aria-label="Billing period">
           {tabs.map((tab) => {
             const active = selected === tab.id;
             return (
@@ -38,48 +37,41 @@ export function LandingPricing({ t, trialDays, ctaLabel }: { t: Dict['pricing'];
                 key={tab.id}
                 onClick={() => setSelected(tab.id)}
                 aria-pressed={active}
-                className={`flex items-center gap-2 rounded-full px-4 py-1.5 font-medium transition-colors ${active ? 'bg-primary text-white' : 'text-gray-600 hover:text-gray-900'}`}
+                className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-[0.9rem] font-medium transition-colors ${
+                  active ? 'bg-white text-[#101210] shadow-[0_1px_3px_rgba(16,18,16,0.12)]' : 'text-[#6f726d] hover:text-[#101210]'
+                }`}
               >
                 {tab.label}
-                {tab.id === 'annual' && (
-                  <span className={`rounded-full px-2 py-0.5 text-xs ${active ? 'bg-white/20 text-white' : 'bg-accent-50 text-accent'}`}>{t.save}</span>
-                )}
+                {tab.id === 'annual' && <span className="text-[0.75rem] font-semibold text-[#d92d20]">{t.save}</span>}
               </button>
             );
           })}
         </div>
-      </div>
 
-      {/* Plan card */}
-      <div className="lift relative rounded-2xl border border-accent bg-white p-7 text-center shadow-xl shadow-accent/10 ring-1 ring-accent">
-        <span className="inline-flex items-center gap-2 rounded-full bg-accent-50 px-3 py-1 text-xs font-medium text-accent">
-          {fmt(t.badge, { days: trialDays })}
-        </span>
-
-        <p className="mt-4 flex items-baseline justify-center gap-1">
-          <span className="text-5xl font-semibold tracking-tight">{formatMoney(plan.displayCents)}</span>
-          <span className="text-gray-500">{plan.unit === 'wk' ? t.perWk : t.perMo}</span>
+        <p className="mt-8 flex items-baseline gap-1.5">
+          <span className="text-[3.5rem] font-semibold leading-none tracking-[-0.04em] text-[#101210]">{formatMoney(plan.displayCents)}</span>
+          <span className="text-[1.05rem] text-[#6f726d]">{plan.unit === 'wk' ? t.perWk : t.perMo}</span>
         </p>
-        <p className="mt-1 text-sm text-gray-500">{billedLabel}</p>
+        <p className="mt-2 text-[0.95rem] text-[#6f726d]">{billedLabel}</p>
 
-        <Link
-          href="/start"
-          className="press mt-6 block rounded-xl bg-accent px-4 py-3 text-center text-sm font-medium text-white hover:bg-accent-hover"
-        >
+        <Link href="/start" className="mt-8 flex w-full items-center justify-center rounded-full bg-[#d92d20] py-3.5 text-[1rem] font-medium text-white transition-colors hover:bg-[#b8241a]">
           {ctaLabel}
         </Link>
-        <p className="mt-3 text-sm font-medium text-gray-600">{t.noCommit}</p>
+        <p className="mt-3 text-center text-[0.88rem] text-[#6f726d]">
+          {fmt(t.badge, { days: trialDays })} · {t.noCommit}
+        </p>
+      </div>
 
-        <ul className="mt-6 inline-block space-y-2.5 text-left text-sm text-gray-600">
+      <div className="border-t border-black/[0.06] bg-[#fafaf9] p-6 sm:p-10 lg:border-l lg:border-t-0">
+        <ul className="space-y-4">
           {t.included.map((f) => (
-            <li key={f} className="flex gap-2">
-              <span className="shrink-0 text-accent">✓</span>
+            <li key={f} className="flex gap-3 text-[1rem] text-[#101210]">
+              <svg viewBox="0 0 16 16" className="mt-1 h-4 w-4 shrink-0 text-[#d92d20]" fill="none" aria-hidden><path d="m3.5 8.5 3 3 6-7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
               {f}
             </li>
           ))}
         </ul>
-
-        <p className="mt-6 text-xs text-gray-400">{t.trust}</p>
+        <p className="mt-8 text-[0.85rem] text-[#6f726d]">{t.trust}</p>
       </div>
     </div>
   );

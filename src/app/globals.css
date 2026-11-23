@@ -28,7 +28,7 @@
   --color-primary-hover: #4843c4;  /* indigo 600 — hover/pressed */
   --color-primary-50: #efeefe;     /* indigo 50 — tinted bg + secondary buttons */
 
-  /* Accent aliases kept so existing landing utilities (hero-glow, bg-accent) resolve to indigo. */
+  /* Accent aliases kept so existing utilities (bg-accent) resolve to indigo. */
   --color-accent: #5b57e0;
   --color-accent-hover: #4843c4;
   --color-accent-50: #efeefe;
@@ -104,18 +104,7 @@ body {
   .animate-bubble-in, .typing-dot { animation: none !important; }
 }
 
-/* Trendy landing: subtle accent glow behind the hero + on-load reveal + card hover lift. */
-.hero-glow {
-  background:
-    radial-gradient(55% 50% at 50% -5%, color-mix(in srgb, var(--color-accent) 14%, transparent), transparent 70%),
-    radial-gradient(40% 40% at 85% 10%, color-mix(in srgb, var(--color-accent) 8%, transparent), transparent 70%);
-  /* Drifts slowly so the background feels alive rather than static. */
-  animation: glow-drift 16s ease-in-out infinite;
-}
-@keyframes glow-drift {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 1; }
-  50% { transform: translate3d(0, 14px, 0) scale(1.06); opacity: 0.82; }
-}
+/* On-load reveal (used by HeroTextMeForm). */
 @keyframes reveal-up {
   from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: none; }
@@ -123,18 +112,15 @@ body {
 .reveal { animation: reveal-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .reveal-2 { animation: reveal-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.08s both; }
 .reveal-3 { animation: reveal-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.16s both; }
-.lift { transition: transform 0.2s ease, box-shadow 0.2s ease; }
-.lift:hover { transform: translateY(-3px); box-shadow: 0 12px 32px -12px rgba(17, 24, 39, 0.18); }
 
-/* The hero squiggle draws itself in just after the headline reveals (pathLength=100). */
-@keyframes squiggle-draw {
-  from { stroke-dashoffset: 100; }
-  to { stroke-dashoffset: 0; }
-}
-.squiggle-draw {
-  stroke-dasharray: 100;
-  stroke-dashoffset: 100;
-  animation: squiggle-draw 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards;
+/* Landing hero + closing card: a very soft pastel wash (mint, periwinkle, blush, peach) over warm white. */
+.hero-wash {
+  background:
+    radial-gradient(55% 70% at 0% 0%, #e1f2ea 0%, rgb(225 242 234 / 0) 70%),
+    radial-gradient(50% 70% at 100% 0%, #d6defb 0%, rgb(214 222 251 / 0) 70%),
+    radial-gradient(50% 60% at 10% 100%, #f8e0e8 0%, rgb(248 224 232 / 0) 70%),
+    radial-gradient(50% 60% at 90% 100%, #fbefdc 0%, rgb(251 239 220 / 0) 70%),
+    #f5f5f3;
 }
 
 /* Primary CTAs lift on hover and press on click. Transition covers bg so color still eases. */
@@ -143,48 +129,8 @@ body {
 .press:active { transform: translateY(0) scale(0.98); }
 
 @media (prefers-reduced-motion: reduce) {
-  .reveal, .reveal-2, .reveal-3, .hero-glow, .squiggle-draw { animation: none !important; }
-  .lift:hover, .press:hover, .press:active { transform: none; }
-  .squiggle-draw { stroke-dashoffset: 0; }
-}
-
-/* ── Interactive video hero (HeroVideo) ──────────────────────────────────────
-   A cinematic "moment of spending" plays while the Tally SMS thread types in
-   over it — the WHAT and the WHY captured in one beat (glu/etail-style scrubber).
-   Until real clips land in /public/hero, each scene shows a warm gradient
-   backdrop with a slow Ken Burns drift so it reads as filmic, not broken. */
-.ken-burns {
-  /* Slow pan + zoom; each scene offsets the origin (via --kb-x/--kb-y) so the
-     three backdrops don't drift identically. */
-  animation: ken-burns 18s ease-in-out infinite alternate;
-  transform-origin: var(--kb-x, 50%) var(--kb-y, 50%);
-}
-@keyframes ken-burns {
-  from { transform: scale(1.04) translate3d(0, 0, 0); }
-  to   { transform: scale(1.16) translate3d(-1.5%, -1.5%, 0); }
-}
-
-/* Cinematic vignette + bottom-up scrim so overlaid text stays legible over
-   bright footage. */
-.scene-scrim {
-  background:
-    linear-gradient(to top, rgba(8, 10, 20, 0.74) 0%, rgba(8, 10, 20, 0.12) 44%, rgba(8, 10, 20, 0) 72%),
-    radial-gradient(120% 80% at 50% 35%, transparent 55%, rgba(8, 10, 20, 0.45) 100%);
-}
-
-/* Scenes crossfade — the leaving scene fades while the entering one rises in. */
-.scene-fade { transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1); }
-
-/* The SMS overlay panel rises in when a scene becomes active. */
-@keyframes panel-rise {
-  from { opacity: 0; transform: translateY(14px); }
-  to   { opacity: 1; transform: none; }
-}
-.panel-rise { animation: panel-rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
-
-@media (prefers-reduced-motion: reduce) {
-  .ken-burns, .panel-rise { animation: none !important; }
-  .scene-fade { transition: none !important; }
+  .reveal, .reveal-2, .reveal-3 { animation: none !important; }
+  .press:hover, .press:active { transform: none; }
 }
 
 /* ── App world (dashboard, receipts, cleanup, settings, login, agency, IRC, legal) ──

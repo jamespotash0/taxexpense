@@ -7,16 +7,16 @@ const en = {
   hero: {
     // Two-line headline (problem-framed champion, DEC-079). line1 puts the burden on the user
     // ("the why is on you"), line2's "why" is the accent/squiggle word.
-    line1pre: 'Banks track the ',
-    line1em: 'what',
+    line1pre: 'Track expenses with ',
+    line1em: 'confidence',
     line1post: '.',
-    line2pre: 'The ',
-    line2em: 'why',
-    line2post: ' is on you.',
+    line2pre: '',
+    line2em: '',
+    line2post: '',
     // Tight two-line subtitle: the "by April it's gone" forgetting-pain + "hold up" frames the
     // record, not a tax-outcome promise (Jordan, DEC-079).
     subtitle:
-      'By April, the why is gone. Text it the moment you spend, so the deductions you earned still hold up at tax time.',
+      'Text a receipt or a quick note when you spend. Tally checks it against IRS recordkeeping rules and asks for anything that’s missing.',
     tryEyebrow: 'Try it out',
     tryText: 'Text {number}',
     ctaOr: 'or text',
@@ -25,6 +25,8 @@ const en = {
     audienceChips: ['Freelancers', 'Contractors', 'Sole proprietors', 'Single-member LLCs'],
     copied: 'Copied. Text it from your phone 📱',
     disclaimer: 'Recordkeeping, not tax advice. Reply STOP to opt out.',
+    // Hero trust strip: honest product facts only (no logos or stats exist to show).
+    trust: ['Works in iMessage and SMS', 'No app to install', 'Cites the IRC section', 'Exports to QuickBooks'],
     // A/B variant B (experiment: hero-copy): conversational / first-person (Tally speaks).
     vb: {
       line1pre: 'Hey, I’m ',
@@ -47,74 +49,45 @@ const en = {
     errRate: 'Too many tries. Give it a minute.',
     errServer: 'Something went wrong. Please try again.',
   },
-  // "How it works": a 3-step marketing flow (Text → capture the why → done by tax time).
-  bento: {
-    eyebrow: 'More than an expense tracker',
-    heading: 'Tax time, organized by text.',
-    sub: 'No app to download, no spreadsheet, no shoebox. Text Tally as you spend, and walk into April already sorted.',
-    steps: [
-      {
-        title: 'Text it the second you spend',
-        body: 'Snap the receipt or fire off a note from the same Messages app you already use all day. Two seconds and it’s captured.',
-      },
-      {
-        title: 'Tally captures the why',
-        body: 'Each expense is filed under the right tax code, and a receipt is requested only when the IRS actually requires one. That locks in the context your bank never sees while it’s fresh: the difference between a deduction that holds up and one that gets disallowed.',
-      },
-      {
-        title: 'Walk into tax time ready',
-        body: 'Every expense documented the IRS way. Export a clean CSV, a QuickBooks-ready file, or email the whole year to your accountant, all in one tap.',
-      },
-    ],
-    chipComplete: '✓ $48 lunch · documentation complete',
-    chipSnap: '⚠ $340 dinner · snap a receipt',
-  },
-  // "The Missing Piece": the problem section (council DEC-028). Three receipts you can no
-  // longer explain; the cold what your bank keeps vs. the why it forgets. The shareable hook.
-  missingPiece: {
-    eyebrow: 'The missing piece',
-    heading: 'Remember why you bought these, three months ago?',
-    sub: 'Your bank keeps a perfect record of the what. The why is on you, and by April, it’s gone.',
-    receiptHint: 'why?',
-    receipts: [
-      { merchant: 'Blue Bottle', amount: '$11.20', label: 'Coffee' },
-      { merchant: 'Shell', amount: '$54.10', label: 'Gas' },
-      { merchant: 'Sweetgreen', amount: '$92.40', label: 'Lunch' },
-    ],
-    bankTitle: 'Your bank remembers',
-    bankItems: ['The date', 'The merchant', 'The amount'],
-    whyTitle: 'It forgets the part that counts',
-    whyItems: ['The client you met', 'The job site you drove to', 'The deal you closed'],
-    footnote: 'Tally captures the why the moment it happens, and cites the tax code behind it.',
-  },
-  // "Why Tally exists": the why has a short shelf life: capture-now vs. reconstruct-later (DEC-043).
-  whyTally: {
-    eyebrow: 'Why Tally',
-    heading: 'The why has a short shelf life.',
-    sub: 'Capture it in the moment and it’s solid. Reconstruct it in April and it’s a guess, the kind that gets a deduction tossed.',
-    oldLabel: 'The old way',
-    oldSteps: ['Purchase', 'Wait 3 months', 'Guess'],
-    newLabel: 'With Tally',
-    newSteps: ['Purchase', 'Text the why', 'Documented & IRS-cited'],
-  },
-  // "Tax season, two ways": the payoff: without vs. with (DEC-043).
-  taxSeason: {
-    eyebrow: 'The payoff',
-    heading: 'Tax season, two ways.',
-    withoutTitle: 'Without Tally',
-    withoutItems: ['A shoebox of receipts', 'A blank spreadsheet', 'Guessing what each charge was for', 'Hoping it holds up'],
-    withTitle: 'With Tally',
-    withItems: ['Every expense already logged', 'The why captured in the moment', 'Filed under the right IRC section', 'Documentation complete'],
-  },
-  // Honest "why we built it" line, NOT a fabricated testimonial (Jordan, DEC-043).
-  proof: {
-    eyebrow: 'Why we built it',
-    quote: 'The hard part was never saving the receipt. It was remembering why you spent the money.',
-    attribution: 'The problem Tally is built to solve.',
-  },
   // Landing FAQ, spec-accurate, compliance-checked (DEC-043).
+  // Use-case carousel: real moments, each with Tally's reply. Amounts/merchants are examples.
+  useCases: {
+    heading: 'Text it the moment you spend',
+    sub: 'Tally checks each expense against IRS recordkeeping rules and only asks when something is missing.',
+    lunch: { title: 'Client meals', me: 'Lunch w/ Sarah from Acme, $92.40', tally: 'Client meal, IRC §274(d). It’s over $75, so snap the receipt when you can.' },
+    rule: { title: 'The $75 rule', body: 'Under $75, your text is the written record. At $75 and up, Tally asks for the receipt.' },
+    gas: { title: 'Gas and mileage', me: 'Shell $54.10, drove to the Tahoe job site', tally: 'Logged as a car expense. Nothing else needed.' },
+    hotel: { title: 'Hotels and travel', trip: 'Denver install', dates: 'Mon to Wed', tally: 'Lodging needs a receipt at any amount. Send it at checkout.' },
+    coffee: { title: 'Coffee meetings', quote: 'Coffee w/ a referral partner', tally: 'Under $75, so your text is the record.' },
+    april: { title: 'Tax time', body: 'Every expense, the reason it counts, and its IRC section in one file.', files: ['expenses-2026.csv', 'QuickBooks import', 'Email to accountant'] },
+  },
+  // Who it's for: sole proprietors and single-member LLCs (both file Schedule C by default).
+  audience: {
+    heading: 'Built for sole props and single-member LLCs',
+    sub: 'You run the business yourself and file a Schedule C. Costs go on whatever card is in your wallet, and nobody keeps the books but you.',
+    points: [
+      { title: 'Mixed cards are fine', body: 'Business costs on personal and business cards. No bank linking needed.' },
+      { title: 'No bookkeeper required', body: 'No QuickBooks habit, no accountant on call. Just the phone in your pocket.' },
+      { title: 'Ready for Schedule C', body: 'Hand your preparer a clean file with every expense and why it counts.' },
+    ],
+    work: ['Freelancers', 'Contractors', 'Consultants', 'Creators', 'Coaches'],
+  },
+  features: {
+    heading: 'Features',
+    items: [
+      { title: 'Cites the tax code', body: 'Every expense shows the IRC section it typically falls under.' },
+      { title: 'Asks only when required', body: 'A receipt request only when IRS rules call for one.' },
+      { title: 'Your text is the record', body: 'Under $75, the message you sent is the written record.' },
+      { title: 'Receipt photos', body: 'Snap the receipt. It’s stored privately with the expense.' },
+      { title: 'Web dashboard', body: 'Review, fix categories, and add missing context.' },
+      { title: 'CSV and QuickBooks', body: 'Export a standard CSV or a QuickBooks-ready file.' },
+      { title: 'Email your accountant', body: 'Send the whole year in one tap.' },
+      { title: 'Month-end review', body: 'A quick pass each month to catch gaps early.' },
+      { title: 'You have the final say', body: 'Every suggestion is editable.' },
+    ],
+  },
   faq: {
-    heading: 'Frequently Asked Questions',
+    heading: 'FAQ',
     items: [
       { q: 'Do I need to connect my bank?', a: 'No. Tally works entirely by text, so you send expenses as they happen. No bank linking, no logins to hand over.' },
       { q: 'Does Tally replace QuickBooks?', a: 'No, it feeds it. Tally captures the why and exports a clean CSV or QuickBooks-ready file. Keep your books and your accountant; Tally fills the context gap.' },
@@ -124,7 +97,7 @@ const en = {
       { q: 'Is this tax advice?', a: 'No. Tally is recordkeeping, not advice. For your specific situation, consult a licensed tax professional.' },
     ],
   },
-  cta: { heading: 'Say hello to easy tax time.', sub: 'Snap a receipt or fire off a note. That’s your first expense, logged.', subNoNumber: 'Install Tally and send your first expense.' },
+  cta: { heading: 'Start with your next receipt.', sub: 'Snap a receipt or fire off a note. That’s your first expense, logged.', subNoNumber: 'Install Tally and send your first expense.' },
   footer: { tagline: 'Recordkeeping, not tax advice.', privacy: 'Privacy', terms: 'Terms' },
   install: { button: 'Install Tally', help: 'On iPhone: tap Share → “Add to Home Screen.” On Android: menu → “Install app.”', installed: 'Installed ✓ · find Tally on your home screen.' },
   onboarding: {
@@ -150,10 +123,13 @@ const en = {
     exitAria: 'Exit setup and return to the home page',
     startBadge: '21-day free trial · no card',
     startTitle: 'Send your first expense',
-    startText: 'Text to start 👋',
+    startText: 'Text to start',
     startDisclaimer: 'Recordkeeping, not tax advice. Reply STOP to opt out.',
     startSub: 'Text this number and Tally starts capturing the why behind every expense. No app to install.',
     startDesktopNote: 'On a computer? Text the number above from your phone to get started.',
+    // Linq shared line (DEC-089): the visitor registers their number first, so no number shows yet.
+    startSubRegister: 'Enter your mobile number and we’ll open a text to Tally. Send your first expense from there. No app to install.',
+    startDesktopNoteRegister: 'On a computer? Enter your number, then text the number shown from your phone.',
     startHaveAccount: 'Already set up?',
     startPhonePlaceholder: 'Your mobile number',
     startPhoneError: "That number didn't work. Check it and try again.",
@@ -163,7 +139,7 @@ const en = {
   pricing: {
     badge: '{days}-day free trial · no card',
     title: 'Less than a client lunch a month.',
-    subtitle: 'One plan, everything included. Keep capturing the why behind every expense, and walk into tax time already sorted.',
+    subtitle: 'One plan, everything included.',
     mostPopular: 'Most popular',
     planWeekly: 'Weekly',
     planMonthly: 'Monthly',
@@ -412,16 +388,16 @@ type Dict = typeof en;
 const es: Dict = {
   nav: { login: 'Iniciar sesión', getStarted: 'Empezar', howItWorks: 'Cómo funciona', pricing: 'Precios' },
   hero: {
-    line1pre: 'Los bancos registran el ',
-    line1em: 'qué',
+    line1pre: 'Controla tus gastos con ',
+    line1em: 'confianza',
     line1post: '.',
-    line2pre: 'El ',
-    line2em: 'porqué',
-    line2post: ' corre por tu cuenta.',
+    line2pre: '',
+    line2em: '',
+    line2post: '',
     // Mismo enfoque-problema que EN (DEC-079): "para abril ya se esfumó" + "se sostienen"
     // enmarca el registro, no una promesa de resultado fiscal.
     subtitle:
-      'Para abril, el porqué ya no está. Escríbelo al gastar y tus deducciones se sostienen en la temporada de impuestos.',
+      'Envía un recibo o una nota rápida al gastar. Tally lo revisa según las reglas de registro del IRS y te pide lo que falte.',
     tryEyebrow: 'Pruébalo',
     tryText: 'Escribe a {number}',
     ctaOr: 'o escribe a',
@@ -429,6 +405,7 @@ const es: Dict = {
     audienceChips: ['Freelancers', 'Contratistas', 'Propietarios únicos', 'LLC de un solo miembro'],
     copied: 'Copiado. Escríbenos desde tu teléfono 📱',
     disclaimer: 'Llevar registros, no asesoría fiscal. Responde STOP para darte de baja.',
+    trust: ['Funciona en iMessage y SMS', 'Sin app que instalar', 'Cita la sección del IRC', 'Exporta a QuickBooks'],
     // Variante B del A/B (experimento: hero-copy): conversacional / en primera persona (habla Tally).
     vb: {
       line1pre: 'Hola, soy ',
@@ -451,64 +428,39 @@ const es: Dict = {
     errRate: 'Demasiados intentos. Espera un minuto.',
     errServer: 'Algo salió mal. Inténtalo de nuevo.',
   },
-  bento: {
-    eyebrow: 'Más que un registro de gastos',
-    heading: 'La temporada de impuestos, organizada por texto.',
-    sub: 'Sin app que instalar, sin hoja de cálculo, sin caja de recibos. Escríbele a Tally al gastar y llega a abril ya listo.',
-    steps: [
-      {
-        title: 'Escríbelo al instante',
-        body: 'Toma una foto del recibo o manda una nota desde la misma app de Mensajes que ya usas todo el día. Dos segundos y queda capturado.',
-      },
-      {
-        title: 'Tally captura el porqué',
-        body: 'Cada gasto se archiva bajo el código fiscal correcto, y solo se pide recibo cuando el IRS realmente lo exige. Así el contexto que tu banco nunca ve queda guardado mientras está fresco: la diferencia entre una deducción que se sostiene y una que el IRS rechaza.',
-      },
-      {
-        title: 'Llega a la temporada de impuestos ya listo',
-        body: 'Cada gasto documentado como pide el IRS. Exporta un CSV limpio, un archivo listo para QuickBooks, o envía el año entero a tu contador, todo con un toque.',
-      },
+  useCases: {
+    heading: 'Escríbelo en el momento en que gastas',
+    sub: 'Tally revisa cada gasto según las reglas de registro del IRS y solo pregunta cuando falta algo.',
+    lunch: { title: 'Comidas con clientes', me: 'Almuerzo con Sarah de Acme, $92.40', tally: 'Comida con cliente, IRC §274(d). Pasa de $75, así que toma foto del recibo cuando puedas.' },
+    rule: { title: 'La regla de $75', body: 'Menos de $75, tu mensaje es el registro escrito. Desde $75, Tally te pide el recibo.' },
+    gas: { title: 'Gasolina y millaje', me: 'Shell $54.10, manejé a la obra en Tahoe', tally: 'Registrado como gasto de auto. No hace falta nada más.' },
+    hotel: { title: 'Hoteles y viajes', trip: 'Instalación en Denver', dates: 'Lun a Mié', tally: 'El alojamiento requiere recibo por cualquier monto. Envíalo al hacer checkout.' },
+    coffee: { title: 'Reuniones de café', quote: 'Café con un socio que refiere clientes', tally: 'Menos de $75, así que tu mensaje es el registro.' },
+    april: { title: 'Temporada de impuestos', body: 'Cada gasto, el motivo por el que cuenta y su sección del IRC en un archivo.', files: ['gastos-2026.csv', 'Importar a QuickBooks', 'Enviar a tu contador'] },
+  },
+  audience: {
+    heading: 'Hecho para dueños únicos y LLC de un solo miembro',
+    sub: 'Manejas el negocio tú mismo y declaras con el Schedule C. Los gastos van en la tarjeta que tengas a mano, y nadie lleva las cuentas más que tú.',
+    points: [
+      { title: 'Tarjetas mezcladas, sin problema', body: 'Gastos del negocio en tarjetas personales y de negocio. Sin conectar tu banco.' },
+      { title: 'Sin contador de planta', body: 'Sin el hábito de QuickBooks ni contador a la mano. Solo tu teléfono.' },
+      { title: 'Listo para el Schedule C', body: 'Entrega a quien prepara tus impuestos un archivo limpio con cada gasto y por qué cuenta.' },
     ],
-    chipComplete: '✓ Almuerzo $48 · documentación completa',
-    chipSnap: '⚠ Cena $340 · toma una foto del recibo',
+    work: ['Freelancers', 'Contratistas', 'Consultores', 'Creadores', 'Coaches'],
   },
-  missingPiece: {
-    eyebrow: 'La pieza que falta',
-    heading: '¿Recuerdas por qué compraste esto, hace tres meses?',
-    sub: 'Tu banco guarda un registro perfecto del qué. El porqué corre por tu cuenta, y para abril, ya se esfumó.',
-    receiptHint: '¿por qué?',
-    receipts: [
-      { merchant: 'Blue Bottle', amount: '$11.20', label: 'Café' },
-      { merchant: 'Shell', amount: '$54.10', label: 'Gasolina' },
-      { merchant: 'Sweetgreen', amount: '$92.40', label: 'Almuerzo' },
+  features: {
+    heading: 'Funciones',
+    items: [
+      { title: 'Cita el código fiscal', body: 'Cada gasto muestra la sección del IRC donde normalmente cae.' },
+      { title: 'Pregunta solo cuando hace falta', body: 'Pide recibo solo cuando las reglas del IRS lo exigen.' },
+      { title: 'Tu mensaje es el registro', body: 'Menos de $75, el mensaje que enviaste es el registro escrito.' },
+      { title: 'Fotos de recibos', body: 'Toma foto del recibo. Se guarda en privado con el gasto.' },
+      { title: 'Panel web', body: 'Revisa, corrige categorías y agrega el contexto que falte.' },
+      { title: 'CSV y QuickBooks', body: 'Exporta un CSV estándar o un archivo listo para QuickBooks.' },
+      { title: 'Envía a tu contador', body: 'Manda el año completo con un toque.' },
+      { title: 'Revisión de fin de mes', body: 'Un repaso rápido cada mes para detectar huecos a tiempo.' },
+      { title: 'Tú tienes la última palabra', body: 'Cada sugerencia se puede editar.' },
     ],
-    bankTitle: 'Tu banco recuerda',
-    bankItems: ['La fecha', 'El comercio', 'El monto'],
-    whyTitle: 'Olvida lo que de verdad cuenta',
-    whyItems: ['El cliente con quien te reuniste', 'La obra a la que manejaste', 'El trato que cerraste'],
-    footnote: 'Tally captura el porqué en el momento, y cita el código fiscal detrás.',
-  },
-  whyTally: {
-    eyebrow: 'Por qué Tally',
-    heading: 'El porqué dura poco.',
-    sub: 'Captúralo en el momento y queda firme. Reconstrúyelo en abril y es una adivinanza, del tipo que hace que el IRS rechace una deducción.',
-    oldLabel: 'A la antigua',
-    oldSteps: ['Compras', 'Esperas 3 meses', 'Adivinas'],
-    newLabel: 'Con Tally',
-    newSteps: ['Compras', 'Texteas el porqué', 'Documentado y citando al IRS'],
-  },
-  taxSeason: {
-    eyebrow: 'La recompensa',
-    heading: 'La temporada de impuestos, de dos maneras.',
-    withoutTitle: 'Sin Tally',
-    withoutItems: ['Una caja de recibos', 'Una hoja de cálculo en blanco', 'Adivinar para qué fue cada cargo', 'Esperar que se sostenga'],
-    withTitle: 'Con Tally',
-    withItems: ['Cada gasto ya registrado', 'El porqué capturado en el momento', 'Archivado bajo la sección del IRC correcta', 'Documentación completa'],
-  },
-  proof: {
-    eyebrow: 'Por qué lo creamos',
-    quote: 'Lo difícil nunca fue guardar el recibo. Fue recordar por qué gastaste el dinero.',
-    attribution: 'El problema que Tally resuelve.',
   },
   faq: {
     heading: 'Preguntas frecuentes',
@@ -521,7 +473,7 @@ const es: Dict = {
       { q: '¿Esto es asesoría fiscal?', a: 'No. Tally lleva registros, no da asesoría. Para tu situación específica, consulta a un profesional fiscal con licencia.' },
     ],
   },
-  cta: { heading: 'Dile hola a impuestos fáciles.', sub: 'Toma una foto del recibo o manda una nota. Ese es tu primer gasto, registrado.', subNoNumber: 'Instala Tally y envía tu primer gasto.' },
+  cta: { heading: 'Empieza con tu próximo recibo.', sub: 'Toma una foto del recibo o manda una nota. Ese es tu primer gasto, registrado.', subNoNumber: 'Instala Tally y envía tu primer gasto.' },
   footer: { tagline: 'Llevar registros, no asesoría fiscal.', privacy: 'Privacidad', terms: 'Términos' },
   install: { button: 'Instalar Tally', help: 'En iPhone: toca Compartir → “Agregar a inicio”. En Android: menú → “Instalar app”.', installed: 'Instalada ✓ · busca Tally en tu pantalla de inicio.' },
   onboarding: {
@@ -547,10 +499,12 @@ const es: Dict = {
     exitAria: 'Salir de la configuración y volver a la página principal',
     startBadge: '21 días gratis · sin tarjeta',
     startTitle: 'Envía tu primer gasto',
-    startText: 'Escribe para empezar 👋',
+    startText: 'Escribe para empezar',
     startDisclaimer: 'Llevar registros, no asesoría fiscal. Responde STOP para darte de baja.',
     startSub: 'Escribe a este número y Tally empieza a capturar el porqué de cada gasto. Sin instalar ninguna app.',
     startDesktopNote: '¿En una computadora? Escribe al número de arriba desde tu teléfono para empezar.',
+    startSubRegister: 'Ingresa tu número de celular y abriremos un mensaje a Tally. Envía tu primer gasto desde ahí. Sin instalar ninguna app.',
+    startDesktopNoteRegister: '¿En una computadora? Ingresa tu número y luego escribe desde tu teléfono al número que aparece.',
     startHaveAccount: '¿Ya tienes cuenta?',
     startPhonePlaceholder: 'Tu número de celular',
     startPhoneError: 'Ese número no funcionó. Revísalo e inténtalo de nuevo.',
@@ -560,7 +514,7 @@ const es: Dict = {
   pricing: {
     badge: '{days} días gratis · sin tarjeta',
     title: 'Menos que un almuerzo con cliente al mes.',
-    subtitle: 'Un plan, todo incluido. Sigue capturando el porqué de cada gasto, y llega a la temporada de impuestos ya listo.',
+    subtitle: 'Un plan, todo incluido.',
     mostPopular: 'Más popular',
     planWeekly: 'Semanal',
     planMonthly: 'Mensual',
