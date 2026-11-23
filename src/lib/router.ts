@@ -209,9 +209,16 @@ const ADVICE_DEFLECTION =
   "I'm your record keeper, not a tax advisor! For what you'll owe or whether something's deductible, check with a CPA. " +
   'But I can tell you what you\'ve logged. Try "how much on meals this year?" or "review my year".';
 
-// Greeting / help, signed with whatever this user calls the assistant (DEC-086).
-const helpText = (user: AppUser) =>
-  `Hey, it's ${user.agent_name ?? DEFAULT_AGENT_NAME}! 👋 ` + HELP_TEXT;
+// Greeting / help. Only onboarding introduces Penny by name; after that she just answers like a
+// friend: thanks gets "anytime", a real help question gets the how-to, anything else (hi, hey,
+// test) gets a short hello by first name.
+export function greetingReply(user: Pick<AppUser, 'full_name'>, text: string): string {
+  const t = text.toLowerCase();
+  if (/\b(thanks|thank you|thx|ty|appreciate)\b/.test(t)) return 'Anytime! 🙌';
+  if (/\b(help|what can you do|how does (this|it) work|how do i)\b/.test(t)) return HELP_TEXT;
+  const first = user.full_name?.trim().split(/\s+/)[0];
+  return `Hey${first ? ` ${first}` : ''}! 👋 What can I log for you?`;
+}
 
 const HELP_TEXT =
   'Text me any expense (a receipt photo or a note like "$30 gas to client site") and I\'ll log it. ' +
@@ -490,7 +497,7 @@ export async function routeTextMessage(user: AppUser, text: string): Promise<Pro
     case 'advice':
       return reply(ADVICE_DEFLECTION);
     case 'help':
-      return reply(helpText(user));
+      return reply(greetingReply(user, text));
     case 'capability':
       return answerCapability(text);
     case 'context_statement':

@@ -7,6 +7,20 @@ Format: date, decision, who pushed back, resolution, rationale.
 
 ---
 
+## 2026-11-23 — Penny introduces herself once
+
+### DEC-090 — Greetings after onboarding get a friendly reply, not the intro again
+
+- **Context.** Every "hi" / "test" / "thanks" (help intent) got "Hey, it's Penny! 👋 Text me any
+  expense...", so a returning user was re-introduced on every greeting. Founder: the intro belongs
+  in the first message only; after that Penny should sound like a friend.
+- **Decision.** `greetingReply` in router.ts: thanks → "Anytime! 🙌"; an actual help question ("help",
+  "what can you do", "how does this work") → the how-to without the name intro; anything else → "Hey
+  {first name}! 👋 What can I log for you?". First-contact messages (onboarding welcome, opt-in
+  confirmation, agency invite) still introduce Penny.
+
+---
+
 ## 2026-11-23 — Linq shared line: add unknown numbers, then retry the send
 
 ### DEC-089 — On a 2008 "recipient not allowed", sendLinq adds the contact and retries once

@@ -3,7 +3,7 @@
 // Run: npm run test
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { looksLikeExpenseCapture, sanitizeIntent, parseFlagTarget, bulkWaiveMessage, matchAgentNameMessage } from './router';
+import { looksLikeExpenseCapture, sanitizeIntent, parseFlagTarget, bulkWaiveMessage, matchAgentNameMessage, greetingReply } from './router';
 
 test('fast-path: obvious captures skip the classifier', () => {
   assert.equal(looksLikeExpenseCapture('$48 lunch with Sarah re partnership'), true);
@@ -115,4 +115,20 @@ test('matchAgentNameMessage: name questions and renames (DEC-086)', () => {
   for (const no of ['$40 lunch with Sam', 'what did I spend on meals?', 'hi', 'call my client about the invoice']) {
     assert.equal(matchAgentNameMessage(no), null, no);
   }
+});
+
+test('greetingReply: Penny introduces herself only at onboarding, then just talks like a friend', () => {
+  const james = { full_name: 'James Potash' };
+  for (const t of ['hi', 'Hey!', 'test', 'yo']) {
+    const r = greetingReply(james, t);
+    assert.equal(r, 'Hey James! 👋 What can I log for you?');
+    assert.doesNotMatch(r, /it's Penny/);
+  }
+  assert.equal(greetingReply({ full_name: null }, 'hello'), 'Hey! 👋 What can I log for you?');
+  assert.equal(greetingReply(james, 'thanks!'), 'Anytime! 🙌');
+  assert.equal(greetingReply(james, 'thank you so much'), 'Anytime! 🙌');
+  const help = greetingReply(james, 'what can you do?');
+  assert.match(help, /receipt photo/);
+  assert.doesNotMatch(help, /it's Penny/);
+  assert.match(greetingReply(james, 'help'), /receipt photo/);
 });
