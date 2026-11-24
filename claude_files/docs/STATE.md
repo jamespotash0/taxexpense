@@ -52,6 +52,9 @@ _Last updated: 2026-11-23_
 
 ## Recently shipped
 
+- **Late context matching** (DEC-094, 2026-11-24). A detail sent later lands on the right expense
+  (Haiku picks from the last 30 days) or Tally asks which one. No more silent "Got it!" drop.
+
 - **Haiku 5.5 switch** (DEC-093, 2026-11-24). `HAIKU_MODEL` env var, effort `low`. ~25% faster
   median Haiku calls; intent, merged and image (OCR) evals all held.
 

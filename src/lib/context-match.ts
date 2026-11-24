@@ -52,8 +52,10 @@ Return {"match": "<id>"} when exactly ONE expense plausibly fits the message.
 Return {"match": null, "shortlist": ["<id>", ...]} when two or more could fit (list them), or none fits (empty shortlist).
 
 Rules:
-- Match on what the message names: vendor, type of expense (hotel, dinner, flight, gas), amount, place, person, or trip.
+- Match on what the message names: vendor, type of expense (hotel, dinner, flight, gas), amount, place, or trip.
+- The people, purpose, or reason in the message are the NEW detail being added, so they won't appear in the list. "Lunch with Jen was about the pitch" matches the one meal expense; don't require Jen to be listed.
 - If two expenses could both fit (two hotels, two expenses from the same trip), return null with both in the shortlist. Never guess between them.
+- A trip or place ("the Austin trip one", "the Denver one") fits EVERY expense from that trip: the hotel, the flight (airport codes like AUS count), rides and meals logged around the same days. If more than one is listed, return null with all of them.
 - A bare reference with nothing else ("that one", "it", "that was personal") means the most recent expense ONLY if it was logged less than 2 hours ago. Otherwise return null.
 - Only use ids from the list. Never invent one.`;
 

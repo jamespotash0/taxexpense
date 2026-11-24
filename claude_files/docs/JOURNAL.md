@@ -2752,3 +2752,23 @@ under default-deny for V1; only add an anon read policy if rendering them client
   vs 642/672ms (5.5); 0 JSON failures either side. `eval:intent` 97% -> 100% (38/38);
   `eval:merged` 95% both (same miss). `eval:image` (photo/OCR) 6/6 category + 6/6 substantiation state on both models.
 - **Rollout.** Founder set `HAIKU_MODEL=claude-haiku-5-5` in Vercel.
+
+### DEC-094 — Late context finds the right expense, or asks which one (2026-11-24)
+
+- **Problem.** A detail sent after the fact ("that hotel was for the conference") was applied to the
+  *most recent* receipt within 2h (wrong expense if something was logged after), and after 2h got a
+  "Got it!" reply while the detail was silently dropped.
+- **Options.** (A) keyword/amount match in code: free but misses loose references. (B) Haiku picks
+  from the last 10 receipts in 30 days, or says "not sure". (C) always ask: violates "ask only when
+  required". **Founder chose B.**
+- **Decision.** `handleContextStatement` (router.ts): 1 candidate -> apply; else
+  `pickReceiptForContext` (context-match.ts). Match -> `processCorrection`, reply names the expense
+  so a wrong pick is visible. Not sure / any error -> "Which expense was that about?" numbered list,
+  new pending state `awaiting_context_choice` (no migration). A bare number resolves whichever list
+  (flag or context) was sent last. No expenses in 30 days -> honest reply, not "Got it!".
+- **Eval.** `npm run eval:context`, 8 cases incl. three must-ask (two hotels, stale "that one",
+  two expenses from one trip). 8/8 on Haiku 5.5 (repeated runs) and 4.5. Tuning found one real
+  hazard: teaching "people/purpose are the new detail" made "the Austin trip one" confidently pick
+  the hotel over the flight; fixed with an explicit trip rule.
+- **Post-V1 idea (not built).** Trip memory: "I'm in Austin this week" pre-fills business purpose on
+  later receipts from that trip.
