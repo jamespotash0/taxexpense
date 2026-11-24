@@ -53,7 +53,7 @@ _Last updated: 2026-11-23_
 ## Recently shipped
 
 - **Haiku 5.5 switch** (DEC-093, 2026-11-24). `HAIKU_MODEL` env var, effort `low`. ~25% faster
-  median Haiku calls, evals held. OCR path (`eval:image`) not yet checked on 5.5.
+  median Haiku calls; intent, merged and image (OCR) evals all held.
 
 - **Landing traffic-source capture** (DEC-084, 2026-06-16). We now count where a visit came from
   (utm_source/ref param or external referrer, e.g. Product Hunt). New `traffic_sources` table

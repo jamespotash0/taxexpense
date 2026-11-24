@@ -7,6 +7,34 @@ Format: date, decision, who pushed back, resolution, rationale.
 
 ---
 
+## 2026-11-24 — Landing: time saved + the rules, a typing phone, sourced costs
+
+### DEC-092 — Landing restructured around "real time, not spreadsheets" and "the IRS rules, checked"
+
+- **Structure.** Hero ("Text it the moment you spend.") → time saved ("Out of the spreadsheet. Into
+  real time.", the feature cards) → compliance ("The IRS rules, checked as you go." beside "What a
+  missing record costs") → pricing | FAQ in two columns → closing CTA. The "who it's for" section and
+  the stock-photo use-case carousel are gone (founder: photos were off-putting).
+- **Hero phone.** A full iPhone in Messages; the note types letter by letter in the compose bar, then
+  sends; Penny replies. Reduced motion / no JS show the finished thread.
+- **Nav + mark.** Pill nav that tightens on scroll; announcement badge above it. New mark: four tally
+  strokes crossed by one red slash (the WHY red). Favicon not yet swapped.
+- **Costs rows are sourced facts only:** $0 (no record, no deduction for §274(d) items; Treas. Reg.
+  §1.274-5T, Boyd v. Commissioner), 20% (IRC §6662 negligence penalty; Treas. Reg. §1.6662-3 counts
+  failing to keep adequate records), 3 years (IRS Pub 583). Rejected: the widely repeated "freelancers
+  miss $3-5k in deductions" (no traceable survey) and GAO's $80B sole-prop underreporting (true, but
+  frames the user as a cheater). These are legal claims on a marketing page: include in the pending
+  lawyer review.
+- **Wording.** "Compliant" avoided like "audit-ready" (outcome promise). Time saved is shown, not
+  claimed: no hours-saved numbers exist.
+- **Audience copy widened to "small LLCs"** (founder ask). Open: V1 scope in CLAUDE.md/PRODUCT.md is
+  still sole props + single-member LLCs; a multi-member LLC files Form 1065, not a Schedule C. Treat
+  as marketing reach until the product scope is decided.
+- **Libraries.** Considered ButterUI (rejected by founder), Magic UI patterns (number ticker, blur
+  fade, typing, iPhone frame) built in-house on the existing framer-motion; no new dependency.
+
+---
+
 ## 2026-11-23 — Onboarding: greetings aren't names, bursts get one reply
 
 ### DEC-091 — Answer only the newest message of an onboarding burst; re-ask on a greeting
@@ -2722,5 +2750,5 @@ under default-deny for V1; only add an anon read policy if rendering them client
   `max_tokens` and a truncated JSON reply would retry, then fall back to `capture`.
 - **Measured (same run, interleaved, 12 calls/model, two runs).** Median latency 945/848ms (4.5)
   vs 642/672ms (5.5); 0 JSON failures either side. `eval:intent` 97% -> 100% (38/38);
-  `eval:merged` 95% both (same miss). `eval:image` (photo/OCR) not run yet.
+  `eval:merged` 95% both (same miss). `eval:image` (photo/OCR) 6/6 category + 6/6 substantiation state on both models.
 - **Rollout.** Founder set `HAIKU_MODEL=claude-haiku-5-5` in Vercel.

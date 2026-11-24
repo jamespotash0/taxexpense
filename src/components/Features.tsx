@@ -78,7 +78,8 @@ const VIGNETTES: React.ReactNode[] = [
 export function Features({ t }: { t: Dict['features'] }) {
   return (
     <div className="mx-auto max-w-[80rem]">
-      <h2 className="text-[clamp(2.1rem,4.4vw,2.9rem)] font-semibold leading-[1.1] tracking-[-0.03em] text-[#101210]">{t.heading}</h2>
+      <h2 className="text-balance text-[clamp(2.1rem,4.4vw,2.9rem)] font-semibold leading-[1.1] tracking-[-0.03em] text-[#101210]">{t.heading}</h2>
+      <p className="mt-4 max-w-[38rem] text-pretty text-[1.1rem] leading-[1.55] text-[#4a4d48]">{t.sub}</p>
       <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {t.items.map((f, i) => (
           <li key={f.title} className="rounded-[28px] bg-[#ececea] p-2">

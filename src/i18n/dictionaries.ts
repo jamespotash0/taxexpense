@@ -4,12 +4,41 @@ import type { Locale } from './config';
 
 const en = {
   nav: { login: 'Log in', getStarted: 'Get started', howItWorks: 'How it works', pricing: 'Pricing' },
+  announce: 'For sole proprietors, single-member and small LLCs',
+  announceShort: 'For sole proprietors and small LLCs',
+  // "What a missing record costs" (sourced facts only, no marketing stats; see JOURNAL).
+  features: {
+    heading: 'Out of the spreadsheet. Into real time.',
+    sub: 'No more saving receipts for a spreadsheet and waiting months to sort them. Tally logs each expense the moment you text it, so your records are current every day.',
+    items: [
+      { title: 'Cites the tax code', body: 'Every expense shows the IRC section it typically falls under.' },
+      { title: 'Asks only when required', body: 'A receipt request only when IRS rules call for one.' },
+      { title: 'Your text is the record', body: 'Under $75, the message you sent is the written record.' },
+      { title: 'Receipt photos', body: 'Snap the receipt. It’s stored privately with the expense.' },
+      { title: 'Web dashboard', body: 'Review, fix categories, and add missing context.' },
+      { title: 'CSV and QuickBooks', body: 'Export a standard CSV or a QuickBooks-ready file.' },
+      { title: 'Email your accountant', body: 'Send the whole year in one tap.' },
+      { title: 'Month-end review', body: 'A quick pass each month to catch gaps early.' },
+      { title: 'You have the final say', body: 'Every suggestion is editable.' },
+    ],
+  },
+  costs: {
+    title: 'The IRS rules, checked as you go.',
+    sub: 'Meals, travel, gifts and car expenses need more than a bank line. Penny knows which ones do, and asks only when the law requires it.',
+    costsHeading: 'What a missing record costs',
+    rows: [
+      { value: 0, from: 92.4, prefix: '$', suffix: '', decimals: 0, text: 'What a client lunch, trip, gift or car expense is worth with no record. For these, the IRS can’t estimate: no record, no deduction, even if the expense was real.', source: 'Treas. Reg. §1.274-5T; Boyd v. Commissioner, 122 T.C. No. 18' },
+      { value: 20, from: 0, prefix: '', suffix: '%', decimals: 0, text: 'The penalty on underpaid tax when the IRS finds negligence, which includes not keeping adequate records.', source: 'IRC §6662; IRS, Accuracy-related penalty' },
+      { value: 3, from: 0, prefix: '', suffix: ' years', decimals: 0, text: 'How long the IRS generally says to keep the records behind a return.', source: 'IRS Publication 583' },
+    ],
+    note: 'General information, not tax advice. Talk to a CPA about your situation.',
+  },
   hero: {
     // Two-line headline (problem-framed champion, DEC-079). line1 puts the burden on the user
     // ("the why is on you"), line2's "why" is the accent/squiggle word.
-    line1pre: 'Track expenses with ',
-    line1em: 'confidence',
-    line1post: '.',
+    line1pre: 'Text it ',
+    line1em: 'the moment',
+    line1post: ' you spend.',
     line2pre: '',
     line2em: '',
     line2post: '',
@@ -51,41 +80,7 @@ const en = {
   },
   // Landing FAQ, spec-accurate, compliance-checked (DEC-043).
   // Use-case carousel: real moments, each with Tally's reply. Amounts/merchants are examples.
-  useCases: {
-    heading: 'Text it the moment you spend',
-    sub: 'Tally checks each expense against IRS recordkeeping rules and only asks when something is missing.',
-    lunch: { title: 'Client meals', me: 'Lunch w/ Sarah from Acme, $92.40', tally: 'Client meal, IRC §274(d). It’s over $75, so snap the receipt when you can.' },
-    rule: { title: 'The $75 rule', body: 'Under $75, your text is the written record. At $75 and up, Tally asks for the receipt.' },
-    gas: { title: 'Gas and mileage', me: 'Shell $54.10, drove to the Tahoe job site', tally: 'Logged as a car expense. Nothing else needed.' },
-    hotel: { title: 'Hotels and travel', trip: 'Denver install', dates: 'Mon to Wed', tally: 'Lodging needs a receipt at any amount. Send it at checkout.' },
-    coffee: { title: 'Coffee meetings', quote: 'Coffee w/ a referral partner', tally: 'Under $75, so your text is the record.' },
-    april: { title: 'Tax time', body: 'Every expense, the reason it counts, and its IRC section in one file.', files: ['expenses-2026.csv', 'QuickBooks import', 'Email to accountant'] },
-  },
   // Who it's for: sole proprietors and single-member LLCs (both file Schedule C by default).
-  audience: {
-    heading: 'Built for sole props and single-member LLCs',
-    sub: 'You run the business yourself and file a Schedule C. Costs go on whatever card is in your wallet, and nobody keeps the books but you.',
-    points: [
-      { title: 'Mixed cards are fine', body: 'Business costs on personal and business cards. No bank linking needed.' },
-      { title: 'No bookkeeper required', body: 'No QuickBooks habit, no accountant on call. Just the phone in your pocket.' },
-      { title: 'Ready for Schedule C', body: 'Hand your preparer a clean file with every expense and why it counts.' },
-    ],
-    work: ['Freelancers', 'Contractors', 'Consultants', 'Creators', 'Coaches'],
-  },
-  features: {
-    heading: 'Features',
-    items: [
-      { title: 'Cites the tax code', body: 'Every expense shows the IRC section it typically falls under.' },
-      { title: 'Asks only when required', body: 'A receipt request only when IRS rules call for one.' },
-      { title: 'Your text is the record', body: 'Under $75, the message you sent is the written record.' },
-      { title: 'Receipt photos', body: 'Snap the receipt. It’s stored privately with the expense.' },
-      { title: 'Web dashboard', body: 'Review, fix categories, and add missing context.' },
-      { title: 'CSV and QuickBooks', body: 'Export a standard CSV or a QuickBooks-ready file.' },
-      { title: 'Email your accountant', body: 'Send the whole year in one tap.' },
-      { title: 'Month-end review', body: 'A quick pass each month to catch gaps early.' },
-      { title: 'You have the final say', body: 'Every suggestion is editable.' },
-    ],
-  },
   faq: {
     heading: 'FAQ',
     items: [
@@ -387,10 +382,38 @@ type Dict = typeof en;
 
 const es: Dict = {
   nav: { login: 'Iniciar sesión', getStarted: 'Empezar', howItWorks: 'Cómo funciona', pricing: 'Precios' },
+  announce: 'Para independientes, LLC de un dueño y LLC pequeñas',
+  announceShort: 'Para independientes y LLC pequeñas',
+  features: {
+    heading: 'Fuera de la hoja de cálculo. En tiempo real.',
+    sub: 'Nada de guardar recibos para una hoja de cálculo y esperar meses para ordenarlos. Tally registra cada gasto en el momento en que lo escribes, así tus registros están al día, todos los días.',
+    items: [
+      { title: 'Cita el código fiscal', body: 'Cada gasto muestra la sección del IRC donde normalmente cae.' },
+      { title: 'Pregunta solo cuando hace falta', body: 'Pide recibo solo cuando las reglas del IRS lo exigen.' },
+      { title: 'Tu mensaje es el registro', body: 'Menos de $75, el mensaje que enviaste es el registro escrito.' },
+      { title: 'Fotos de recibos', body: 'Toma foto del recibo. Se guarda en privado con el gasto.' },
+      { title: 'Panel web', body: 'Revisa, corrige categorías y agrega el contexto que falte.' },
+      { title: 'CSV y QuickBooks', body: 'Exporta un CSV estándar o un archivo listo para QuickBooks.' },
+      { title: 'Envía a tu contador', body: 'Manda el año completo con un toque.' },
+      { title: 'Revisión de fin de mes', body: 'Un repaso rápido cada mes para detectar huecos a tiempo.' },
+      { title: 'Tú tienes la última palabra', body: 'Cada sugerencia se puede editar.' },
+    ],
+  },
+  costs: {
+    title: 'Las reglas del IRS, revisadas sobre la marcha.',
+    sub: 'Las comidas, viajes, regalos y gastos de auto necesitan más que una línea del banco. Penny sabe cuáles, y solo pregunta cuando la ley lo exige.',
+    costsHeading: 'Lo que cuesta un registro que falta',
+    rows: [
+      { value: 0, from: 92.4, prefix: '$', suffix: '', decimals: 0, text: 'Lo que vale un almuerzo con un cliente, un viaje, un regalo o un gasto de auto sin registro. En estos casos el IRS no puede estimar: sin registro, no hay deducción, aunque el gasto haya sido real.', source: 'Treas. Reg. §1.274-5T; Boyd v. Commissioner, 122 T.C. No. 18' },
+      { value: 20, from: 0, prefix: '', suffix: '%', decimals: 0, text: 'La multa sobre el impuesto no pagado cuando el IRS determina negligencia, lo que incluye no llevar registros adecuados.', source: 'IRC §6662; IRS, Accuracy-related penalty' },
+      { value: 3, from: 0, prefix: '', suffix: ' años', decimals: 0, text: 'Cuánto tiempo el IRS generalmente indica conservar los registros de una declaración.', source: 'IRS Publication 583' },
+    ],
+    note: 'Información general, no asesoría fiscal. Consulta a un CPA sobre tu caso.',
+  },
   hero: {
-    line1pre: 'Controla tus gastos con ',
-    line1em: 'confianza',
-    line1post: '.',
+    line1pre: 'Escríbelo ',
+    line1em: 'en el momento',
+    line1post: ' en que gastas.',
     line2pre: '',
     line2em: '',
     line2post: '',
@@ -427,40 +450,6 @@ const es: Dict = {
     errInvalid: 'Ingresa un número de teléfono válido.',
     errRate: 'Demasiados intentos. Espera un minuto.',
     errServer: 'Algo salió mal. Inténtalo de nuevo.',
-  },
-  useCases: {
-    heading: 'Escríbelo en el momento en que gastas',
-    sub: 'Tally revisa cada gasto según las reglas de registro del IRS y solo pregunta cuando falta algo.',
-    lunch: { title: 'Comidas con clientes', me: 'Almuerzo con Sarah de Acme, $92.40', tally: 'Comida con cliente, IRC §274(d). Pasa de $75, así que toma foto del recibo cuando puedas.' },
-    rule: { title: 'La regla de $75', body: 'Menos de $75, tu mensaje es el registro escrito. Desde $75, Tally te pide el recibo.' },
-    gas: { title: 'Gasolina y millaje', me: 'Shell $54.10, manejé a la obra en Tahoe', tally: 'Registrado como gasto de auto. No hace falta nada más.' },
-    hotel: { title: 'Hoteles y viajes', trip: 'Instalación en Denver', dates: 'Lun a Mié', tally: 'El alojamiento requiere recibo por cualquier monto. Envíalo al hacer checkout.' },
-    coffee: { title: 'Reuniones de café', quote: 'Café con un socio que refiere clientes', tally: 'Menos de $75, así que tu mensaje es el registro.' },
-    april: { title: 'Temporada de impuestos', body: 'Cada gasto, el motivo por el que cuenta y su sección del IRC en un archivo.', files: ['gastos-2026.csv', 'Importar a QuickBooks', 'Enviar a tu contador'] },
-  },
-  audience: {
-    heading: 'Hecho para dueños únicos y LLC de un solo miembro',
-    sub: 'Manejas el negocio tú mismo y declaras con el Schedule C. Los gastos van en la tarjeta que tengas a mano, y nadie lleva las cuentas más que tú.',
-    points: [
-      { title: 'Tarjetas mezcladas, sin problema', body: 'Gastos del negocio en tarjetas personales y de negocio. Sin conectar tu banco.' },
-      { title: 'Sin contador de planta', body: 'Sin el hábito de QuickBooks ni contador a la mano. Solo tu teléfono.' },
-      { title: 'Listo para el Schedule C', body: 'Entrega a quien prepara tus impuestos un archivo limpio con cada gasto y por qué cuenta.' },
-    ],
-    work: ['Freelancers', 'Contratistas', 'Consultores', 'Creadores', 'Coaches'],
-  },
-  features: {
-    heading: 'Funciones',
-    items: [
-      { title: 'Cita el código fiscal', body: 'Cada gasto muestra la sección del IRC donde normalmente cae.' },
-      { title: 'Pregunta solo cuando hace falta', body: 'Pide recibo solo cuando las reglas del IRS lo exigen.' },
-      { title: 'Tu mensaje es el registro', body: 'Menos de $75, el mensaje que enviaste es el registro escrito.' },
-      { title: 'Fotos de recibos', body: 'Toma foto del recibo. Se guarda en privado con el gasto.' },
-      { title: 'Panel web', body: 'Revisa, corrige categorías y agrega el contexto que falte.' },
-      { title: 'CSV y QuickBooks', body: 'Exporta un CSV estándar o un archivo listo para QuickBooks.' },
-      { title: 'Envía a tu contador', body: 'Manda el año completo con un toque.' },
-      { title: 'Revisión de fin de mes', body: 'Un repaso rápido cada mes para detectar huecos a tiempo.' },
-      { title: 'Tú tienes la última palabra', body: 'Cada sugerencia se puede editar.' },
-    ],
   },
   faq: {
     heading: 'Preguntas frecuentes',

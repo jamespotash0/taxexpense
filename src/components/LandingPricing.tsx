@@ -10,7 +10,7 @@ import { formatMoney } from '@/lib/format';
 import { fmt } from '@/i18n/config';
 import type { Dict } from '@/i18n/dictionaries';
 
-export function LandingPricing({ t, trialDays, ctaLabel }: { t: Dict['pricing']; trialDays: number; ctaLabel: string }) {
+export function LandingPricing({ t, ctaLabel }: { t: Dict['pricing']; ctaLabel: string }) {
   const [selected, setSelected] = useState<PlanId>('annual');
   const plan = PLANS[selected];
 
@@ -27,7 +27,7 @@ export function LandingPricing({ t, trialDays, ctaLabel }: { t: Dict['pricing'];
         : t.billedWeekly;
 
   return (
-    <div className="grid overflow-hidden rounded-[28px] bg-white ring-1 ring-black/[0.06] lg:grid-cols-2">
+    <div className="overflow-hidden rounded-[28px] bg-white ring-1 ring-black/[0.06]">
       <div className="p-6 sm:p-10">
         <div className="inline-flex rounded-full bg-[#f0f0ee] p-1" role="group" aria-label="Billing period">
           {tabs.map((tab) => {
@@ -57,12 +57,9 @@ export function LandingPricing({ t, trialDays, ctaLabel }: { t: Dict['pricing'];
         <Link href="/start" className="mt-8 flex w-full items-center justify-center rounded-full bg-[#d92d20] py-3.5 text-[1rem] font-medium text-white transition-colors hover:bg-[#b8241a]">
           {ctaLabel}
         </Link>
-        <p className="mt-3 text-center text-[0.88rem] text-[#6f726d]">
-          {fmt(t.badge, { days: trialDays })} · {t.noCommit}
-        </p>
       </div>
 
-      <div className="border-t border-black/[0.06] bg-[#fafaf9] p-6 sm:p-10 lg:border-l lg:border-t-0">
+      <div className="border-t border-black/[0.06] bg-[#fafaf9] p-6 sm:p-10">
         <ul className="space-y-4">
           {t.included.map((f) => (
             <li key={f} className="flex gap-3 text-[1rem] text-[#101210]">
@@ -71,7 +68,6 @@ export function LandingPricing({ t, trialDays, ctaLabel }: { t: Dict['pricing'];
             </li>
           ))}
         </ul>
-        <p className="mt-8 text-[0.85rem] text-[#6f726d]">{t.trust}</p>
       </div>
     </div>
   );

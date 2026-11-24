@@ -4,14 +4,14 @@ import Link from 'next/link';
 import { HeroThread } from '@/components/HeroThread';
 import { HeroExposure } from '@/components/HeroExposure';
 import { LandingFaq } from '@/components/LandingFaq';
-import { SiteHeader, TallyWordmark } from '@/components/SiteHeader';
-import { UseCases } from '@/components/UseCases';
-import { Audience } from '@/components/Audience';
+import { Announcement } from '@/components/Announcement';
+import { RecordCosts } from '@/components/RecordCosts';
 import { Features } from '@/components/Features';
+import { BlurFade } from '@/components/Reveal';
+import { SiteHeader, TallyWordmark } from '@/components/SiteHeader';
 import { LandingPricing } from '@/components/LandingPricing';
 import { TrackedLink } from '@/components/TrackedLink';
 import { TrafficSource } from '@/components/TrafficSource';
-import { TRIAL_DAYS } from '@/lib/pricing';
 import { type HeroVariant } from '@/lib/ab';
 import { getI18n } from '@/i18n/server';
 
@@ -29,7 +29,9 @@ export default async function Home() {
 
       <HeroExposure variant={heroVariant} />
 
-      {/* Nav: wide floating pill (ZeroSettle-style). */}
+      <Announcement text={t.announce} short={t.announceShort} href="/start" />
+
+      {/* Nav: floating pill that tightens on scroll. */}
       <SiteHeader
         login={t.nav.login}
         getStarted={t.nav.getStarted}
@@ -76,32 +78,33 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Use cases: real moments, what you text and what Tally says back. */}
-      <section id="how-it-works" className="scroll-mt-24 pt-24 lg:pt-32">
-        <UseCases t={t.useCases} />
+      {/* Time saved: out of the spreadsheet, into real time. */}
+      <section id="how-it-works" className="scroll-mt-24 px-5 pt-24 sm:px-6 lg:pt-32">
+        <BlurFade>
+          <Features t={t.features} />
+        </BlurFade>
       </section>
 
-      {/* Who it's for. */}
-      <section className="px-3 pt-24 sm:px-6 lg:pt-32">
-        <Audience t={t.audience} />
-      </section>
-
+      {/* Compliance: the IRS rules, beside what a missing record costs. */}
       <section className="px-5 pt-24 sm:px-6 lg:pt-32">
-        <Features t={t.features} />
+        <RecordCosts t={t.costs} />
       </section>
 
+      {/* Pricing and FAQ side by side; stacked on phones. */}
       <section id="pricing" className="scroll-mt-24 px-5 pt-24 sm:px-6 lg:pt-32">
-        <div className="mx-auto max-w-[80rem]">
-          <h2 className="text-balance text-[clamp(2.1rem,4.4vw,2.9rem)] font-semibold leading-[1.1] tracking-[-0.03em] text-[#101210]">{t.pricing.title}</h2>
-          <p className="mt-3 text-[1.1rem] text-[#6f726d]">{t.pricing.subtitle}</p>
-          <div className="mt-10">
-            <LandingPricing t={t.pricing} trialDays={TRIAL_DAYS} ctaLabel={t.nav.getStarted} />
-          </div>
+        <div className="mx-auto grid max-w-[80rem] gap-16 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20">
+          <BlurFade>
+            <h2 className="text-balance text-[clamp(2.1rem,4.4vw,2.9rem)] font-semibold leading-[1.1] tracking-[-0.03em] text-[#101210]">{t.pricing.title}</h2>
+            <div className="mt-10">
+              <LandingPricing t={t.pricing} ctaLabel={t.nav.getStarted} />
+            </div>
+          </BlurFade>
+          <BlurFade delay={0.08} >
+            <div id="faq" className="scroll-mt-24">
+              <LandingFaq t={t.faq} />
+            </div>
+          </BlurFade>
         </div>
-      </section>
-
-      <section id="faq" className="scroll-mt-24 px-5 pt-24 sm:px-6 lg:pt-32">
-        <LandingFaq t={t.faq} />
       </section>
 
       {/* Closing card: same soft wash as the hero, same CTA. */}

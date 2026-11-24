@@ -1,6 +1,19 @@
-// Landing nav: a wide, floating white pill (sticky). Wordmark left; section links, an outlined
-// Log in and the red Get started on the right. Links collapse to just the two buttons on phones.
+// Landing nav: a floating white pill (sticky) that tightens once you scroll (NavPill). Wordmark
+// left; section links, an outlined Log in and the red Get started on the right. Links collapse to
+// just the two buttons on phones.
 import Link from 'next/link';
+import { NavPill } from './NavPill';
+
+/** The mark: four tally strokes crossed by one red slash, the way you count to five. The red is
+ *  the WHY accent. `light` draws it for dark backgrounds (Penny's avatar). */
+export function TallyMark({ className = 'h-7 w-7', light = false }: { className?: string; light?: boolean }) {
+  return (
+    <svg viewBox="0 0 32 32" className={className} fill="none" aria-hidden strokeLinecap="round">
+      <path d="M8.5 7v18M13.5 7v18M18.5 7v18M23.5 7v18" stroke={light ? '#fff' : '#101210'} strokeWidth="2.6" />
+      <path d="M4.5 22.5 27.5 9.5" stroke="#d92d20" strokeWidth="2.9" />
+    </svg>
+  );
+}
 
 // `back`: on inner pages the wordmark is the way home, so a back arrow slides in on hover/focus
 // (and is always shown on touch screens, which have no hover).
@@ -15,12 +28,7 @@ export function TallyWordmark({ back = false }: { back?: boolean }) {
           <svg viewBox="0 0 16 16" className="h-5 w-5 shrink-0" fill="none"><path d="M10 3.5 5.5 8l4.5 4.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </span>
       )}
-      <span aria-hidden className="flex h-7 w-7 items-center justify-center rounded-[8px] bg-[#101210]">
-        <svg viewBox="0 0 100 100" className="h-[60%] w-[60%]" fill="none" stroke="#fff" strokeLinecap="round">
-          <path d="M18 18h64M50 18v66" strokeWidth="12" />
-          <path d="M34 44h32M34 61h32M34 78h32" strokeWidth="8" stroke="#ff6b60" />
-        </svg>
-      </span>
+      <TallyMark className="h-7 w-7" />
       <span className="text-[1.15rem] font-semibold tracking-[-0.03em] text-[#101210]">Tally</span>
     </Link>
   );
@@ -36,23 +44,23 @@ export function SiteHeader({
   links: { href: string; label: string }[];
 }) {
   return (
-    <header className="sticky top-0 z-30 px-3 pt-2 sm:px-6">
-      <nav className="mx-auto flex h-[3.25rem] max-w-[80rem] items-center justify-between gap-4 rounded-full bg-white/90 pl-5 pr-2 shadow-[0_1px_2px_rgba(16,18,16,0.04),0_6px_24px_-8px_rgba(16,18,16,0.12)] ring-1 ring-black/[0.06] backdrop-blur-md">
+    <header className="sticky top-0 z-30 px-3 pt-3 sm:px-6">
+      <NavPill>
         <TallyWordmark />
         <div className="flex items-center gap-1 text-[0.9rem] font-medium text-[#101210]">
           {links.map((l) => (
-            <a key={l.href} href={l.href} className="hidden rounded-full px-3.5 py-2 hover:bg-black/[0.04] md:block">
+            <a key={l.href} href={l.href} className="hidden rounded-full px-3.5 py-2 transition-colors hover:bg-black/[0.05] md:block">
               {l.label}
             </a>
           ))}
-          <Link href="/login" className="ml-1 rounded-full px-4 py-[0.55rem] ring-1 ring-black/[0.12] hover:bg-black/[0.03]">
+          <Link href="/login" className="ml-1 rounded-full px-4 py-[0.55rem] transition-colors hover:bg-black/[0.05]">
             {login}
           </Link>
-          <Link href="/start" className="rounded-full bg-[#d92d20] px-4 py-[0.6rem] text-white transition-colors hover:bg-[#b8241a]">
+          <Link href="/start" className="rounded-full bg-[#101210] px-4 py-[0.6rem] text-white transition-colors hover:bg-[#d92d20]">
             {getStarted}
           </Link>
         </div>
-      </nav>
+      </NavPill>
     </header>
   );
 }
