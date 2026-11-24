@@ -2,6 +2,9 @@
 // after the fact ("that hotel was for the conference"); find the expense they meant, or ask.
 
 import { formatMoney, shortDate } from './format';
+import { claudeJSON } from './llm';
+import { HAIKU_MODEL } from './claude';
+import { log } from './log';
 import type { ReceiptRow } from './receipts';
 
 const MIN = 60_000;
@@ -41,4 +44,37 @@ export function contextChoiceMessage(rows: ReceiptRow[]): string {
 export function withExpenseName(reply: string, r: ReceiptRow): string {
   if (!r.vendor || reply.toLowerCase().includes(r.vendor.toLowerCase())) return reply;
   return `${r.vendor} ${formatMoney(r.amount_cents)}: ${reply}`;
+}
+
+const CONTEXT_PICK_PROMPT = `A user of an expense logger texted a detail about an expense they logged earlier. Decide which of their recent expenses (listed below, newest first) the message is about. Return ONLY JSON, no prose.
+
+Return {"match": "<id>"} when exactly ONE expense plausibly fits the message.
+Return {"match": null, "shortlist": ["<id>", ...]} when two or more could fit (list them), or none fits (empty shortlist).
+
+Rules:
+- Match on what the message names: vendor, type of expense (hotel, dinner, flight, gas), amount, place, person, or trip.
+- If two expenses could both fit (two hotels, two expenses from the same trip), return null with both in the shortlist. Never guess between them.
+- A bare reference with nothing else ("that one", "it", "that was personal") means the most recent expense ONLY if it was logged less than 2 hours ago. Otherwise return null.
+- Only use ids from the list. Never invent one.`;
+
+/** Ask Haiku which recent expense a late detail refers to. Any failure means "no match" (we ask). */
+export async function pickReceiptForContext(
+  text: string,
+  rows: ReceiptRow[],
+  now: Date = new Date(),
+): Promise<{ match: string | null; shortlist: string[] }> {
+  const ids = rows.map((r) => r.id);
+  try {
+    const raw = await claudeJSON<unknown>({
+      model: HAIKU_MODEL,
+      system: CONTEXT_PICK_PROMPT,
+      userText: `Recent expenses:\n${rows.map((r) => formatCandidateLine(r, now)).join('\n')}\n\nMessage: ${text}`,
+      cacheSystem: true,
+      maxTokens: 1024,
+    });
+    return validatePick(raw, ids);
+  } catch (err) {
+    log.warn('context_pick_failed', { message: err instanceof Error ? err.message : 'unknown' });
+    return { match: null, shortlist: [] };
+  }
 }
