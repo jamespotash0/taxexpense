@@ -174,7 +174,7 @@ export async function classifyIntent(text: string, ctx?: ReplyContext): Promise<
       system: CLASSIFY_PROMPT,
       userText,
       cacheSystem: true,
-      maxTokens: 200,
+      maxTokens: 1024,
     });
     return sanitizeIntent(raw);
   } catch (err) {
@@ -455,7 +455,7 @@ async function answerCapability(text: string): Promise<ProcessResult> {
       system: CAPABILITY_PROMPT,
       userText: text,
       cacheSystem: true,
-      maxTokens: 200,
+      maxTokens: 1024,
     });
     const trimmed = answer.trim();
     return reply(trimmed || HELP_TEXT);

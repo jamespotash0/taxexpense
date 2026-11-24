@@ -2711,3 +2711,16 @@ under default-deny for V1; only add an anon read policy if rendering them client
   the beta outgrows 4 days of catch-up.
 - **Also.** `proxy.ts` now keeps the query string in `returnTo`, so a logged-out user who taps
   the link lands on the draft after OTP.
+
+### DEC-093 — Haiku 5.5 behind HAIKU_MODEL env var, effort low (2026-11-24)
+
+- **Why.** Cut wait time and cost on the Haiku calls (router, text parse, categorize, OCR).
+  Haiku 5.5 is $0.10/$0.50 per MTok vs $1/$5 for Haiku 4.5.
+- **Change.** `HAIKU_MODEL` env var picks the model (default stays Haiku 4.5, unset = rollback).
+  `llm.ts` sends `output_config.effort: 'low'` on `claude-haiku-5*`, because 5.5 thinks by default
+  at `medium`. Haiku `maxTokens` caps raised 200/256 -> 1024 since thinking counts toward
+  `max_tokens` and a truncated JSON reply would retry, then fall back to `capture`.
+- **Measured (same run, interleaved, 12 calls/model, two runs).** Median latency 945/848ms (4.5)
+  vs 642/672ms (5.5); 0 JSON failures either side. `eval:intent` 97% -> 100% (38/38);
+  `eval:merged` 95% both (same miss). `eval:image` (photo/OCR) not run yet.
+- **Rollout.** Founder set `HAIKU_MODEL=claude-haiku-5-5` in Vercel.

@@ -4,7 +4,7 @@
 // cost reduction on repeated system prompts); wired up in EPIC-2 call sites.
 
 import Anthropic from '@anthropic-ai/sdk';
-import { requireEnv } from './env';
+import { optionalEnv, requireEnv } from './env';
 
 let _client: Anthropic | null = null;
 
@@ -16,5 +16,6 @@ export function getClaude(): Anthropic {
 }
 
 // Model IDs. Keep in one place so a model bump is a single-line change.
-export const HAIKU_MODEL = 'claude-haiku-4-5-20251001'; // receipt OCR / extraction
+// HAIKU_MODEL env override lets us A/B claude-haiku-5-5 against 4.5 without a deploy-time code change.
+export const HAIKU_MODEL = optionalEnv('HAIKU_MODEL') ?? 'claude-haiku-4-5-20251001'; // receipt OCR / extraction
 export const SONNET_MODEL = 'claude-sonnet-4-6'; // categorization + conversation

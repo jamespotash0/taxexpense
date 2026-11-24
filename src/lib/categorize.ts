@@ -130,7 +130,7 @@ export async function categorizeExpense(
     system: CATEGORIZATION_HELPER_PROMPT,
     userText: `## User Context\n${userContextLine(user)}\n\n## Expense\n${expenseSummary(input)}`,
     cacheSystem: true,
-    maxTokens: 256,
+    maxTokens: 1024,
     onMeta,
   });
   return normalizeCategoryResult(result);

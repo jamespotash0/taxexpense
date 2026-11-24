@@ -68,6 +68,9 @@ function buildArgs(opts: CallOpts) {
     max_tokens: opts.maxTokens ?? 1024,
     system,
     messages: [{ role: 'user' as const, content: userContent }],
+    // Haiku 5.x thinks by default (effort medium). Our Haiku jobs are routing/extraction, so keep
+    // thinking minimal for latency. Thinking also counts toward max_tokens, hence the 1024 floors.
+    ...(opts.model.startsWith('claude-haiku-5') ? { output_config: { effort: 'low' } } : {}),
   };
 }
 
