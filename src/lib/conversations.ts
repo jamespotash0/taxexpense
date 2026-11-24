@@ -162,13 +162,16 @@ export type PendingChoice = { kind: 'flag' | 'context'; candidateIds: string[]; 
 export function pickPendingChoice(
   rows: Array<{ context_state: string | null; pending_data: PendingData | null; created_at: string }>,
 ): PendingChoice | null {
+  // Only the NEWEST outbound counts: any later message (an answer, a new question) closes the list,
+  // so a stray digit days later can't write an old detail onto the wrong expense.
   const newest = [...rows].sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
   const ids = newest?.pending_data?.candidateIds;
   if (!newest || !ids || ids.length === 0) return null;
   if (newest.context_state === 'awaiting_context_choice') {
     return { kind: 'context', candidateIds: ids, contextText: newest.pending_data?.contextText };
   }
-  return { kind: 'flag', candidateIds: ids };
+  if (newest.context_state === 'awaiting_flag_choice') return { kind: 'flag', candidateIds: ids };
+  return null;
 }
 
 /**
@@ -182,7 +185,6 @@ export async function getPendingChoice(userId: string): Promise<PendingChoice | 
     .select('pending_data, context_state, created_at')
     .eq('user_id', userId)
     .eq('direction', 'outbound')
-    .in('context_state', ['awaiting_flag_choice', 'awaiting_context_choice'])
     .gte('created_at', cutoff)
     .order('created_at', { ascending: false })
     .limit(1);

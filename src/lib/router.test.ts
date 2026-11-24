@@ -138,4 +138,14 @@ test('resolveContextChoice: out of range re-asks', async () => {
   const res = await resolveContextChoice({ id: 'u', organization_id: 'o' } as never, ['a', 'b'], 'x', 7);
   assert.match(res.smsText, /1-2/);
   assert.equal(res.receiptId, null);
+  // The re-ask keeps the list open (a later outbound without this state closes it).
+  assert.equal(res.contextState, 'awaiting_context_choice');
+  assert.deepEqual(res.pendingData, { candidateIds: ['a', 'b'], contextText: 'x' });
+});
+
+test('resolveFlagChoice: out of range re-ask keeps the list open', async () => {
+  const { resolveFlagChoice } = await import('./router');
+  const res = await resolveFlagChoice({ id: 'u', organization_id: 'o' } as never, ['a', 'b'], 9);
+  assert.equal(res.contextState, 'awaiting_flag_choice');
+  assert.deepEqual(res.pendingData, { candidateIds: ['a', 'b'] });
 });

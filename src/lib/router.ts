@@ -413,7 +413,12 @@ async function flagForCpa(user: AppUser, text: string): Promise<ProcessResult> {
 /** Resolve a "1/2/3" reply to a flag-disambiguation prompt → flag the chosen candidate. */
 export async function resolveFlagChoice(user: AppUser, candidateIds: string[], choice: number): Promise<ProcessResult> {
   if (!Number.isInteger(choice) || choice < 1 || choice > candidateIds.length) {
-    return reply(`Reply with a number 1-${candidateIds.length} to flag one for your CPA.`);
+    // Keep the list open: only the newest outbound counts as pending (conversations.ts).
+    return {
+      ...reply(`Reply with a number 1-${candidateIds.length} to flag one for your CPA.`),
+      contextState: 'awaiting_flag_choice',
+      pendingData: { candidateIds },
+    };
   }
   const r = await getReceipt(user.organization_id, candidateIds[choice - 1]);
   if (!r) return reply("Hmm, that one's not there anymore. Try again or use the dashboard.");
@@ -477,7 +482,11 @@ export async function resolveContextChoice(
   choice: number,
 ): Promise<ProcessResult> {
   if (!Number.isInteger(choice) || choice < 1 || choice > candidateIds.length) {
-    return reply(`Reply with a number 1-${candidateIds.length}.`);
+    return {
+      ...reply(`Reply with a number 1-${candidateIds.length}.`),
+      contextState: 'awaiting_context_choice',
+      pendingData: { candidateIds, contextText },
+    };
   }
   const r = await getReceipt(user.organization_id, candidateIds[choice - 1]);
   if (!r) return reply("Hmm, that one's not there anymore.");
