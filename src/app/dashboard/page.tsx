@@ -12,6 +12,7 @@ import { AppShell } from '@/components/AppShell';
 import { Icon } from '@/components/AppIcons';
 import { ReceiptRow, ReceiptLedgerRow } from '@/components/ReceiptRow';
 import { MonthEndReview } from '@/components/MonthEndReview';
+import { listMonthEndRuns } from '@/lib/agents/month-end-review';
 import { formatMoney } from '@/lib/format';
 import { formatUsPhone } from '@/lib/phone';
 import { getI18n } from '@/i18n/server';
@@ -21,7 +22,7 @@ import { publicSmsNumber } from '@/lib/env';
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string; sub?: string }>;
+  searchParams: Promise<{ filter?: string; sub?: string; review?: string }>;
 }) {
   const user = await getCurrentUser();
   if (!user) redirect('/login?returnTo=/dashboard');
@@ -38,10 +39,14 @@ export default async function DashboardPage({
     { key: 'this_month', label: d.filterThisMonth },
   ];
 
-  const { filter: filterParam, sub } = await searchParams;
+  const { filter: filterParam, sub, review } = await searchParams;
   const filter: ReceiptFilter =
     filterParam === 'needs_attention' || filterParam === 'this_month' ? filterParam : 'all';
   const justSubscribed = sub === 'success';
+  // Auto-draft text links here with ?review=<runId>; org-scoped lookup, so a foreign id just finds nothing.
+  const linkedRun = review
+    ? (await listMonthEndRuns(user.organization_id).catch(() => [])).find((r) => r.runId === review)
+    : undefined;
 
   const [summary, { rows }, entitlement, agencyIds, managedAgencyId, years] = await Promise.all([
     getMonthlySummary(user.organization_id),
@@ -220,7 +225,7 @@ export default async function DashboardPage({
           <div className="grid grid-cols-2 gap-2 [&_.btn]:w-full">
             {exportLinks('btn btn-secondary btn-sm')}
             <div className="col-span-2">
-              <MonthEndReview hasAccountantEmail={!!user.accountant_email} />
+              <MonthEndReview hasAccountantEmail={!!user.accountant_email} linkedRun={linkedRun} />
             </div>
           </div>
         </>

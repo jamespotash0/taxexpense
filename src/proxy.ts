@@ -40,7 +40,7 @@ export function proxy(req: NextRequest) {
 
   if (!req.cookies.get(SESSION_COOKIE)?.value) {
     const url = new URL('/login', req.url);
-    url.searchParams.set('returnTo', pathname);
+    url.searchParams.set('returnTo', pathname + req.nextUrl.search); // keep ?review=… from texted links
     return NextResponse.redirect(url);
   }
   return NextResponse.next();

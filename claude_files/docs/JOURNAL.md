@@ -2694,3 +2694,20 @@ under default-deny for V1; only add an anon read policy if rendering them client
   with no history at all; "Spent this month" + export buttons moved to a top row; month-end
   review is now a button that opens a sheet (no dedicated page section).
 - Verified with synthetic data only (founder chose no session minting on hosted Supabase).
+
+### DEC-092 — Month-end review auto-drafts; the user only approves (2026-11-23)
+
+- **Context.** The review agent (DEC-074) only ran when the user opened the sheet and hit
+  "Review my month". Founder: "we just need an approval."
+- **Decision.** Tally drafts last month's review automatically and texts the user a link
+  (`/dashboard?review=<runId>`) that opens the draft. Sending is still the user's click
+  (human-in-the-loop unchanged; the send route still only targets the configured accountant).
+- **Who.** Users with an accountant email, onboarded, not SMS-opted-out, with ≥1 expense that
+  month. One run per org. Orgs that already have a run for the month (auto or manual) are skipped,
+  so it's idempotent. A run that doesn't finish cleanly is saved but no text goes out.
+- **Trigger.** Hobby plan caps us at 2 crons, so it piggybacks on the daily `receipt-reminders`
+  cron: days 2–5 of the month (UTC), sequential, ~200s budget per invocation. Orgs it doesn't reach
+  roll to the next day. `maxDuration` raised to 300. Move to its own cron / a queue on Pro or once
+  the beta outgrows 4 days of catch-up.
+- **Also.** `proxy.ts` now keeps the query string in `returnTo`, so a logged-out user who taps
+  the link lands on the draft after OTP.

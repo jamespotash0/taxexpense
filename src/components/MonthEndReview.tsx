@@ -21,14 +21,14 @@ interface Draft {
   body: string;
   flagged: FlaggedItem[];
 }
-interface PastRun extends Draft {
+export interface PastRun extends Draft {
   runId: string;
   createdAt: string;
 }
 
 const COPY = {
   title: 'Month-end review',
-  blurb: 'Tally’s review agent reads this month’s expenses, checks the IRS rules, and drafts a note to your accountant. You approve before anything sends.',
+  blurb: 'Tally’s review agent reads this month’s expenses, checks the IRS rules, and drafts a note to your accountant. Last month’s review is drafted for you on the 2nd. You approve before anything sends.',
   run: 'Review my month',
   running: 'Reviewing your month… (~30s)',
   rerun: 'Re-run review',
@@ -158,7 +158,8 @@ function DraftEditor({
   );
 }
 
-export function MonthEndReview({ hasAccountantEmail }: { hasAccountantEmail: boolean }) {
+// `linkedRun`: the draft opened by the auto-draft text's link (/dashboard?review=<runId>), shown for approval.
+export function MonthEndReview({ hasAccountantEmail, linkedRun }: { hasAccountantEmail: boolean; linkedRun?: PastRun }) {
   const run = useFormSubmit();
   const send = useFormSubmit();
   const sendModal = useFormSubmit();
@@ -171,9 +172,9 @@ export function MonthEndReview({ hasAccountantEmail }: { hasAccountantEmail: boo
 
   // Past-run modal ("a new view"): its own editable copy + send state, so opening one never
   // touches the current-month draft above.
-  const [viewing, setViewing] = useState<PastRun | null>(null);
-  const [viewSubject, setViewSubject] = useState('');
-  const [viewBody, setViewBody] = useState('');
+  const [viewing, setViewing] = useState<PastRun | null>(linkedRun ?? null);
+  const [viewSubject, setViewSubject] = useState(linkedRun?.subject ?? '');
+  const [viewBody, setViewBody] = useState(linkedRun?.body ?? '');
   const [viewSentTo, setViewSentTo] = useState<string | null>(null);
 
   const loadHistory = useCallback(async () => {
@@ -185,6 +186,7 @@ export function MonthEndReview({ hasAccountantEmail }: { hasAccountantEmail: boo
       // History is supplementary — a failed fetch shouldn't break the run surface.
     }
   }, []);
+
 
   // Escape closes the top-most layer: the past-run view first, then the sheet.
   useEffect(() => {

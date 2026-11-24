@@ -25,6 +25,14 @@ import {
   bumpReceiptReminderCounts,
   type ReminderCandidate,
 } from '@/lib/receipts';
+import { draftPendingMonthEndReviews, previousMonth } from '@/lib/agents/month-end-review';
+
+// Month-end review auto-drafts piggyback on this daily cron (Hobby plan = 2 crons max). Each review
+// is ~30s of agent time, so give the function room and stop starting new ones well before the limit.
+export const maxDuration = 300;
+const MONTH_END_BUDGET_MS = 200_000;
+// Draft on the 2nd (users finish logging the 1st), retrying through the 5th for orgs not reached.
+const MONTH_END_DAYS = [2, 3, 4, 5];
 
 // Only remind about receipts at least this old (don't nag the same day).
 const MIN_AGE_HOURS = 24;
@@ -56,8 +64,19 @@ export async function GET(req: Request): Promise<NextResponse> {
   const denied = requireCron(req);
   if (denied) return denied;
 
+  // ponytail: sequential + time-boxed; orgs past the budget roll to the next day. Queue it if beta outgrows 4 days.
+  let monthEnd: { drafted: number; remaining: number } | undefined;
+  if (MONTH_END_DAYS.includes(new Date().getUTCDate())) {
+    try {
+      monthEnd = await draftPendingMonthEndReviews(previousMonth(), Date.now() + MONTH_END_BUDGET_MS);
+      log.info('month_end_auto_drafts', monthEnd);
+    } catch (err) {
+      log.error('month_end_auto_drafts_failed', { message: err instanceof Error ? err.message : 'unknown' });
+    }
+  }
+
   if (new Date().getUTCDay() !== WEEKLY_RUN_DAY) {
-    return NextResponse.json({ ok: true, reminded: 0, skipped: 'not_weekly_run_day' });
+    return NextResponse.json({ ok: true, reminded: 0, skipped: 'not_weekly_run_day', monthEnd });
   }
 
   const admin = getSupabaseAdmin();

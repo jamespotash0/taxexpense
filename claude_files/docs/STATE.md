@@ -108,6 +108,7 @@ _Last updated: 2026-11-23_
 - **Conversational "capability" intent** (DEC-076). Tally can answer "how does this work / can it do X".
 - **Business-meal full §274(d) context** (DEC-075): capture relationship + place.
 - **Month-end review agent** (DEC-074, 2026-06-05). First agent shipped alongside the workflow.
+- **Month-end review auto-drafts** (DEC-092, 2026-11-23). Drafted on the 2nd for users with an accountant email; texted approve link; user still clicks Send.
 - **Pricing reset to 3 tiers** (DEC-049): $5.99/wk · $12.49/mo · $9.99/mo annual, ~70% margin floor.
 
 ## Open threads

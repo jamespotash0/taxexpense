@@ -12,7 +12,10 @@ import { MONTH_END_REVIEW_AGENT_PROMPT } from '../prompts';
 import { SONNET_MODEL } from '../claude';
 import { userContextLine } from '../categorize';
 import { getSupabaseAdmin } from '../supabase';
-import { log } from '../log';
+import { log, maskPhone } from '../log';
+import { getReceiptsForMonth } from '../receipts';
+import { sendSms } from '../twilio';
+import { PUBLIC_ENV } from '../env';
 import type { AppUser } from '../users';
 
 const MAX_STEPS = 8;
@@ -151,4 +154,67 @@ export async function runMonthEndReview(user: AppUser, month: string): Promise<M
     usage: result.usage,
     trace: result.trace,
   };
+}
+
+/** 'YYYY-MM' of the month before `now` (UTC). */
+export function previousMonth(now = new Date()): string {
+  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+  return d.toISOString().slice(0, 7);
+}
+
+/**
+ * Auto-draft last month's review for every org that has an accountant email and logged expenses,
+ * then text the user a link to approve it. Still human-in-the-loop: this only DRAFTS; the user
+ * sends from the dashboard. Idempotent: an org that already has a run for `month` (auto or manual)
+ * is skipped, so the daily cron can call this repeatedly to catch up on orgs it didn't reach.
+ * Stops starting new reviews once `deadlineMs` passes (each review is ~30s).
+ */
+export async function draftPendingMonthEndReviews(month: string, deadlineMs: number): Promise<{ drafted: number; remaining: number }> {
+  const admin = getSupabaseAdmin();
+  const { data: users, error } = await admin
+    .from('users')
+    .select('*')
+    .not('accountant_email', 'is', null)
+    .eq('onboarding_completed', true)
+    .is('sms_opted_out_at', null);
+  if (error) throw error;
+
+  const { data: done, error: doneErr } = await admin
+    .from('agent_runs')
+    .select('organization_id')
+    .eq('agent_type', 'month_end_review')
+    .eq('period', month);
+  if (doneErr) throw doneErr;
+  const seen = new Set((done ?? []).map((r) => String(r.organization_id)));
+
+  // One review per org (co-owners share an org).
+  const todo = ((users ?? []) as AppUser[]).filter((u) => !seen.has(u.organization_id) && seen.add(u.organization_id));
+
+  const base = PUBLIC_ENV.appUrl || 'https://tallywhy.com';
+  let drafted = 0;
+  let i = 0;
+  for (; i < todo.length && Date.now() < deadlineMs; i++) {
+    const u = todo[i];
+    try {
+      if ((await getReceiptsForMonth(u.organization_id, month)).length === 0) continue;
+      const draft = await runMonthEndReview(u, month);
+      if (draft.status !== 'completed') continue; // half-finished draft: don't ping, they can re-run
+      const flags = draft.flagged.length;
+      await sendSms(
+        u.phone_number,
+        `Your ${monthName(month)} review for your accountant is ready` +
+          (flags ? ` (${flags} item${flags === 1 ? '' : 's'} flagged)` : '') +
+          `. Take a look and approve it here: ${base}/dashboard?review=${draft.runId}`,
+      );
+      drafted++;
+    } catch (err) {
+      log.warn('month_end_auto_draft_failed', { phone: maskPhone(u.phone_number), message: err instanceof Error ? err.message : 'unknown' });
+    }
+  }
+  return { drafted, remaining: todo.length - i };
+}
+
+function monthName(month: string): string {
+  const [y, m] = month.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, 1)).toLocaleString('en-US', { month: 'long', timeZone: 'UTC' });
 }
