@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "bounce-easing",
+        "value": "dot-bounce",
+        "createdAt": "2026-11-24T22:18:36.825Z",
+        "reason": "Claude triage: iMessage typing-indicator dots, literal mimicry of iOS; predates session (d48ab98); reduced-motion disables it"
+      }
+    ]
+  }
+}
