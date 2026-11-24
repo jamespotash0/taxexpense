@@ -132,3 +132,10 @@ test('greetingReply: Penny introduces herself only at onboarding, then just talk
   assert.doesNotMatch(help, /it's Penny/);
   assert.match(greetingReply(james, 'help'), /receipt photo/);
 });
+
+test('resolveContextChoice: out of range re-asks', async () => {
+  const { resolveContextChoice } = await import('./router');
+  const res = await resolveContextChoice({ id: 'u', organization_id: 'o' } as never, ['a', 'b'], 'x', 7);
+  assert.match(res.smsText, /1-2/);
+  assert.equal(res.receiptId, null);
+});

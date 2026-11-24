@@ -5,7 +5,7 @@
 import { normalizeToE164 } from './phone';
 import { getOrCreateUserByPhone, getUserByPhone, touchLastActive, updateUser, type AppUser } from './users';
 import { notifyAdminNewSignup } from './admin-notify';
-import { logConversation, isNewestInbound, getPendingContext, countRecentInbound, getPendingFlagChoice, getPendingAmount, type ContextState, type PendingContext } from './conversations';
+import { logConversation, isNewestInbound, getPendingContext, countRecentInbound, getPendingChoice, getPendingAmount, type ContextState, type PendingContext } from './conversations';
 import { getSubstantiationRule } from './substantiation';
 import { categoryLabel } from './categories';
 import { handleOnboarding } from './onboarding';
@@ -21,7 +21,7 @@ import {
 import { processNewExpense, processClarification, processCorrection, processAttachment, confirmReceiptMessage, type ProcessResult } from './expense';
 import type { CategoryResult } from './categorize';
 import { ensureBusinessProfile } from './businessProfile';
-import { routeTextMessage, resolveFlagChoice, looksLikeExpenseCapture } from './router';
+import { routeTextMessage, resolveFlagChoice, resolveContextChoice, looksLikeExpenseCapture } from './router';
 import { subscribeUrl } from './subscribe-link';
 import { getReceipt, getLatestReceiptSince, waiveReceipt, updateReceipt, getReceiptBySourceMessage } from './receipts';
 import { reactLinq, shareContactCard, type SendOptions } from './linq';
@@ -568,11 +568,14 @@ async function handleExpenseFlow(user: AppUser, msg: InboundMessage): Promise<Pr
     if (optin) return optin;
   }
 
-  // Numbered reply to a "which one to flag?" disambiguation (DEC-039). Only query when the
-  // message is a bare number, so normal messages skip the lookup.
+  // Numbered reply to a "which one?" list: flag disambiguation (DEC-039) or a late-context
+  // "which expense was that about?". The newest list wins. Only query when the message is a bare
+  // number, so normal messages skip the lookup.
   if (/^\s*[1-9]\s*$/.test(msg.body)) {
-    const candidateIds = await getPendingFlagChoice(user.id);
-    if (candidateIds) return resolveFlagChoice(user, candidateIds, parseInt(msg.body.trim(), 10));
+    const choice = await getPendingChoice(user.id);
+    const n = parseInt(msg.body.trim(), 10);
+    if (choice?.kind === 'flag') return resolveFlagChoice(user, choice.candidateIds, n);
+    if (choice?.kind === 'context') return resolveContextChoice(user, choice.candidateIds, choice.contextText ?? '', n);
   }
 
   // Partial expense awaiting its amount (DEC-064). We asked "how much?" and stashed the text we'd

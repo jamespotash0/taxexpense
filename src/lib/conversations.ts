@@ -12,6 +12,9 @@ export type ContextState =
   | 'awaiting_receipt'
   | 'awaiting_recurring_optin'
   | 'awaiting_flag_choice'
+  // We asked "which expense was that about?" for a late context detail. pending_data carries the
+  // candidate ids + the detail text to apply once the user replies with a number.
+  | 'awaiting_context_choice'
   | 'awaiting_amount'
   // A low-confidence read was just logged and we asked the user to verify the amount (DEC-066).
   // The next reply confirms it ("yes") or corrects it. Carries the logged receipt_id.
@@ -27,6 +30,8 @@ const PENDING_AMOUNT_WINDOW_MIN = 15;
 /** Structured payload for a multi-value pending interaction (e.g. flag-disambiguation candidates). */
 export interface PendingData {
   candidateIds?: string[];
+  /** The late context detail waiting for its expense (awaiting_context_choice). */
+  contextText?: string;
   /** The text we already parsed when we had to ask for the amount (awaiting_amount). */
   priorText?: string;
   /** How many times we've re-asked for the amount, to cap the loop (awaiting_amount). */
@@ -151,23 +156,36 @@ export async function getPendingAmount(userId: string): Promise<PendingAmount | 
   return { priorText, attempts: pd?.amountAttempts ?? 0 };
 }
 
+export type PendingChoice = { kind: 'flag' | 'context'; candidateIds: string[]; contextText?: string };
+
+/** Of the numbered-choice prompts we sent (flag or late-context), the newest wins. Pure, for tests. */
+export function pickPendingChoice(
+  rows: Array<{ context_state: string | null; pending_data: PendingData | null; created_at: string }>,
+): PendingChoice | null {
+  const newest = [...rows].sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
+  const ids = newest?.pending_data?.candidateIds;
+  if (!newest || !ids || ids.length === 0) return null;
+  if (newest.context_state === 'awaiting_context_choice') {
+    return { kind: 'context', candidateIds: ids, contextText: newest.pending_data?.contextText };
+  }
+  return { kind: 'flag', candidateIds: ids };
+}
+
 /**
- * The candidate receipt ids from a recent "which one? reply 1/2/3" flag-disambiguation prompt
- * (an outbound tagged awaiting_flag_choice within the window). Null if none — caller treats the
- * inbound as a normal message. Receipt-id-independent (the candidates live in pending_data).
+ * The newest "which one? reply 1/2/3" prompt within the window: a flag disambiguation (DEC-039) or a
+ * late-context "which expense was that about?". Null if none; the caller treats the inbound as normal.
  */
-export async function getPendingFlagChoice(userId: string): Promise<string[] | null> {
+export async function getPendingChoice(userId: string): Promise<PendingChoice | null> {
   const cutoff = new Date(Date.now() - PENDING_WINDOW_HOURS * 3600 * 1000).toISOString();
   const { data, error } = await getSupabaseAdmin()
     .from('conversations')
     .select('pending_data, context_state, created_at')
     .eq('user_id', userId)
     .eq('direction', 'outbound')
-    .eq('context_state', 'awaiting_flag_choice')
+    .in('context_state', ['awaiting_flag_choice', 'awaiting_context_choice'])
     .gte('created_at', cutoff)
     .order('created_at', { ascending: false })
     .limit(1);
   if (error) throw error;
-  const ids = (data?.[0]?.pending_data as PendingData | null)?.candidateIds;
-  return ids && ids.length > 0 ? ids : null;
+  return pickPendingChoice((data ?? []) as Array<{ context_state: string | null; pending_data: PendingData | null; created_at: string }>);
 }

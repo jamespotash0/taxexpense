@@ -16,8 +16,9 @@ import { HAIKU_MODEL } from './claude';
 import { PUBLIC_ENV } from './env';
 import { log } from './log';
 import { getSupabaseAdmin } from './supabase';
-import { listReceipts, updateReceipt, getReceipt, getLatestReceiptSince, countFlaggedReceipts, waiveAllFlaggedReceipts, type ReceiptRow } from './receipts';
+import { listReceipts, updateReceipt, getReceipt, listRecentReceiptsSince, countFlaggedReceipts, waiveAllFlaggedReceipts, type ReceiptRow } from './receipts';
 import { formatMoney, shortDate } from './format';
+import { pickReceiptForContext, contextChoiceMessage, withExpenseName } from './context-match';
 import { updateUser, type AppUser } from './users';
 import { parseAgentName } from './onboarding';
 import { DEFAULT_AGENT_NAME } from './prompts';
@@ -419,31 +420,68 @@ export async function resolveFlagChoice(user: AppUser, candidateIds: string[], c
   return flagOne(user, r);
 }
 
-// A conversational context statement (DEC-069). The user added a business detail about a recently
-// logged expense ("that lunch was with a client", "that one was personal") WITHOUT restating an
-// amount — the kind of message the old rigid flow dead-ended on ("how much was this?" or "can't
-// help"). We apply it to the most recent receipt in a short window as an EDIT — the same trusted
-// operation the post-log correction window uses, just triggered by a smarter signal (the classifier)
-// than regex markers, and over a slightly wider window. Edits one existing receipt; never logs a new
-// one. If there's no recent expense to attach it to, we acknowledge + steer back rather than logging
-// a phantom or rejecting the message.
-const CONTEXT_STATEMENT_WINDOW_MIN = 120;
+// A conversational context statement (DEC-069). The user added a business detail about an expense
+// they already logged ("that hotel was for the conference", "that one was personal") without
+// restating an amount. Find the expense they meant among the last 30 days (Haiku picks, or says
+// "not sure"), apply the detail as an EDIT via the trusted correction path, and name the expense in
+// the reply so a wrong pick is visible. Not sure -> ask once with a numbered list. Never drop it.
+// Spec: claude_files/specs/late-context-matching.md.
+const CONTEXT_LOOKBACK_DAYS = 30;
+const CONTEXT_MAX_CANDIDATES = 10;
+
+const NO_RECENT_EXPENSE_REPLY =
+  'I don\'t see a recent expense to add that to. Text me the expense with the detail ' +
+  '(like "$230 hotel, Austin conference") and I\'ll log both.';
+
+async function applyContext(user: AppUser, r: ReceiptRow, text: string): Promise<ProcessResult | null> {
+  const corrected = await processCorrection(user, r.id, text);
+  if (corrected.receiptId === null) return null; // receipt vanished mid-flight
+  return { ...corrected, smsText: withExpenseName(corrected.smsText, r) };
+}
 
 async function handleContextStatement(user: AppUser, text: string): Promise<ProcessResult> {
-  const since = new Date(Date.now() - CONTEXT_STATEMENT_WINDOW_MIN * 60 * 1000).toISOString();
-  const recent = await getLatestReceiptSince(user.organization_id, since);
-  if (recent) {
-    const corrected = await processCorrection(user, recent.id, text);
-    if (corrected.receiptId !== null) return corrected; // receipt vanished mid-flight → acknowledge
+  const since = new Date(Date.now() - CONTEXT_LOOKBACK_DAYS * 24 * 3600 * 1000).toISOString();
+  const rows = await listRecentReceiptsSince(user.organization_id, since, CONTEXT_MAX_CANDIDATES);
+
+  if (rows.length === 1) {
+    const applied = await applyContext(user, rows[0], text);
+    if (applied) return applied;
+  } else if (rows.length > 1) {
+    const pick = await pickReceiptForContext(text, rows);
+    const matched = pick.match ? rows.find((r) => r.id === pick.match) : undefined;
+    if (matched) {
+      const applied = await applyContext(user, matched, text);
+      if (applied) return applied;
+    }
+    const shortlisted = rows.filter((r) => pick.shortlist.includes(r.id));
+    const list = (shortlisted.length > 0 ? shortlisted : rows).slice(0, 5);
+    return {
+      smsText: contextChoiceMessage(list),
+      receiptId: null,
+      contextState: 'awaiting_context_choice',
+      pendingData: { candidateIds: list.map((r) => r.id), contextText: text },
+    };
   }
-  // Nothing to attach it to. Acknowledge + point back to the one thing we do — and record that we
-  // DELIBERATELY did not log (Alex's silent-non-logging guard: a log-only metric so a classifier
-  // that wrongly diverts real expenses here is auditable, not invisible).
+
+  // Nothing to attach it to. Say so honestly, and record that we DELIBERATELY did not log (Alex's
+  // silent-non-logging guard: a classifier that wrongly diverts real expenses here stays auditable).
   log.info('conversational_no_log', { user: user.id, kind: 'context_statement', applied: false });
-  return reply(
-    'Got it! Whenever you spend on the business, send it my way (a photo, or a quick note like ' +
-      '"$30 gas to client site") and I\'ll capture the why and anything the IRS needs.',
-  );
+  return reply(NO_RECENT_EXPENSE_REPLY);
+}
+
+/** Resolve a "1/2/3" reply to a "which expense was that about?" prompt: apply the stored detail. */
+export async function resolveContextChoice(
+  user: AppUser,
+  candidateIds: string[],
+  contextText: string,
+  choice: number,
+): Promise<ProcessResult> {
+  if (!Number.isInteger(choice) || choice < 1 || choice > candidateIds.length) {
+    return reply(`Reply with a number 1-${candidateIds.length}.`);
+  }
+  const r = await getReceipt(user.organization_id, candidateIds[choice - 1]);
+  if (!r) return reply("Hmm, that one's not there anymore.");
+  return (await applyContext(user, r, contextText)) ?? reply("Hmm, that one's not there anymore.");
 }
 
 /** Answer a "how does Tally work / can it do X" question from the grounded fact sheet. On any LLM
