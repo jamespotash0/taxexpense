@@ -150,6 +150,17 @@ export async function getLatestReceiptSince(orgId: string, sinceIso: string): Pr
   return (data as ReceiptRow | null) ?? null;
 }
 
+/** Recent receipts (org-scoped, newest first) — candidates for matching a late context detail. */
+export async function listRecentReceiptsSince(orgId: string, sinceIso: string, limit: number): Promise<ReceiptRow[]> {
+  const { data, error } = await orgTable('receipts', orgId)
+    .select()
+    .gte('created_at', sinceIso)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data as unknown as ReceiptRow[] | null) ?? [];
+}
+
 export type ReceiptFilter = 'all' | 'needs_attention' | 'this_month';
 
 /** List receipts for the dashboard (org-scoped, newest first, paginated + filtered). */
