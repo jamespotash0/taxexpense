@@ -48,12 +48,12 @@ export default async function Home() {
         <div className="hero-wash relative mx-auto max-w-[80rem] overflow-hidden rounded-[32px] sm:rounded-[40px]">
           <div className="grid items-center gap-12 px-6 pb-12 pt-14 sm:px-10 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10 lg:px-14 lg:pb-16 lg:pt-20">
             <div>
-              <h1 className="text-balance text-[clamp(2.6rem,5.6vw,4.4rem)] font-medium leading-[1.04] tracking-[-0.04em] text-[#101210]">
+              <h1 className="text-balance text-[clamp(2.6rem,5.6vw,4.4rem)] font-normal leading-[1.04] tracking-[-0.022em] text-[#101210]">
                 {t.hero.line1pre}
                 <span className="text-[#d92d20]">{t.hero.line1em}</span>
                 {t.hero.line1post}
               </h1>
-              <p className="mt-6 max-w-[33rem] text-pretty text-[1.15rem] leading-[1.5] text-[#4a4d48] sm:text-[1.25rem]">{t.hero.subtitle}</p>
+              <p className="mt-6 max-w-[33rem] text-pretty text-[1.15rem] leading-[1.5] text-[#6f726d] sm:text-[1.25rem]">{t.hero.subtitle}</p>
 
               <div className="mt-9">
                 <StartButton label={t.nav.getStarted} variant={heroVariant} experiment="hero-copy" />
@@ -79,22 +79,22 @@ export default async function Home() {
       </section>
 
       {/* Time saved: out of the spreadsheet, into real time. */}
-      <section id="how-it-works" className="scroll-mt-24 px-5 pt-24 sm:px-6 lg:pt-32">
+      <section id="how-it-works" className="scroll-mt-24 px-5 pt-32 sm:px-6 lg:pt-44">
         <BlurFade>
           <Features t={t.features} />
         </BlurFade>
       </section>
 
       {/* Compliance: the IRS rules, beside what a missing record costs. */}
-      <section className="px-5 pt-24 sm:px-6 lg:pt-32">
+      <section className="px-5 pt-32 sm:px-6 lg:pt-44">
         <RecordCosts t={t.costs} />
       </section>
 
       {/* Pricing and FAQ side by side; stacked on phones. */}
-      <section id="pricing" className="scroll-mt-24 px-5 pt-24 sm:px-6 lg:pt-32">
+      <section id="pricing" className="scroll-mt-24 px-5 pt-32 sm:px-6 lg:pt-44">
         <div className="mx-auto grid max-w-[80rem] gap-16 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20">
           <BlurFade>
-            <h2 className="text-balance text-[clamp(2.1rem,4.4vw,2.9rem)] font-semibold leading-[1.1] tracking-[-0.03em] text-[#101210]">{t.pricing.title}</h2>
+            <h2 className="text-balance text-[clamp(2.1rem,4.4vw,2.9rem)] font-normal leading-[1.1] tracking-[-0.018em] text-[#101210]">{t.pricing.title}</h2>
             <div className="mt-10">
               <LandingPricing t={t.pricing} ctaLabel={t.nav.getStarted} />
             </div>
@@ -108,11 +108,11 @@ export default async function Home() {
       </section>
 
       {/* Closing card: same soft wash as the hero, same CTA. */}
-      <section className="px-3 pt-24 sm:px-6 lg:pt-32">
+      <section className="px-3 pt-32 sm:px-6 lg:pt-44">
         <div className="hero-wash mx-auto flex max-w-[80rem] flex-col items-start gap-8 rounded-[32px] px-6 py-12 sm:rounded-[40px] sm:px-10 lg:flex-row lg:items-center lg:justify-between lg:px-14 lg:py-16">
           <div>
-            <h2 className="text-balance text-[clamp(2.1rem,4.4vw,2.9rem)] font-semibold leading-[1.1] tracking-[-0.03em] text-[#101210]">{t.cta.heading}</h2>
-            <p className="mt-3 max-w-[30rem] text-[1.1rem] text-[#4a4d48]">{t.cta.sub}</p>
+            <h2 className="text-balance text-[clamp(2.1rem,4.4vw,2.9rem)] font-normal leading-[1.1] tracking-[-0.018em] text-[#101210]">{t.cta.heading}</h2>
+            <p className="mt-3 max-w-[30rem] text-[1.1rem] text-[#6f726d]">{t.cta.sub}</p>
           </div>
           <div className="shrink-0">
             <StartButton label={t.nav.getStarted} variant={heroVariant} experiment="footer-cta" />
@@ -152,7 +152,7 @@ function StartButton({ label, variant, experiment }: { label: string; variant: H
       href="/start"
       event="hero_cta_click"
       data={{ experiment, variant }}
-      className="inline-flex items-center gap-2 rounded-full bg-[#d92d20] px-7 py-4 text-[1.05rem] font-medium text-white shadow-[0_8px_24px_-10px_rgba(217,45,32,0.6)] transition-colors hover:bg-[#b8241a]"
+      className="inline-flex items-center gap-2 rounded-full bg-[#d92d20] px-7 py-4 text-[1.05rem] font-medium text-white transition-colors hover:bg-[#b8241a]"
     >
       {label}
       <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" aria-hidden><path d="M3 8h9.5m0 0L8.5 4M12.5 8l-4 4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>

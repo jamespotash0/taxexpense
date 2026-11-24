@@ -10,21 +10,21 @@ export function RecordCosts({ t }: { t: { title: string; sub: string; costsHeadi
   return (
     <div className="mx-auto grid max-w-[80rem] gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
       <BlurFade className="lg:sticky lg:top-28 lg:self-start">
-        <h2 className="text-balance text-[clamp(2.1rem,4.4vw,2.9rem)] font-semibold leading-[1.1] tracking-[-0.03em] text-[#101210]">{t.title}</h2>
-        <p className="mt-3 max-w-[28rem] text-[1.1rem] leading-[1.5] text-[#4a4d48]">{t.sub}</p>
+        <h2 className="text-balance text-[clamp(2.1rem,4.4vw,2.9rem)] font-normal leading-[1.1] tracking-[-0.018em] text-[#101210]">{t.title}</h2>
+        <p className="mt-3 max-w-[28rem] text-[1.1rem] leading-[1.5] text-[#6f726d]">{t.sub}</p>
       </BlurFade>
 
       <div>
-        <h3 className="mb-2 text-[1.15rem] font-semibold tracking-[-0.02em] text-[#101210]">{t.costsHeading}</h3>
+        <h3 className="mb-2 text-[1.15rem] font-normal tracking-[-0.02em] text-[#101210]">{t.costsHeading}</h3>
         <ul className="divide-y divide-black/[0.08] border-y border-black/[0.08]">
           {t.rows.map((r, i) => (
             <li key={r.source}>
               <BlurFade delay={i * 0.08} className="grid gap-3 py-8 sm:grid-cols-[11rem_1fr] sm:gap-8">
-                <p className="text-[clamp(2.8rem,6vw,4rem)] font-semibold leading-none tracking-[-0.04em] text-[#101210]">
+                <p className="text-[clamp(2.8rem,6vw,4rem)] font-normal leading-none tracking-[-0.04em] text-[#101210]">
                   {/* A symbol suffix (%) stays display size; a word ("years") drops to label size. */}
                   <NumberTicker value={r.value} from={r.from} prefix={r.prefix} suffix={r.suffix.startsWith(' ') ? '' : r.suffix} />
                   {r.suffix.startsWith(' ') && (
-                    <span className="ml-2 text-[1.3rem] font-medium tracking-[-0.02em] text-[#4a4d48]">{r.suffix.trim()}</span>
+                    <span className="ml-2 text-[1.3rem] font-normal tracking-[-0.02em] text-[#4a4d48]">{r.suffix.trim()}</span>
                   )}
                 </p>
                 <div>

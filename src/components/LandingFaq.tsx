@@ -5,7 +5,7 @@ import type { Dict } from '@/i18n/dictionaries';
 export function LandingFaq({ t }: { t: Dict['faq'] }) {
   return (
     <div className="mx-auto max-w-[80rem]">
-      <h2 className="text-[clamp(2.1rem,4.4vw,2.9rem)] font-semibold leading-[1.1] tracking-[-0.03em] text-[#101210]">{t.heading}</h2>
+      <h2 className="text-[clamp(2.1rem,4.4vw,2.9rem)] font-normal leading-[1.1] tracking-[-0.018em] text-[#101210]">{t.heading}</h2>
       <div className="mt-8 border-t border-black/[0.08]">
         {t.items.map((item) => (
           <details key={item.q} className="group border-b border-black/[0.08]">

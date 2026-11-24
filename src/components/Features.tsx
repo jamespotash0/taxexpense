@@ -78,14 +78,14 @@ const VIGNETTES: React.ReactNode[] = [
 export function Features({ t }: { t: Dict['features'] }) {
   return (
     <div className="mx-auto max-w-[80rem]">
-      <h2 className="text-balance text-[clamp(2.1rem,4.4vw,2.9rem)] font-semibold leading-[1.1] tracking-[-0.03em] text-[#101210]">{t.heading}</h2>
-      <p className="mt-4 max-w-[38rem] text-pretty text-[1.1rem] leading-[1.55] text-[#4a4d48]">{t.sub}</p>
-      <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <h2 className="text-balance text-[clamp(2.1rem,4.4vw,2.9rem)] font-normal leading-[1.1] tracking-[-0.018em] text-[#101210]">{t.heading}</h2>
+      <p className="mt-4 max-w-[38rem] text-pretty text-[1.1rem] leading-[1.55] text-[#6f726d]">{t.sub}</p>
+      <ul className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {t.items.map((f, i) => (
           <li key={f.title} className="rounded-[28px] bg-[#ececea] p-2">
             <div aria-hidden className="flex h-[11rem] items-center sm:h-[13.5rem] justify-center rounded-[22px] bg-white px-5">{VIGNETTES[i]}</div>
             <div className="px-4 pb-4 pt-5">
-              <h3 className="text-[1.3rem] font-medium tracking-[-0.025em] text-[#101210]">{f.title}</h3>
+              <h3 className="text-[1.3rem] font-normal tracking-[-0.02em] text-[#101210]">{f.title}</h3>
               <p className="mt-1.5 text-[1rem] leading-relaxed text-[#6f726d]">{f.body}</p>
             </div>
           </li>

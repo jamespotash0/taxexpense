@@ -49,7 +49,7 @@ export function LandingPricing({ t, ctaLabel }: { t: Dict['pricing']; ctaLabel: 
         </div>
 
         <p className="mt-8 flex items-baseline gap-1.5">
-          <span className="text-[3.5rem] font-semibold leading-none tracking-[-0.04em] text-[#101210]">{formatMoney(plan.displayCents)}</span>
+          <span className="text-[3.5rem] font-normal leading-none tracking-[-0.04em] text-[#101210]">{formatMoney(plan.displayCents)}</span>
           <span className="text-[1.05rem] text-[#6f726d]">{plan.unit === 'wk' ? t.perWk : t.perMo}</span>
         </p>
         <p className="mt-2 text-[0.95rem] text-[#6f726d]">{billedLabel}</p>
