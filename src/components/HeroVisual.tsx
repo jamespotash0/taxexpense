@@ -2,6 +2,8 @@
 // dashboard window, cropped by the edge, and the conversation with Penny overlapping it in front.
 // Dashboard contents are an illustrative example. Server component (HeroThread is the client part).
 import { HeroThread } from './HeroThread';
+import { NumberTicker } from './NumberTicker';
+import { BlurFade } from './Reveal';
 
 const Check = () => (
   <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 shrink-0" fill="none" aria-hidden><circle cx="8" cy="8" r="7" fill="#0f7a47" /><path d="m4.8 8.2 2.1 2.1 4.3-4.5" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
@@ -28,10 +30,10 @@ function DashboardWindow() {
       </div>
       <div className="p-7">
         <p className="text-[0.8rem] text-[#6f726d]">Spent in November</p>
-        <p className="mt-1 text-[2.6rem] leading-none tracking-[-0.04em] tabular-nums text-[#101210]">$2,184.60</p>
+        <p className="mt-1 text-[2.6rem] leading-none tracking-[-0.04em] tabular-nums text-[#101210]"><NumberTicker value={2184.6} prefix="$" decimals={2} /></p>
         <div className="mt-5 flex items-center gap-3">
-          <div className="h-1.5 w-56 rounded-full bg-[#0f7a47]" aria-hidden />
-          <p className="flex items-center gap-1.5 text-[0.8rem] text-[#0f7a47]"><Check /> 23 of 23 documented</p>
+          <div className="bar-fill h-1.5 w-56 rounded-full bg-[#0f7a47]" aria-hidden />
+          <p className="flex items-center gap-1.5 text-[0.8rem] text-[#0f7a47]"><Check /> <NumberTicker value={23} /> of 23 documented</p>
         </div>
         <ul className="mt-6 divide-y divide-black/[0.06] border-t border-black/[0.06] text-[0.85rem]">
           {ROWS.map(([d, n, c, a]) => (
@@ -59,14 +61,14 @@ export function HeroVisual() {
       }}
     >
       {/* Dashboard, cropped by the right edge of the screen (desktop only). */}
-      <div className="absolute left-[26%] top-[11%] hidden lg:block">
+      <BlurFade delay={0.25} className="absolute left-[26%] top-[11%] hidden lg:block">
         <DashboardWindow />
-      </div>
+      </BlurFade>
       {/* Penny, in front. */}
       <div className="absolute inset-x-5 bottom-8 sm:inset-x-auto sm:left-1/2 sm:w-[24rem] sm:-translate-x-1/2 lg:bottom-[9%] lg:left-[9%] lg:w-[23rem] lg:translate-x-0">
-        <div className="rounded-[26px] shadow-[0_40px_80px_-30px_rgba(60,8,4,0.6)]">
+        <BlurFade delay={0.4} className="rounded-[26px] shadow-[0_40px_80px_-30px_rgba(60,8,4,0.6)]">
           <HeroThread />
-        </div>
+        </BlurFade>
       </div>
     </div>
   );

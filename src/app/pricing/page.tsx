@@ -5,6 +5,7 @@ import { PlanPicker } from '@/components/PlanPicker';
 import { LandingFaq } from '@/components/LandingFaq';
 import { SiteHeader } from '@/components/SiteHeader';
 import { TRIAL_DAYS } from '@/lib/pricing';
+import { BlurFade } from '@/components/Reveal';
 import { getI18n } from '@/i18n/server';
 import { fmt } from '@/i18n/config';
 import { geist } from '../fonts';
@@ -23,18 +24,18 @@ export default async function PricingPage() {
       <SiteHeader login={t.nav.login} getStarted={t.nav.getStarted} pricing={t.nav.pricing} />
 
       <main className="px-5 pb-28 pt-16 sm:px-6 lg:pt-24">
-        <div className="mx-auto max-w-[44rem] text-center">
+        <BlurFade className="mx-auto max-w-[44rem] text-center">
           <h1 className="text-balance text-[clamp(2.5rem,5vw,4rem)] font-normal leading-[1.04] tracking-[-0.04em]">{p.title}</h1>
           <p className="mt-5 text-[1.15rem] text-[#6f726d] sm:text-[1.25rem]">
             {p.subtitle} <span className="text-[#d92d20]">{fmt(p.badge, { days: TRIAL_DAYS })}</span>
           </p>
-        </div>
+        </BlurFade>
 
-        <div className="mx-auto mt-14 max-w-[64rem]">
+        <BlurFade delay={0.1} className="mx-auto mt-14 max-w-[64rem]">
           <PlanPicker t={p} />
-        </div>
+        </BlurFade>
 
-        <div className="mx-auto mt-28 max-w-[48rem] lg:mt-36">
+        <BlurFade className="mx-auto mt-28 max-w-[48rem] lg:mt-36">
           <LandingFaq t={faq} />
           <p className="mt-10 text-[0.95rem] text-[#6f726d]">
             {p.notReady}{' '}
@@ -42,7 +43,7 @@ export default async function PricingPage() {
               {p.startTrialLink}
             </Link>
           </p>
-        </div>
+        </BlurFade>
       </main>
     </div>
   );

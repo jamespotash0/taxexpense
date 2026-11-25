@@ -4,6 +4,7 @@
 // motion shows the finished card). Sides alternate on desktop. Contents are illustrative.
 import type { Dict } from '@/i18n/dictionaries';
 import { BlurFade, InView } from './Reveal';
+import { NumberTicker } from './NumberTicker';
 
 const card = 'w-full max-w-[24rem] rounded-[20px] bg-white p-6 shadow-[0_1px_2px_rgba(16,18,16,0.05),0_24px_48px_-28px_rgba(16,18,16,0.3)] ring-1 ring-black/[0.05]';
 const muted = 'text-[#6f726d]';
@@ -24,11 +25,11 @@ const VIGNETTES: React.ReactNode[] = [
       <p className="text-[1rem] text-[#101210]">November</p>
       <p className={`text-[0.9rem] ${muted}`}>23 expenses</p>
     </div>
-    <p className="mt-1 text-[2.4rem] leading-none tracking-[-0.04em] tabular-nums text-[#101210]">$2,184.60</p>
+    <p className="mt-1 text-[2.4rem] leading-none tracking-[-0.04em] tabular-nums text-[#101210]"><NumberTicker value={2184.6} prefix="$" decimals={2} /></p>
     <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-[#e3f3ea]" aria-hidden>
       <div style={d(150)} className={`h-1.5 w-0 rounded-full bg-[#0f7a47] transition-[width] duration-[1600ms] ${EASE} group-data-[inview]:w-full motion-reduce:w-full`} />
     </div>
-    <p style={d(1100)} className={`mt-2 flex items-center gap-1.5 text-[0.88rem] text-[#0f7a47] ${rise}`}><Check className="h-3.5 w-3.5" /> 23 of 23 documented</p>
+    <p style={d(1100)} className={`mt-2 flex items-center gap-1.5 text-[0.88rem] text-[#0f7a47] ${rise}`}><Check className="h-3.5 w-3.5" /> <NumberTicker value={23} /> of 23 documented</p>
     <ul className="mt-5 divide-y divide-black/[0.06] border-t border-black/[0.06] text-[0.92rem]">
       {[['Adobe', 'Software', '$59.99'], ['Shell', 'Car', '$54.10'], ['Sweetgreen', 'Client meal', '$92.40']].map(([n, c, a], i) => (
         <li key={n} style={d(300 + i * 220)} className={`flex items-center gap-3 py-2.5 ${rise}`}>
@@ -66,7 +67,7 @@ const VIGNETTES: React.ReactNode[] = [
       <span aria-hidden className="flex h-10 w-9 items-center justify-center rounded-[6px] bg-white text-[0.62rem] font-semibold tracking-[0.04em] text-[#0f7a47] ring-1 ring-black/[0.06]">CSV</span>
       <div className="min-w-0 flex-1">
         <p className="truncate text-[0.92rem] text-[#101210]">tally-2026.csv</p>
-        <p className={`text-[0.8rem] tabular-nums ${muted}`}>214 expenses · $38,412.75</p>
+        <p className={`text-[0.8rem] tabular-nums ${muted}`}><NumberTicker value={214} /> expenses · <NumberTicker value={38412.75} prefix="$" decimals={2} /></p>
       </div>
     </div>
     <div className="mt-5 flex items-center justify-between">

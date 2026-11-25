@@ -36,12 +36,17 @@ export default async function Home() {
       <section className="flex min-h-[calc(100svh-4rem)] flex-col">
         <div className="grid flex-1 lg:grid-cols-2">
           <div className="flex flex-col justify-center bg-[#f7f7f8] px-5 py-14 sm:px-6 lg:py-16 lg:pl-[max(1.5rem,calc((100vw-80rem)/2))] lg:pr-14">
-            <h1 className="text-balance text-[clamp(2.8rem,5vw,5.25rem)] font-normal leading-[1.02] tracking-[-0.04em] text-[#101210]">
+            <BlurFade>
+              <h1 className="text-balance text-[clamp(2.8rem,5vw,5.25rem)] font-normal leading-[1.02] tracking-[-0.04em] text-[#101210]">
               {t.hero.line1pre}
               <span className="text-[#d92d20]">{t.hero.line1em}</span>
               {t.hero.line1post}
-            </h1>
-            <p className="mt-7 max-w-[36rem] text-pretty text-[1.15rem] leading-[1.5] text-[#2c2e2a] sm:text-[1.3rem]">{t.hero.subtitle}</p>
+              </h1>
+            </BlurFade>
+            <BlurFade delay={0.08}>
+              <p className="mt-7 max-w-[36rem] text-pretty text-[1.15rem] leading-[1.5] text-[#2c2e2a] sm:text-[1.3rem]">{t.hero.subtitle}</p>
+            </BlurFade>
+            <BlurFade delay={0.16}>
             <div className="mt-10 flex flex-wrap gap-3">
               <StartButton label={t.nav.getStarted} variant={heroVariant} experiment="hero-copy" ink />
               <a href="#how-it-works" className="inline-flex items-center rounded-full px-7 py-4 text-[1.05rem] font-medium text-[#101210] ring-[1.5px] ring-inset ring-[#101210] transition-colors hover:bg-[#101210] hover:text-white">
@@ -49,6 +54,7 @@ export default async function Home() {
               </a>
             </div>
             <p className="mt-4 text-[0.85rem] text-[#8a8d88]">{t.hero.disclaimer}</p>
+            </BlurFade>
           </div>
           <HeroVisual />
         </div>
@@ -80,7 +86,7 @@ export default async function Home() {
       </section>
 
       {/* Compliance: the IRS rules, beside what a missing record costs. */}
-      <section className="bg-[#101210] px-5 py-28 selection:bg-[#d92d20] selection:text-white sm:px-6 lg:py-40">
+      <section className="bg-[#101210] px-5 py-24 selection:bg-[#d92d20] selection:text-white sm:px-6 lg:py-36">
         <RecordCosts t={t.costs} />
       </section>
 

@@ -10,11 +10,13 @@ export function NumberTicker({
   from = 0,
   prefix = '',
   suffix = '',
+  decimals,
 }: {
   value: number;
   from?: number;
   prefix?: string;
   suffix?: string;
+  decimals?: number;
 }) {
   const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true, margin: '-80px' });
@@ -27,8 +29,10 @@ export function NumberTicker({
     return () => c.stop();
   }, [inView, reduced, from, value]);
 
-  // A dollar amount with cents keeps its cents all the way ($92.40 -> $0.00); whole numbers otherwise.
-  const shown = !Number.isInteger(from) ? n.toFixed(2) : String(Math.round(n));
+  // Cents when asked for, or when counting from a dollar amount ($92.40 -> $0.00); whole numbers
+  // otherwise. Thousands get separators ($2,184.60).
+  const d = decimals ?? (Number.isInteger(from) ? 0 : 2);
+  const shown = n.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
   return (
     <span ref={ref} className="tabular-nums">
       {prefix}
