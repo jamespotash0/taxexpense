@@ -6,12 +6,12 @@ const en = {
   nav: { login: 'Log in', getStarted: 'Get started', howItWorks: 'How it works', pricing: 'Pricing' },
   // "What a missing record costs" (sourced facts only, no marketing stats; see JOURNAL).
   features: {
-    heading: 'Out of the spreadsheet. Into real time.',
-    sub: 'No more saving receipts for a spreadsheet and waiting months to sort them. Tally logs each expense the moment you text it, so your records are current every day.',
+    heading: 'Your records, done before tax season.',
+    sub: 'Every expense is logged and explained the day it happens. By April, there’s nothing left to sort.',
     items: [
-      { title: 'Text it', body: 'Snap the receipt or send a quick note the moment you spend. Under $75, the text you sent is the written record.' },
-      { title: 'Tally asks only when the IRS requires it', body: 'Meals, travel, gifts and car expenses have stricter rules. Tally knows which ones, cites the IRC section, and asks for a receipt only when the law calls for one.' },
-      { title: 'Export for your accountant', body: 'Download a standard CSV or a QuickBooks-ready file, or email the whole year to your accountant in one tap.' },
+      { title: 'Nothing to sort in April', body: 'Your year stays current as you go. No shoebox, no spreadsheet, no weekend lost to receipts.' },
+      { title: 'Every write-off has its why', body: 'Meals, travel and car expenses need a reason on record. Tally captures it while you still remember, and asks only when the IRS rules call for more.' },
+      { title: 'Your accountant gets a finished year', body: 'Send a clean CSV or a QuickBooks-ready file in one tap. Less back-and-forth at tax time.' },
     ],
   },
   costs: {
@@ -38,7 +38,7 @@ const en = {
     // Tight two-line subtitle: the "by April it's gone" forgetting-pain + "hold up" frames the
     // record, not a tax-outcome promise (Jordan, DEC-079).
     subtitle:
-      'Text a receipt or a quick note when you spend. Tally’s AI logs it, sorts it by tax category, and asks only when the IRS needs more.',
+      'The easiest way to track business expenses: text a receipt or a quick note. Tally’s AI logs it, sorts it by tax category, and asks only when the IRS needs more.',
     tryEyebrow: 'Try it out',
     tryText: 'Text {number}',
     ctaOr: 'or text',
@@ -373,12 +373,12 @@ type Dict = typeof en;
 const es: Dict = {
   nav: { login: 'Iniciar sesión', getStarted: 'Empezar', howItWorks: 'Cómo funciona', pricing: 'Precios' },
   features: {
-    heading: 'Fuera de la hoja de cálculo. En tiempo real.',
-    sub: 'Nada de guardar recibos para una hoja de cálculo y esperar meses para ordenarlos. Tally registra cada gasto en el momento en que lo escribes, así tus registros están al día, todos los días.',
+    heading: 'Tus registros, listos antes de la temporada de impuestos.',
+    sub: 'Cada gasto se registra y se explica el día que ocurre. Para abril, no queda nada que ordenar.',
     items: [
-      { title: 'Escríbelo', body: 'Toma foto del recibo o manda una nota rápida en el momento en que gastas. Menos de $75, el mensaje que enviaste es el registro escrito.' },
-      { title: 'Tally pregunta solo cuando el IRS lo exige', body: 'Las comidas, viajes, regalos y gastos de auto tienen reglas más estrictas. Tally sabe cuáles, cita la sección del IRC y pide recibo solo cuando la ley lo exige.' },
-      { title: 'Exporta para tu contador', body: 'Descarga un CSV estándar o un archivo listo para QuickBooks, o manda el año completo a tu contador con un toque.' },
+      { title: 'Nada que ordenar en abril', body: 'Tu año se mantiene al día sobre la marcha. Sin caja de zapatos, sin hoja de cálculo, sin fines de semana perdidos con recibos.' },
+      { title: 'Cada deducción tiene su porqué', body: 'Las comidas, viajes y gastos de auto necesitan un motivo registrado. Tally lo captura mientras aún lo recuerdas, y solo pregunta cuando las reglas del IRS piden más.' },
+      { title: 'Tu contador recibe un año terminado', body: 'Envía un CSV limpio o un archivo listo para QuickBooks con un toque. Menos idas y vueltas en temporada de impuestos.' },
     ],
   },
   costs: {
@@ -403,7 +403,7 @@ const es: Dict = {
     // Mismo enfoque-problema que EN (DEC-079): "para abril ya se esfumó" + "se sostienen"
     // enmarca el registro, no una promesa de resultado fiscal.
     subtitle:
-      'Envía un recibo o una nota rápida al gastar. La IA de Tally lo registra, lo ordena por categoría fiscal y solo pregunta cuando el IRS pide más.',
+      'La forma más fácil de registrar tus gastos de negocio: envía un recibo o una nota rápida. La IA de Tally lo registra, lo ordena por categoría fiscal y solo pregunta cuando el IRS pide más.',
     tryEyebrow: 'Pruébalo',
     tryText: 'Escribe a {number}',
     ctaOr: 'o escribe a',
