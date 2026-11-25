@@ -7,7 +7,7 @@ import { HeroExposure } from '@/components/HeroExposure';
 import { LandingFaq } from '@/components/LandingFaq';
 import { RecordCosts } from '@/components/RecordCosts';
 import { Features } from '@/components/Features';
-import { BlurFade, InView } from '@/components/Reveal';
+import { BlurFade } from '@/components/Reveal';
 import { SiteHeader, TallyWordmark } from '@/components/SiteHeader';
 import { LandingPricing } from '@/components/LandingPricing';
 import { TrackedLink } from '@/components/TrackedLink';
@@ -39,13 +39,13 @@ export default async function Home() {
       <section className="min-h-[calc(100svh-4rem)] px-5 pb-16 pt-10 sm:px-6 lg:pb-20 lg:pt-14">
         <div className="mx-auto grid w-full max-w-[80rem] items-center gap-12 lg:grid-cols-[1.45fr_1fr] lg:gap-14">
           <div>
-            <h1 className="text-balance text-[clamp(2.6rem,5vw,4.75rem)] font-normal leading-[1.04] tracking-[-0.04em] text-[#101210]">
+            <h1 className="text-balance text-[clamp(2.8rem,5.9vw,5.75rem)] font-normal leading-[1.02] tracking-[-0.04em] text-[#101210]">
               {t.hero.line1pre}
               <span className="text-[#d92d20]">{t.hero.line1em}</span>
               {t.hero.line1post}
             </h1>
-            <p className="mt-5 max-w-[42rem] text-pretty text-[1.1rem] leading-[1.5] text-[#6f726d] sm:text-[1.25rem]">{t.hero.subtitle}</p>
-            <div className="mt-8">
+            <p className="mt-7 max-w-[42rem] text-pretty text-[1.15rem] leading-[1.5] text-[#6f726d] sm:text-[1.4rem]">{t.hero.subtitle}</p>
+            <div className="mt-10">
               <StartButton label={t.nav.getStarted} variant={heroVariant} experiment="hero-copy" />
             </div>
             <p className="mt-3.5 text-[0.85rem] text-[#8a8d88]">{t.hero.disclaimer}</p>
@@ -53,21 +53,26 @@ export default async function Home() {
           <HeroThread />
         </div>
 
-        {/* Who it's for: where a logo row would sit (no customer logos exist). */}
-        <InView className="group mx-auto mt-12 flex w-full lg:mt-14 max-w-[80rem] flex-col items-center gap-4 border-t border-black/[0.06] pt-7 lg:flex-row lg:gap-12">
+        {/* Social bar: who it's for, as a slow marquee with faded edges (no customer logos exist yet).
+            Two copies of the list scroll as one strip; the second is hidden from screen readers. Pauses
+            on hover; static and wrapped under reduced motion. */}
+        <div className="mx-auto mt-12 flex w-full max-w-[80rem] flex-col gap-5 border-t border-black/[0.06] pt-8 lg:mt-14 lg:flex-row lg:items-center lg:gap-10">
           <p className="shrink-0 text-[0.85rem] text-[#8a8d88]">{t.hero.builtFor}</p>
-          <ul className="flex flex-1 flex-wrap items-center justify-center lg:justify-between gap-x-10 gap-y-3 sm:gap-x-14">
-            {t.hero.audienceChips.map((a, i) => (
-              <li
-                key={a}
-                style={{ transitionDelay: `${100 + i * 100}ms` }}
-                className="translate-y-1.5 text-[1.05rem] font-medium tracking-[-0.02em] text-[#7d807a] opacity-0 transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-data-[inview]:translate-y-0 group-data-[inview]:opacity-100 motion-reduce:translate-y-0 motion-reduce:opacity-100 sm:text-[1.2rem]"
-              >
-                {a}
-              </li>
-            ))}
-          </ul>
-        </InView>
+          <div className="group relative min-w-0 flex-1 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)] motion-reduce:[mask-image:none]">
+            <div className="marquee flex w-max group-hover:[animation-play-state:paused] motion-reduce:w-auto motion-reduce:flex-wrap">
+              {[0, 1].map((copy) => (
+                <ul key={copy} aria-hidden={copy === 1 || undefined} className={`flex shrink-0 items-center ${copy === 1 ? 'motion-reduce:hidden' : 'motion-reduce:flex-wrap motion-reduce:gap-y-3'}`}>
+                  {t.hero.audienceChips.map((a) => (
+                    <li key={a} className="flex items-center whitespace-nowrap text-[1.2rem] font-medium tracking-[-0.02em] text-[#5f625c] sm:text-[1.35rem]">
+                      {a}
+                      <span aria-hidden className="mx-7 h-1.5 w-1.5 rounded-full bg-[#d92d20]/80 sm:mx-9" />
+                    </li>
+                  ))}
+                </ul>
+              ))}
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* How it works: three rows, one idea each. */}

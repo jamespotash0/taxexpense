@@ -81,6 +81,7 @@ export function Features({ t }: { t: Dict['features'] }) {
     <div className="mx-auto max-w-[80rem]">
       <BlurFade>
         <h2 className="max-w-[40rem] text-balance text-[clamp(2.1rem,4.4vw,2.9rem)] font-normal leading-[1.1] tracking-[-0.018em] text-[#101210]">{t.heading}</h2>
+        <p className="mt-4 max-w-[34rem] text-pretty text-[1.15rem] leading-[1.55] text-[#6f726d]">{t.sub}</p>
       </BlurFade>
       <ol className="mt-16 space-y-20 lg:mt-24 lg:space-y-28">
         {t.items.map((f, i) => (

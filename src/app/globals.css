@@ -234,6 +234,11 @@ body {
   .btn:active, .row-press:active { transform: none !important; }
 }
 
+/* Landing social bar: two copies of the list scroll as one strip, so -50% loops seamlessly. */
+@keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.marquee { animation: marquee 45s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .marquee { animation: none; } }
+
 /* Compose-bar caret in the hero phone. */
 @keyframes caret-blink { 0%, 45% { opacity: 1; } 50%, 95% { opacity: 0; } 100% { opacity: 1; } }
 .caret-blink { animation: caret-blink 1s step-end infinite; }

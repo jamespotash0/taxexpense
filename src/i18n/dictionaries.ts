@@ -7,6 +7,7 @@ const en = {
   // "What a missing record costs" (sourced facts only, no marketing stats; see JOURNAL).
   features: {
     heading: 'Your records, done before tax season.',
+    sub: 'Tally sorts each expense the moment you text it, so April is a download, not a weekend.',
     items: [
       { title: 'Nothing to sort in April', body: 'Your year stays current as you go. No shoebox, no spreadsheet, no weekend lost to receipts.' },
       { title: 'Every write-off has its why', body: 'Meals, travel and car expenses need a reason on record. Tally captures it while you still remember, and asks only when the IRS rules call for more.' },
@@ -42,7 +43,7 @@ const en = {
     ctaOr: 'or text',
     // Who it's for: answers the audience question up front (V1: self-employed, per CLAUDE.md).
     audienceEyebrow: 'Built for the self-employed',
-    audienceChips: ['Freelancers', 'Contractors', 'Sole proprietors', 'Single-member LLCs'],
+    audienceChips: ['Freelancers', 'Consultants', 'Contractors', 'Designers', 'Photographers', 'Real estate agents', 'Rideshare drivers', 'Coaches', 'Developers', 'Creators', 'Sole proprietors', 'Single-member LLCs'],
     copied: 'Copied. Text it from your phone 📱',
     builtFor: 'Built for',
     disclaimer: 'Recordkeeping, not tax advice. Reply STOP to opt out.',
@@ -375,6 +376,7 @@ const es: Dict = {
   nav: { login: 'Iniciar sesión', getStarted: 'Empezar', howItWorks: 'Cómo funciona', pricing: 'Precios' },
   features: {
     heading: 'Tus registros, listos antes de la temporada de impuestos.',
+    sub: 'Tally ordena cada gasto en cuanto lo escribes, así abril es una descarga, no un fin de semana.',
     items: [
       { title: 'Nada que ordenar en abril', body: 'Tu año se mantiene al día sobre la marcha. Sin caja de zapatos, sin hoja de cálculo, sin fines de semana perdidos con recibos.' },
       { title: 'Cada deducción tiene su porqué', body: 'Las comidas, viajes y gastos de auto necesitan un motivo registrado. Tally lo captura mientras aún lo recuerdas, y solo pregunta cuando las reglas del IRS piden más.' },
@@ -407,7 +409,7 @@ const es: Dict = {
     tryText: 'Escribe a {number}',
     ctaOr: 'o escribe a',
     audienceEyebrow: 'Hecho para trabajadores independientes',
-    audienceChips: ['Freelancers', 'Contratistas', 'Propietarios únicos', 'LLC de un solo miembro'],
+    audienceChips: ['Freelancers', 'Consultores', 'Contratistas', 'Diseñadores', 'Fotógrafos', 'Agentes inmobiliarios', 'Conductores de apps', 'Coaches', 'Desarrolladores', 'Creadores', 'Propietarios únicos', 'LLC de un solo miembro'],
     copied: 'Copiado. Escríbenos desde tu teléfono 📱',
     builtFor: 'Hecho para',
     disclaimer: 'Llevar registros, no asesoría fiscal. Responde STOP para darte de baja.',
