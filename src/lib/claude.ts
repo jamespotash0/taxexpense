@@ -18,8 +18,9 @@ export function getClaude(): Anthropic {
 // Model IDs. Keep in one place so a model bump is a single-line change.
 // HAIKU_MODEL env override lets us A/B claude-haiku-5-5 against 4.5 without a deploy-time code change.
 export const HAIKU_MODEL = optionalEnv('HAIKU_MODEL') ?? 'claude-haiku-4-5-20251001'; // receipt OCR / extraction
-// SONNET_MODEL env override: A/B claude-sonnet-5-5 (cheaper, $2/$10 vs $3/$15) without a code change.
-export const SONNET_MODEL = optionalEnv('SONNET_MODEL') ?? 'claude-sonnet-4-6'; // categorization + conversation
+// Sonnet 5.5 (founder, 2026-11-25): $2/$10 vs 4.6's $3/$15. Runs at effort low via effortFor().
+// Set SONNET_MODEL=claude-sonnet-4-6 in Vercel to roll back without a deploy.
+export const SONNET_MODEL = optionalEnv('SONNET_MODEL') ?? 'claude-sonnet-5-5'; // categorization + conversation
 
 // Stronger model for rare, high-stakes calls only (month-end review, business profile, second
 // opinion on an uncertain category). Never on the per-message path. Opus 5.5 always thinks
