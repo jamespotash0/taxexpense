@@ -3,24 +3,25 @@
 // Vignette contents are illustrative. Server component.
 import type { Dict } from '@/i18n/dictionaries';
 
-const meBubble = 'max-w-[85%] rounded-[18px] rounded-br-[5px] bg-[#0b84ff] px-3.5 py-2 text-[0.95rem] text-white';
-const themBubble = 'max-w-[85%] rounded-[18px] rounded-bl-[5px] bg-[#e9e9eb] px-3.5 py-2 text-[0.95rem] text-[#101210]';
+// Same chat style as the hero panel: your message in a soft gray bubble, Penny's reply as plain text.
+const meBubble = 'max-w-[85%] rounded-[16px] bg-white px-3.5 py-2 text-[0.95rem] text-[#101210] ring-1 ring-black/[0.06]';
+const themBubble = 'max-w-[90%] px-1 text-[0.95rem] leading-[1.5] text-[#101210]';
 const check = (
   <svg viewBox="0 0 16 16" className="h-4 w-4 shrink-0" fill="none" aria-hidden><circle cx="8" cy="8" r="7" fill="#0f7a47" /><path d="m4.8 8.2 2.1 2.1 4.3-4.5" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
 );
 
 const VIGNETTES: React.ReactNode[] = [
   // Text it: the text is the record
-  <div key="0" className="flex w-full max-w-[20rem] flex-col gap-2">
+  <div key="0" className="flex w-full max-w-[20rem] flex-col gap-3">
     <p className={`${meBubble} self-end`}>Coffee w/ a referral partner, $11.20</p>
     <p className={`${themBubble} self-start`}>Got it. Logged as a client meal.</p>
-    <p className="mt-1 flex items-center gap-1.5 self-start text-[0.9rem] font-medium text-[#0f7a47]">{check} Documentation complete</p>
+    <p className="flex items-center gap-1.5 self-start px-1 text-[0.9rem] font-medium text-[#0f7a47]">{check} Documentation complete</p>
   </div>,
   // Asks only when required, with the IRC cite
-  <div key="1" className="flex w-full max-w-[20rem] flex-col gap-2">
+  <div key="1" className="flex w-full max-w-[20rem] flex-col gap-3">
     <p className={`${meBubble} self-end`}>Client dinner, $140</p>
     <p className={`${themBubble} self-start`}>Over $75, so snap the receipt when you can.</p>
-    <span className="mt-1 inline-flex self-start rounded-full bg-[#fdecea] px-3 py-1 text-[0.85rem] font-medium text-[#d92d20]">IRC §274(d)</span>
+    <span className="ml-1 inline-flex self-start rounded-full bg-[#fdecea] px-3 py-1 text-[0.85rem] font-medium text-[#d92d20]">IRC §274(d)</span>
   </div>,
   // Export
   <div key="2" className="flex gap-4">
