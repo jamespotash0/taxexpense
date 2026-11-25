@@ -1,5 +1,5 @@
 <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Tally">
   <title>Tally</title>
   <rect width="512" height="512" rx="116" fill="#101210"/>
-  <g transform="translate(256 256) scale(12.5) translate(-16 -16)" fill="none" stroke-linecap="round"><path d="M8.5 7v18M13.5 7v18M18.5 7v18M23.5 7v18" stroke="#ffffff" stroke-width="2.6"/><path d="M4.5 22.5 27.5 9.5" stroke="#ff3b2f" stroke-width="2.9"/></g>
+  <g transform="translate(256 256) scale(12.5) translate(-16 -16)" fill="none" stroke-linecap="butt"><path d="M8 6v20M13.33 6v20M18.67 6v20M24 6v20" stroke="#ffffff" stroke-width="2.4"/><path d="M4 22.4 28 9.6" stroke="#ff3b2f" stroke-width="2.4"/></g>
 </svg>
