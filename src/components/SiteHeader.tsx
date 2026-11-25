@@ -14,8 +14,9 @@ export function TallyMark({ className = 'h-7 w-7', light = false, slash = '#d92d
 
 // `back`: on inner pages the wordmark is the way home, so a back arrow slides in on hover/focus
 // (and is always shown on touch screens, which have no hover).
-// `onRed`: white strokes and wordmark with an ink slash, for the red closing band.
-export function TallyWordmark({ back = false, onRed = false }: { back?: boolean; onRed?: boolean }) {
+// `onRed`: white strokes and wordmark with an ink slash, for the red closing band. `onDark`: white
+// strokes and wordmark, red slash, for ink grounds.
+export function TallyWordmark({ back = false, onRed = false, onDark = false }: { back?: boolean; onRed?: boolean; onDark?: boolean }) {
   return (
     <Link href="/" className="group flex items-center gap-2" aria-label={back ? 'Back to Tally home' : 'Tally home'}>
       {back && (
@@ -26,22 +27,23 @@ export function TallyWordmark({ back = false, onRed = false }: { back?: boolean;
           <svg viewBox="0 0 16 16" className="h-5 w-5 shrink-0" fill="none"><path d="M10 3.5 5.5 8l4.5 4.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </span>
       )}
-      <TallyMark className="h-7 w-7" light={onRed} slash={onRed ? '#101210' : undefined} />
-      <span className={`text-[1.15rem] font-semibold tracking-[-0.03em] ${onRed ? 'text-white' : 'text-[#101210]'}`}>Tally</span>
+      <TallyMark className="h-7 w-7" light={onRed || onDark} slash={onRed ? '#101210' : undefined} />
+      <span className={`text-[1.15rem] font-semibold tracking-[-0.03em] ${onRed || onDark ? 'text-white' : 'text-[#101210]'}`}>Tally</span>
     </Link>
   );
 }
 
-export function SiteHeader({ login, getStarted }: { login: string; getStarted: string }) {
+// `dark`: ink bar for a dark hero.
+export function SiteHeader({ login, getStarted, dark = false }: { login: string; getStarted: string; dark?: boolean }) {
   return (
-    <header className="sticky top-0 z-30 border-b border-black/[0.05] bg-white/85 backdrop-blur-md">
+    <header className={`sticky top-0 z-30 border-b backdrop-blur-md ${dark ? 'border-white/[0.08] bg-[#101210]' : 'border-black/[0.05] bg-white/85'}`}>
       <nav className="mx-auto flex h-16 max-w-[80rem] items-center justify-between gap-4 px-5 sm:px-6">
-        <TallyWordmark />
-        <div className="flex items-center gap-1 text-[0.9rem] font-medium text-[#101210]">
-          <Link href="/login" className="ml-1 rounded-full px-4 py-[0.55rem] transition-colors hover:bg-black/[0.05]">
+        <TallyWordmark onDark={dark} />
+        <div className={`flex items-center gap-1 text-[0.9rem] font-medium ${dark ? 'text-white' : 'text-[#101210]'}`}>
+          <Link href="/login" className={`ml-1 rounded-full px-4 py-[0.55rem] transition-colors ${dark ? 'hover:bg-white/10' : 'hover:bg-black/[0.05]'}`}>
             {login}
           </Link>
-          <Link href="/start" className="rounded-full bg-[#101210] px-4 py-[0.6rem] text-white transition-colors hover:bg-[#d92d20]">
+          <Link href="/start" className={`rounded-full px-4 py-[0.6rem] transition-colors ${dark ? 'bg-white text-[#101210] hover:bg-[#d92d20] hover:text-white' : 'bg-[#101210] text-white hover:bg-[#d92d20]'}`}>
             {getStarted}
           </Link>
         </div>

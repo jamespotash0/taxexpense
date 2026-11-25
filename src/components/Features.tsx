@@ -3,7 +3,7 @@
 // assembles itself once as it scrolls into view (InView sets data-inview; CSS does the rest; reduced
 // motion shows the finished card). Sides alternate on desktop. Contents are illustrative.
 import type { Dict } from '@/i18n/dictionaries';
-import { InView } from './Reveal';
+import { BlurFade, InView } from './Reveal';
 
 const card = 'w-full max-w-[24rem] rounded-[20px] bg-white p-6 shadow-[0_1px_2px_rgba(16,18,16,0.05),0_24px_48px_-28px_rgba(16,18,16,0.3)] ring-1 ring-black/[0.05]';
 const muted = 'text-[#6f726d]';
@@ -79,17 +79,21 @@ const VIGNETTES: React.ReactNode[] = [
 export function Features({ t }: { t: Dict['features'] }) {
   return (
     <div className="mx-auto max-w-[80rem]">
-      <h2 className="max-w-[40rem] text-balance text-[clamp(2.1rem,4.4vw,2.9rem)] font-normal leading-[1.1] tracking-[-0.018em] text-[#101210]">{t.heading}</h2>
+      <BlurFade>
+        <h2 className="max-w-[40rem] text-balance text-[clamp(2.1rem,4.4vw,2.9rem)] font-normal leading-[1.1] tracking-[-0.018em] text-[#101210]">{t.heading}</h2>
+      </BlurFade>
       <ol className="mt-16 space-y-20 lg:mt-24 lg:space-y-28">
         {t.items.map((f, i) => (
           <li key={f.title} className="grid items-center gap-8 lg:grid-cols-2 lg:gap-20">
-            <div className={i % 2 ? 'lg:order-2' : ''}>
+            <BlurFade className={i % 2 ? 'lg:order-2' : ''}>
               <h3 className="text-balance text-[clamp(1.6rem,3vw,2.1rem)] font-normal leading-[1.15] tracking-[-0.02em] text-[#101210]">{f.title}</h3>
               <p className="mt-4 max-w-[30rem] text-pretty text-[1.1rem] leading-[1.6] text-[#6f726d]">{f.body}</p>
-            </div>
-            <InView className="group flex items-center justify-center rounded-[28px] bg-[#f6f6f4] px-5 py-12 sm:px-10 sm:py-16">
-              <div aria-hidden className="contents">{VIGNETTES[i]}</div>
-            </InView>
+            </BlurFade>
+            <BlurFade delay={0.1}>
+              <InView className="group flex items-center justify-center rounded-[28px] bg-[#f6f6f4] px-5 py-12 sm:px-10 sm:py-16">
+                <div aria-hidden className="contents">{VIGNETTES[i]}</div>
+              </InView>
+            </BlurFade>
           </li>
         ))}
       </ol>

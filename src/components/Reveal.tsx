@@ -64,13 +64,16 @@ export function BlurFade({
   children,
   className,
   delay = 0,
+  id,
 }: {
   children: React.ReactNode;
   className?: string;
   delay?: number;
+  id?: string;
 }) {
   return (
     <motion.div
+      id={id}
       className={className}
       initial={{ opacity: 0, y: 14, filter: 'blur(8px)' }}
       whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
