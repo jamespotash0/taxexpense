@@ -7,7 +7,6 @@ const en = {
   // "What a missing record costs" (sourced facts only, no marketing stats; see JOURNAL).
   features: {
     heading: 'Your records, done before tax season.',
-    sub: 'Every expense is logged and explained the day it happens. By April, there’s nothing left to sort.',
     items: [
       { title: 'Nothing to sort in April', body: 'Your year stays current as you go. No shoebox, no spreadsheet, no weekend lost to receipts.' },
       { title: 'Every write-off has its why', body: 'Meals, travel and car expenses need a reason on record. Tally captures it while you still remember, and asks only when the IRS rules call for more.' },
@@ -15,8 +14,7 @@ const en = {
     ],
   },
   costs: {
-    title: 'The IRS rules, checked as you go.',
-    sub: 'Meals, travel, gifts and car expenses need more than a bank line. Penny knows which ones do, and asks only when the law requires it.',
+    title: 'Don’t let a forgotten why cost you the write-off.',
     costsHeading: 'What a missing record costs',
     rows: [
       { value: 0, from: 92.4, prefix: '$', suffix: '', decimals: 0, text: 'What a client lunch, trip, gift or car expense is worth with no record. For these, the IRS can’t estimate: no record, no deduction, even if the expense was real.', source: 'Treas. Reg. §1.274-5T; Boyd v. Commissioner, 122 T.C. No. 18' },
@@ -46,7 +44,7 @@ const en = {
     audienceEyebrow: 'Built for the self-employed',
     audienceChips: ['Freelancers', 'Contractors', 'Sole proprietors', 'Single-member LLCs'],
     copied: 'Copied. Text it from your phone 📱',
-    builtFor: 'Built for sole proprietors and single-member LLCs',
+    builtFor: 'Built for',
     disclaimer: 'Recordkeeping, not tax advice. Reply STOP to opt out.',
     // A/B variant B (experiment: hero-copy): conversational / first-person (Tally speaks).
     vb: {
@@ -375,7 +373,6 @@ const es: Dict = {
   nav: { login: 'Iniciar sesión', getStarted: 'Empezar', howItWorks: 'Cómo funciona', pricing: 'Precios' },
   features: {
     heading: 'Tus registros, listos antes de la temporada de impuestos.',
-    sub: 'Cada gasto se registra y se explica el día que ocurre. Para abril, no queda nada que ordenar.',
     items: [
       { title: 'Nada que ordenar en abril', body: 'Tu año se mantiene al día sobre la marcha. Sin caja de zapatos, sin hoja de cálculo, sin fines de semana perdidos con recibos.' },
       { title: 'Cada deducción tiene su porqué', body: 'Las comidas, viajes y gastos de auto necesitan un motivo registrado. Tally lo captura mientras aún lo recuerdas, y solo pregunta cuando las reglas del IRS piden más.' },
@@ -383,8 +380,7 @@ const es: Dict = {
     ],
   },
   costs: {
-    title: 'Las reglas del IRS, revisadas sobre la marcha.',
-    sub: 'Las comidas, viajes, regalos y gastos de auto necesitan más que una línea del banco. Penny sabe cuáles, y solo pregunta cuando la ley lo exige.',
+    title: 'Que un porqué olvidado no te cueste la deducción.',
     costsHeading: 'Lo que cuesta un registro que falta',
     rows: [
       { value: 0, from: 92.4, prefix: '$', suffix: '', decimals: 0, text: 'Lo que vale un almuerzo con un cliente, un viaje, un regalo o un gasto de auto sin registro. En estos casos el IRS no puede estimar: sin registro, no hay deducción, aunque el gasto haya sido real.', source: 'Treas. Reg. §1.274-5T; Boyd v. Commissioner, 122 T.C. No. 18' },
@@ -411,7 +407,7 @@ const es: Dict = {
     audienceEyebrow: 'Hecho para trabajadores independientes',
     audienceChips: ['Freelancers', 'Contratistas', 'Propietarios únicos', 'LLC de un solo miembro'],
     copied: 'Copiado. Escríbenos desde tu teléfono 📱',
-    builtFor: 'Hecho para trabajadores independientes y LLC de un solo miembro',
+    builtFor: 'Hecho para',
     disclaimer: 'Llevar registros, no asesoría fiscal. Responde STOP para darte de baja.',
     // Variante B del A/B (experimento: hero-copy): conversacional / en primera persona (habla Tally).
     vb: {

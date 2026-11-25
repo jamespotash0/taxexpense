@@ -2,6 +2,7 @@
 
 // Scroll-reveal primitives (cinematic pass). Server pages stay server and just wrap
 // content in these client components. Reduced-motion is handled globally by MotionProvider.
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -79,4 +80,19 @@ export function BlurFade({
       {children}
     </motion.div>
   );
+}
+
+/** Sets data-inview once the block scrolls into view, so plain CSS (Tailwind `group-data-[inview]:`)
+ *  can play one authored animation. Children must render their final state under motion-reduce. */
+export function InView({ children, className }: { children: React.ReactNode; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [seen, setSeen] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setSeen(true); io.disconnect(); } }, { threshold: 0.35 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return <div ref={ref} data-inview={seen || undefined} className={className}>{children}</div>;
 }

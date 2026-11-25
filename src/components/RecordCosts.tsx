@@ -6,12 +6,11 @@ import { NumberTicker } from './NumberTicker';
 
 type Row = { value: number; from: number; prefix: string; suffix: string; text: string; source: string };
 
-export function RecordCosts({ t }: { t: { title: string; sub: string; costsHeading: string; rows: Row[]; note: string } }) {
+export function RecordCosts({ t }: { t: { title: string; costsHeading: string; rows: Row[]; note: string } }) {
   return (
     <div className="mx-auto max-w-[80rem]">
       <BlurFade>
-        <h2 className="text-balance text-[clamp(2.1rem,4.4vw,2.9rem)] font-normal leading-[1.1] tracking-[-0.018em] text-white">{t.title}</h2>
-        <p className="mt-4 max-w-[38rem] text-[1.1rem] leading-[1.5] text-[#a9aca6]">{t.sub}</p>
+        <h2 className="max-w-[44rem] text-balance text-[clamp(2.1rem,4.4vw,2.9rem)] font-normal leading-[1.1] tracking-[-0.018em] text-white">{t.title}</h2>
       </BlurFade>
 
       <div className="mt-16 lg:mt-20">

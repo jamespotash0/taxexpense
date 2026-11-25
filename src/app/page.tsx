@@ -7,7 +7,7 @@ import { HeroExposure } from '@/components/HeroExposure';
 import { LandingFaq } from '@/components/LandingFaq';
 import { RecordCosts } from '@/components/RecordCosts';
 import { Features } from '@/components/Features';
-import { BlurFade } from '@/components/Reveal';
+import { BlurFade, InView } from '@/components/Reveal';
 import { SiteHeader, TallyWordmark } from '@/components/SiteHeader';
 import { LandingPricing } from '@/components/LandingPricing';
 import { TrackedLink } from '@/components/TrackedLink';
@@ -24,7 +24,7 @@ export default async function Home() {
   const heroVariant: HeroVariant = 'A';
 
   return (
-    <div className={`${geist.className} relative overflow-x-clip bg-[#fafafa] text-gray-900 antialiased selection:bg-[#fdecea] selection:text-[#101210]`}>
+    <div className={`${geist.className} relative overflow-x-clip bg-[#f3f2ee] text-gray-900 antialiased selection:bg-[#fdecea] selection:text-[#101210]`}>
       {/* Records where the visit came from (utm_source/ref or external referrer, e.g. Product Hunt)
           once per session — aggregate channel analytics, no PII (DEC-084). Renders nothing. */}
       <TrafficSource locale={locale} />
@@ -43,7 +43,7 @@ export default async function Home() {
       />
 
       {/* Hero: headline + CTA left; texting Penny, right. */}
-      <section className="px-5 pt-12 sm:px-6 lg:pt-20">
+      <section className="px-5 pb-20 pt-12 sm:px-6 lg:pb-28 lg:pt-20">
         <div className="mx-auto grid max-w-[80rem] items-center gap-14 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10">
           <div>
             <h1 className="text-balance text-[clamp(2.6rem,5.6vw,4.4rem)] font-normal leading-[1.04] tracking-[-0.035em] text-[#101210]">
@@ -56,19 +56,32 @@ export default async function Home() {
             <div className="mt-9">
               <StartButton label={t.nav.getStarted} variant={heroVariant} experiment="hero-copy" />
             </div>
-            <p className="mt-6 flex items-start gap-2 text-[0.98rem] text-[#101210]">
-              <svg viewBox="0 0 16 16" className="mt-[0.2rem] h-4 w-4 shrink-0 text-[#0f7a47]" fill="none" aria-hidden><path d="m3.5 8.5 3 3 6-7" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /></svg>
-              {t.hero.builtFor}
-            </p>
-            <p className="mt-2 max-w-[33rem] text-[0.85rem] text-[#6f726d]">{t.hero.disclaimer}</p>
+            <p className="mt-4 max-w-[33rem] text-[0.85rem] text-[#6f726d]">{t.hero.disclaimer}</p>
           </div>
 
           <HeroThread />
         </div>
       </section>
 
+      {/* Who it's for: a dark strip where a logo bar would sit (no customer logos exist). */}
+      <section aria-label={t.hero.builtFor} className="bg-[#101210] px-5 py-7 sm:px-6">
+        <InView className="group mx-auto flex max-w-[80rem] flex-wrap items-center justify-center gap-x-5 gap-y-2 text-center sm:gap-x-7">
+          <p className="w-full text-[0.9rem] text-white/55 sm:w-auto">{t.hero.builtFor}</p>
+          {t.hero.audienceChips.map((a, i) => (
+            <span
+              key={a}
+              style={{ transitionDelay: `${120 + i * 110}ms` }}
+              className="flex translate-y-1.5 items-center gap-5 text-[1.02rem] tracking-[-0.01em] text-white opacity-0 transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-data-[inview]:translate-y-0 group-data-[inview]:opacity-100 motion-reduce:translate-y-0 motion-reduce:opacity-100 sm:gap-7 sm:text-[1.15rem]"
+            >
+              {i > 0 && <span aria-hidden className="h-1 w-1 rounded-full bg-[#d92d20]" />}
+              {a}
+            </span>
+          ))}
+        </InView>
+      </section>
+
       {/* How it works: three rows, one idea each. */}
-      <section id="how-it-works" className="mt-28 scroll-mt-16 bg-white px-5 py-28 sm:px-6 lg:mt-40 lg:py-40">
+      <section id="how-it-works" className="scroll-mt-16 bg-white px-5 py-28 sm:px-6 lg:py-40">
         <BlurFade>
           <Features t={t.features} />
         </BlurFade>
