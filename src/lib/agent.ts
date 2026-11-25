@@ -16,7 +16,7 @@
 // We never let the agent take an outward action (send email/SMS); tools are
 // read-only + a terminator that returns a DRAFT for a human to approve.
 
-import { getClaude } from './claude';
+import { getClaude, effortFor } from './claude';
 import { log } from './log';
 
 const DEFAULT_MAX_STEPS = 8;
@@ -113,7 +113,7 @@ export async function runAgent(opts: RunAgentOpts): Promise<AgentResult> {
   for (let step = 1; step <= maxSteps; step++) {
     const res = await getClaude().messages.create(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      { model: opts.model, max_tokens: opts.maxTokens ?? DEFAULT_MAX_TOKENS, system, tools: apiTools, messages } as any,
+      { model: opts.model, max_tokens: opts.maxTokens ?? DEFAULT_MAX_TOKENS, system, tools: apiTools, messages, ...effortFor(opts.model) } as any,
       { timeout: opts.timeoutMs ?? DEFAULT_TIMEOUT_MS },
     );
     usage.input_tokens += res.usage?.input_tokens ?? 0;

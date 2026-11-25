@@ -2,7 +2,7 @@
 // parsing with one retry, and a 15s timeout (TSNAP-026). Used by OCR, text parsing,
 // categorization, clarification, and attachment flows.
 
-import { getClaude } from './claude';
+import { getClaude, effortFor } from './claude';
 import { log } from './log';
 
 const DEFAULT_TIMEOUT_MS = 15_000;
@@ -68,9 +68,9 @@ function buildArgs(opts: CallOpts) {
     max_tokens: opts.maxTokens ?? 1024,
     system,
     messages: [{ role: 'user' as const, content: userContent }],
-    // Haiku 5.x thinks by default (effort medium). Our Haiku jobs are routing/extraction, so keep
-    // thinking minimal for latency. Thinking also counts toward max_tokens, hence the 1024 floors.
-    ...(opts.model.startsWith('claude-haiku-5') ? { output_config: { effort: 'low' } } : {}),
+    // 5.x models think by default; keep it minimal. Thinking also counts toward max_tokens, hence
+    // the 1024 floors.
+    ...effortFor(opts.model),
   };
 }
 

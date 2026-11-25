@@ -1,5 +1,5 @@
 // How it works, told as outcomes: three large rows (a current year, a why on every write-off, a
-// finished year for the accountant). Each shows the result at real UI scale on a white stage and
+// finished year for the accountant). Each shows the result at real UI scale on a light gray stage and
 // assembles itself once as it scrolls into view (InView sets data-inview; CSS does the rest; reduced
 // motion shows the finished card). Sides alternate on desktop. Contents are illustrative.
 import type { Dict } from '@/i18n/dictionaries';
@@ -87,7 +87,7 @@ export function Features({ t }: { t: Dict['features'] }) {
               <h3 className="text-balance text-[clamp(1.6rem,3vw,2.1rem)] font-normal leading-[1.15] tracking-[-0.02em] text-[#101210]">{f.title}</h3>
               <p className="mt-4 max-w-[30rem] text-pretty text-[1.1rem] leading-[1.6] text-[#6f726d]">{f.body}</p>
             </div>
-            <InView className="group flex items-center justify-center rounded-[28px] bg-white px-5 ring-1 ring-black/[0.04] py-12 sm:px-10 sm:py-16">
+            <InView className="group flex items-center justify-center rounded-[28px] bg-[#f6f6f4] px-5 py-12 sm:px-10 sm:py-16">
               <div aria-hidden className="contents">{VIGNETTES[i]}</div>
             </InView>
           </li>

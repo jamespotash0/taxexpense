@@ -5,8 +5,7 @@
 // its IRC section, and marks it complete. $92.40 meal + photo + context means nothing else is required, so Penny
 // asks nothing (the substantiation tree, quietly).
 //
-// First paint is the finished thread (no JS / reduced motion keep it). After a hold it replays on
-// a loop.
+// First paint is the finished thread (no JS / reduced motion keep it). It replays once on load.
 import { useEffect, useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import { TallyMark } from './SiteHeader';
@@ -54,8 +53,9 @@ export function HeroThread() {
     let alive = true;
     const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
     (async () => {
-      await wait(2600); // hold the finished thread first
-      while (alive) {
+      // Plays once shortly after load, then stays on the finished thread (no loop back to empty).
+      await wait(500);
+      {
         setTyped(0);
         setPhase(0);
         await wait(700);
@@ -77,7 +77,6 @@ export function HeroThread() {
         setPhase(5);
         await wait(1100);
         setPhase(6);
-        await wait(4800);
       }
     })();
     return () => {
@@ -91,7 +90,7 @@ export function HeroThread() {
     <div
       role="img"
       aria-label="Example conversation: a receipt photo and a note sent to Penny, Tally's assistant, which logs it as a client meal under IRC section 274(d) with documentation complete."
-      className="mx-auto flex h-[27rem] w-full max-w-[28rem] flex-col overflow-hidden rounded-[24px] bg-white shadow-[0_1px_2px_rgba(16,18,16,0.06),0_24px_60px_-30px_rgba(16,18,16,0.25)] ring-1 ring-black/[0.06]"
+      className="mx-auto flex h-[27rem] w-full max-w-[32rem] flex-col overflow-hidden rounded-[24px] bg-white shadow-[0_1px_2px_rgba(16,18,16,0.06),0_24px_60px_-30px_rgba(16,18,16,0.25)] ring-1 ring-black/[0.06]"
     >
       {/* Header */}
       <div className="flex items-center gap-2.5 border-b border-black/[0.06] px-5 py-3.5">

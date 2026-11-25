@@ -34,31 +34,31 @@ export default async function Home() {
       {/* Nav: flat sticky bar. */}
       <SiteHeader login={t.nav.login} getStarted={t.nav.getStarted} />
 
-      {/* Hero: headline + CTA left; texting Penny, right. */}
-      <section className="relative px-5 pb-16 pt-12 sm:px-6 lg:pb-20 lg:pt-20">
-        {/* Faint red glow behind the hero, fading out before the audience row. */}
-        <div aria-hidden className="pointer-events-none absolute inset-x-0 -top-16 -z-0 h-[42rem] bg-[radial-gradient(55%_60%_at_70%_0%,rgba(217,45,32,0.09),transparent_70%),radial-gradient(45%_50%_at_10%_10%,rgba(16,18,16,0.035),transparent_70%)]" />
-        <div className="relative mx-auto grid max-w-[80rem] items-center gap-14 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10">
-          <div>
-            <h1 className="text-balance text-[clamp(2.6rem,5.6vw,4.4rem)] font-normal leading-[1.04] tracking-[-0.035em] text-[#101210]">
+      {/* Hero: centered headline and CTA, then the conversation with Penny as the product shot. */}
+      <section className="px-5 pb-20 pt-16 sm:px-6 lg:pb-24 lg:pt-28">
+        <div className="mx-auto max-w-[80rem]">
+          <div className="mx-auto max-w-[66rem] text-center">
+            <h1 className="text-balance text-[clamp(2.7rem,5.6vw,4.6rem)] font-normal leading-[1.04] tracking-[-0.04em] text-[#101210]">
               {t.hero.line1pre}
-              <span className="text-[#d92d20]">{t.hero.line1em}</span>
+              <span className="text-[#d92d20] sm:block">{t.hero.line1em}</span>
               {t.hero.line1post}
             </h1>
-            <p className="mt-6 max-w-[33rem] text-pretty text-[1.15rem] leading-[1.5] text-[#6f726d] sm:text-[1.25rem]">{t.hero.subtitle}</p>
+            <p className="mx-auto mt-6 max-w-[36rem] text-pretty text-[1.15rem] leading-[1.5] text-[#6f726d] sm:text-[1.25rem]">{t.hero.subtitle}</p>
 
             <div className="mt-9">
               <StartButton label={t.nav.getStarted} variant={heroVariant} experiment="hero-copy" />
             </div>
-            <p className="mt-4 max-w-[33rem] text-[0.85rem] text-[#6f726d]">{t.hero.disclaimer}</p>
+            <p className="mt-4 text-[0.85rem] text-[#8a8d88]">{t.hero.disclaimer}</p>
           </div>
 
-          <HeroThread />
+          <div className="mt-16 lg:mt-20">
+            <HeroThread />
+          </div>
         </div>
       </section>
 
       {/* Who it's for: a quiet row where a logo cloud would sit (no customer logos exist). */}
-      <section aria-label={t.hero.builtFor} className="px-5 pb-20 sm:px-6 lg:pb-24">
+      <section aria-label={t.hero.builtFor} className="px-5 pb-24 sm:px-6 lg:pb-32">
         <InView className="group mx-auto max-w-[80rem] border-t border-black/[0.06] pt-10 text-center">
           <p className="text-[0.85rem] text-[#8a8d88]">{t.hero.builtFor}</p>
           <ul className="mt-5 flex flex-wrap items-center justify-center gap-x-10 gap-y-3 sm:gap-x-14">
@@ -76,7 +76,7 @@ export default async function Home() {
       </section>
 
       {/* How it works: three rows, one idea each. */}
-      <section id="how-it-works" className="scroll-mt-16 bg-[#f6f6f4] px-5 py-28 sm:px-6 lg:py-40">
+      <section id="how-it-works" className="scroll-mt-16 bg-white px-5 pb-28 pt-8 sm:px-6 lg:pb-40 lg:pt-12">
         <BlurFade>
           <Features t={t.features} />
         </BlurFade>
