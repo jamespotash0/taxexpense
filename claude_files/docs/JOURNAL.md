@@ -2802,3 +2802,28 @@ under default-deny for V1; only add an anon read policy if rendering them client
   personal charges kept + labeled as §262 / owner's draw, not deleted). Accountant export with
   Schedule C summary split out as V1-sized `claude_files/specs/11-accountant-export.md`.
 
+### DEC-096 — Stronger models only where calls are rare and mistakes are costly (2026-11-25)
+
+- **Principle.** Per-message path stays cheap (Haiku 5.5 routing/OCR, Sonnet compose). Upgrade
+  only low-volume, judgment-heavy calls. Est. +$0.30-0.80/user/month total.
+- **Changes.**
+  - `OPUS_MODEL` (default `claude-opus-5-5`, env-overridable) in claude.ts.
+  - Month-end review agent -> Opus (maxTokens 8000/step, 90s step timeout: Opus always thinks).
+  - Business profile builder -> Opus (once per user; maxTokens 4096).
+  - **Second opinion:** in `processNewExpense`, a non-memory category below
+    `REVIEW_CONFIDENCE_FLOOR` (0.8) is re-asked of Opus via `secondOpinionCategory`; its answer
+    replaces the first guess, so a confident second opinion skips the DEC-073 confirm question.
+    Any failure keeps the first guess. Eval log records which model decided.
+  - **Hard receipts:** photo OCR that comes back `unreadable` or with amount confidence < 0.7
+    retries once with `SONNET_MODEL`; the better read wins. `not_a_receipt` is not retried.
+  - `SONNET_MODEL` env override + `effortFor()` (effort low on Haiku/Sonnet 5.x) so Sonnet 5.5 can
+    be switched on in Vercel after its evals; default stays Sonnet 4.6.
+  - Year-end review: unchanged (no model; totals computed in code).
+- **Eval** (`scripts/eval/second-opinion.ts`, 23 cases, Haiku 5.5 first pass): Haiku alone 23/23.
+  Cutoff 0.8 escalated 1 case, still correct, confidence 0.60 -> 0.85 (would skip the confirm
+  question). Cutoff 0.9 escalated 8 and Opus got one wrong (rent -> venue_rental), so 0.8 stays.
+  Dataset is small and easy: the measured win is fewer questions, not accuracy. Revisit with
+  real `ai_events` low-confidence cases once there's traffic.
+- **Not evaluated yet:** month-end review and profile builder on Opus (`eval:profile-build`),
+  OCR retry on real hard receipts.
+
