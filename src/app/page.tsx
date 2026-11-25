@@ -17,12 +17,7 @@ import { getI18n } from '@/i18n/server';
 
 const geist = Geist({ subsets: ['latin'], display: 'swap' });
 
-// Hero options under review: ?hero=a (centered), b (split), c (dark split). Default a.
-type HeroOption = 'a' | 'b' | 'c';
-
-export default async function Home({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  const sp = await searchParams;
-  const heroOption: HeroOption = sp.hero === 'b' || sp.hero === 'c' ? sp.hero : 'a';
+export default async function Home() {
   const { locale, t } = await getI18n();
   // Copy A/B is paused (DEC-079): render the single champion for everyone — including browsers
   // still holding an old ab_hero=B/C cookie from earlier testing. Re-enable by reading the cookie.
@@ -37,9 +32,27 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
       <HeroExposure variant={heroVariant} />
 
       {/* Nav: flat sticky bar. */}
-      <SiteHeader login={t.nav.login} getStarted={t.nav.getStarted} dark={heroOption === 'c'} />
+      <SiteHeader login={t.nav.login} getStarted={t.nav.getStarted} />
 
-      <Hero option={heroOption} t={t} />
+      {/* Hero: one screen below the 64px nav. Text left, the conversation with Penny right; stacked on
+          phones. The page continues on scroll. */}
+      <section className="flex min-h-[calc(100svh-4rem)] items-center px-5 py-12 sm:px-6">
+        <div className="mx-auto grid w-full max-w-[80rem] items-center gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16">
+          <div>
+            <h1 className="text-balance text-[clamp(2.6rem,4.6vw,4.4rem)] font-normal leading-[1.04] tracking-[-0.04em] text-[#101210]">
+              {t.hero.line1pre}
+              <span className="text-[#d92d20]">{t.hero.line1em}</span>
+              {t.hero.line1post}
+            </h1>
+            <p className="mt-5 max-w-[36rem] text-pretty text-[1.1rem] leading-[1.5] text-[#6f726d] sm:text-[1.2rem]">{t.hero.subtitle}</p>
+            <div className="mt-8">
+              <StartButton label={t.nav.getStarted} variant={heroVariant} experiment="hero-copy" />
+            </div>
+            <p className="mt-3.5 text-[0.85rem] text-[#8a8d88]">{t.hero.disclaimer}</p>
+          </div>
+          <HeroThread />
+        </div>
+      </section>
 
       {/* Who it's for: a quiet row where a logo cloud would sit (no customer logos exist). */}
       <section aria-label={t.hero.builtFor} className="px-5 pb-24 sm:px-6 lg:pb-32">
@@ -110,63 +123,6 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
       </section>
 
     </div>
-  );
-}
-
-// Each option fills exactly one screen below the 64px nav, so the page continues on scroll.
-function Hero({ option, t }: { option: HeroOption; t: Awaited<ReturnType<typeof getI18n>>['t'] }) {
-  const dark = option === 'c';
-  const headline = (
-    <h1
-      className={`text-balance font-normal leading-[1.04] tracking-[-0.04em] ${dark ? 'text-white' : 'text-[#101210]'} ${
-        option === 'a' ? 'text-[clamp(2.6rem,5vw,4.25rem)]' : 'text-[clamp(2.6rem,4.6vw,4.4rem)]'
-      }`}
-    >
-      {t.hero.line1pre}
-      <span className={`text-[#d92d20] ${option === 'a' ? 'sm:block' : ''} ${dark ? 'text-[#ff5a4d]' : ''}`}>{t.hero.line1em}</span>
-      {t.hero.line1post}
-    </h1>
-  );
-  const sub = (
-    <p className={`mt-5 max-w-[36rem] text-pretty text-[1.1rem] leading-[1.5] sm:text-[1.2rem] ${option === 'a' ? 'mx-auto' : ''} ${dark ? 'text-white/70' : 'text-[#6f726d]'}`}>
-      {t.hero.subtitle}
-    </p>
-  );
-  const cta = (
-    <>
-      <div className="mt-8">
-        <StartButton label={t.nav.getStarted} variant="A" experiment="hero-copy" />
-      </div>
-      <p className={`mt-3.5 text-[0.85rem] ${dark ? 'text-white/50' : 'text-[#8a8d88]'}`}>{t.hero.disclaimer}</p>
-    </>
-  );
-
-  if (option === 'a') {
-    return (
-      <section className="flex min-h-[calc(100svh-4rem)] flex-col justify-center px-5 py-12 sm:px-6">
-        <div className="mx-auto w-full max-w-[66rem] text-center">
-          {headline}
-          {sub}
-          {cta}
-        </div>
-        <div className="mt-10 w-full">
-          <HeroThread className="h-[clamp(13rem,calc(100svh-35.5rem),19rem)]" />
-        </div>
-      </section>
-    );
-  }
-
-  return (
-    <section className={`flex min-h-[calc(100svh-4rem)] items-center px-5 py-12 sm:px-6 ${dark ? 'bg-[#101210] selection:bg-[#d92d20] selection:text-white' : ''}`}>
-      <div className="mx-auto grid w-full max-w-[80rem] items-center gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16">
-        <div>
-          {headline}
-          {sub}
-          {cta}
-        </div>
-        <HeroThread />
-      </div>
-    </section>
   );
 }
 
