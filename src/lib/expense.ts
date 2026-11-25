@@ -10,6 +10,7 @@ import {
   evaluateSubstantiation,
   MILEAGE_RATE_CENTS_PER_MILE,
   type SubstantiationRule,
+  type SubstantiationResult,
 } from './substantiation';
 import { getIrcSummary, lookupIrcSectionFlexible } from './irc';
 import { categoryLabel } from './categories';
@@ -59,6 +60,40 @@ function readCheckMessage(input: ExpenseInput, category: string, sectionId: stri
   const section = sectionId ? ` (§${sectionId.replace(/^§/, '')})` : '';
   const filing = `, filing under ${categoryLabel(category)}${section}`;
   return `Quick check! I read that as ${amount}${at}${filing}. Reply YES if that's right, or send the correct amount and I'll fix it.`;
+}
+
+// How Penny asks for each required context field, in plain words.
+const FIELD_ASK: Record<string, string> = {
+  attendees: 'who it was with',
+  business_purpose: 'what it was for',
+  business_relationship: 'how you know them',
+  location_city: 'what city it was in',
+  business_miles: 'how many miles it was',
+};
+
+/** Friendly fixed reply used when the composed reply fails. Same facts and the same single
+ *  question the substantiation tree requires (so the conversation state stays right). No LLM. */
+export function fallbackLogMessage(
+  input: ExpenseInput,
+  category: string,
+  sectionId: string | null,
+  decision: SubstantiationResult,
+  state: ContextState | null,
+): string {
+  const amount = input.amount_cents ? `$${(input.amount_cents / 100).toFixed(2)}` : null;
+  const what = amount && input.vendor ? `${amount} at ${input.vendor}` : (amount ?? input.vendor ?? 'That one');
+  const section = sectionId ? ` (§${sectionId.replace(/^§/, '')})` : '';
+  const logged = `Got it! ${what} is saved under ${categoryLabel(category)}${section}.`;
+
+  if (state === 'awaiting_context' && decision.missing_context_fields.length) {
+    const asks = decision.missing_context_fields.map((f) => FIELD_ASK[f] ?? f.replace(/_/g, ' '));
+    const list = asks.length === 1 ? asks[0] : `${asks.slice(0, -1).join(', ')} and ${asks[asks.length - 1]}`;
+    return `${logged} Can you tell me ${list}? That's all I need to finish it up.`;
+  }
+  if (state === 'awaiting_receipt') {
+    return `${logged} Whenever you get a sec, snap a pic of the receipt and send it my way 📸`;
+  }
+  return `${logged} You're all set ✓`;
 }
 
 /**
@@ -329,13 +364,20 @@ export async function processNewExpense(
   // closing the feedback loop. Injection-shaped / drift flags stay dashboard-only (no prompt) by
   // design — only the honest "which deductible class?" uncertainty earns an SMS nudge (Sofia: friction
   // only with purpose; this scopes DEC-055's no-question rule to the low_confidence case alone).
-  const categoryUncertain = baseState === null && review.reasonCode === 'low_confidence';
+  let categoryUncertain = baseState === null && review.reasonCode === 'low_confidence';
 
   // Save and compose are independent (compose doesn't use the receipt id) — run them
-  // concurrently to shave a DB round trip off the reply latency (DEC-063).
+  // concurrently to shave a DB round trip off the reply latency (DEC-063). If compose fails
+  // (timeout, refusal), the receipt is already saved, so reply with a friendly fixed message that
+  // asks the same thing the tree requires, instead of the generic failure text (which invites a
+  // resend and a duplicate). The fallback doesn't offer the category micro-confirm.
   const [receiptId, smsText] = await Promise.all([
     saveReceipt({ user, input, category: cat.category, rule, decision, photoPath, review }),
-    composeResponse({ input, category: cat.category, rule, decision, irc, user, categoryUncertain }),
+    composeResponse({ input, category: cat.category, rule, decision, irc, user, categoryUncertain }).catch((err) => {
+      log.warn('compose_failed_fallback', { user: user.id, message: err instanceof Error ? err.message : 'unknown' });
+      categoryUncertain = false;
+      return fallbackLogMessage(input, cat.category, rule.irc_section, decision, baseState);
+    }),
   ]);
 
   // Which question (if any) this log triggered — the over-asking signal (DEC-080).
