@@ -34,17 +34,17 @@ export default async function Home() {
       {/* Nav: flat sticky bar. */}
       <SiteHeader login={t.nav.login} getStarted={t.nav.getStarted} />
 
-      {/* Hero: one screen below the 64px nav. Text left, the conversation with Penny right; stacked on
-          phones. The page continues on scroll. */}
-      <section className="flex min-h-[calc(100svh-4rem)] items-center px-5 py-12 sm:px-6">
-        <div className="mx-auto grid w-full max-w-[80rem] items-center gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16">
+      {/* Hero: one screen below the 64px nav. Text left, the conversation with Penny right (stacked on
+          phones), and who it's for along the bottom edge. The page continues on scroll. */}
+      <section className="flex min-h-[calc(100svh-4rem)] flex-col px-5 pb-8 pt-12 sm:px-6">
+        <div className="mx-auto grid w-full max-w-[80rem] flex-1 items-center gap-12 lg:grid-cols-[1.45fr_1fr] lg:gap-14">
           <div>
-            <h1 className="text-balance text-[clamp(2.6rem,4.6vw,4.4rem)] font-normal leading-[1.04] tracking-[-0.04em] text-[#101210]">
+            <h1 className="text-balance text-[clamp(2.6rem,5vw,4.75rem)] font-normal leading-[1.04] tracking-[-0.04em] text-[#101210]">
               {t.hero.line1pre}
               <span className="text-[#d92d20]">{t.hero.line1em}</span>
               {t.hero.line1post}
             </h1>
-            <p className="mt-5 max-w-[36rem] text-pretty text-[1.1rem] leading-[1.5] text-[#6f726d] sm:text-[1.2rem]">{t.hero.subtitle}</p>
+            <p className="mt-5 max-w-[42rem] text-pretty text-[1.1rem] leading-[1.5] text-[#6f726d] sm:text-[1.25rem]">{t.hero.subtitle}</p>
             <div className="mt-8">
               <StartButton label={t.nav.getStarted} variant={heroVariant} experiment="hero-copy" />
             </div>
@@ -52,13 +52,11 @@ export default async function Home() {
           </div>
           <HeroThread />
         </div>
-      </section>
 
-      {/* Who it's for: a quiet row where a logo cloud would sit (no customer logos exist). */}
-      <section aria-label={t.hero.builtFor} className="px-5 pb-24 sm:px-6 lg:pb-32">
-        <InView className="group mx-auto max-w-[80rem] border-t border-black/[0.06] pt-10 text-center">
-          <p className="text-[0.85rem] text-[#8a8d88]">{t.hero.builtFor}</p>
-          <ul className="mt-5 flex flex-wrap items-center justify-center gap-x-10 gap-y-3 sm:gap-x-14">
+        {/* Who it's for: where a logo row would sit (no customer logos exist). */}
+        <InView className="group mx-auto mt-12 flex w-full max-w-[80rem] flex-col items-center gap-4 border-t border-black/[0.06] pt-7 lg:flex-row lg:gap-12">
+          <p className="shrink-0 text-[0.85rem] text-[#8a8d88]">{t.hero.builtFor}</p>
+          <ul className="flex flex-1 flex-wrap items-center justify-center lg:justify-between gap-x-10 gap-y-3 sm:gap-x-14">
             {t.hero.audienceChips.map((a, i) => (
               <li
                 key={a}

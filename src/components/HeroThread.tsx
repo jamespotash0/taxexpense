@@ -90,7 +90,7 @@ export function HeroThread() {
     <div
       role="img"
       aria-label="Example conversation: a receipt photo and a note sent to Penny, Tally's assistant, which logs it as a client meal under IRC section 274(d) with documentation complete."
-      className={`mx-auto flex h-[27rem] w-full max-w-[32rem] flex-col overflow-hidden rounded-[24px] bg-white shadow-[0_1px_2px_rgba(16,18,16,0.06),0_24px_60px_-30px_rgba(16,18,16,0.25)] ring-1 ring-black/[0.06]`}
+      className={`mx-auto flex h-[23rem] w-full max-w-[26rem] flex-col overflow-hidden rounded-[24px] bg-white shadow-[0_1px_2px_rgba(16,18,16,0.06),0_24px_60px_-30px_rgba(16,18,16,0.25)] ring-1 ring-black/[0.06]`}
     >
       {/* Header */}
       <div className="flex items-center gap-2.5 border-b border-black/[0.06] px-5 py-3.5">
