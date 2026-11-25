@@ -29,16 +29,16 @@ const en = {
   hero: {
     // Two-line headline (problem-framed champion, DEC-079). line1 puts the burden on the user
     // ("the why is on you"), line2's "why" is the accent/squiggle word.
-    line1pre: 'Text it ',
-    line1em: 'the moment',
-    line1post: ' you spend.',
+    line1pre: 'Your expenses, tracked by AI. ',
+    line1em: 'Just text it.',
+    line1post: '',
     line2pre: '',
     line2em: '',
     line2post: '',
     // Tight two-line subtitle: the "by April it's gone" forgetting-pain + "hold up" frames the
     // record, not a tax-outcome promise (Jordan, DEC-079).
     subtitle:
-      'Text a receipt or a quick note when you spend. Tally checks it against IRS recordkeeping rules and asks for anything that’s missing.',
+      'Text a receipt or a quick note when you spend. Tally’s AI logs it, sorts it by tax category, and asks only when the IRS needs more.',
     tryEyebrow: 'Try it out',
     tryText: 'Text {number}',
     ctaOr: 'or text',
@@ -394,16 +394,16 @@ const es: Dict = {
     note: 'Información general, no asesoría fiscal. Consulta a un CPA sobre tu caso.',
   },
   hero: {
-    line1pre: 'Escríbelo ',
-    line1em: 'en el momento',
-    line1post: ' en que gastas.',
+    line1pre: 'Tus gastos, registrados con IA. ',
+    line1em: 'Solo escríbelo.',
+    line1post: '',
     line2pre: '',
     line2em: '',
     line2post: '',
     // Mismo enfoque-problema que EN (DEC-079): "para abril ya se esfumó" + "se sostienen"
     // enmarca el registro, no una promesa de resultado fiscal.
     subtitle:
-      'Envía un recibo o una nota rápida al gastar. Tally lo revisa según las reglas de registro del IRS y te pide lo que falte.',
+      'Envía un recibo o una nota rápida al gastar. La IA de Tally lo registra, lo ordena por categoría fiscal y solo pregunta cuando el IRS pide más.',
     tryEyebrow: 'Pruébalo',
     tryText: 'Escribe a {number}',
     ctaOr: 'o escribe a',
