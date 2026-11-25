@@ -87,19 +87,18 @@ export default async function Home() {
         <RecordCosts t={t.costs} />
       </section>
 
-      {/* Pricing: one centered block. FAQ below it. */}
-      <section id="pricing" className="scroll-mt-16 px-5 pt-28 sm:px-6 lg:pt-40">
-        <BlurFade className="mx-auto max-w-[34rem]">
-          <h2 className="text-balance text-center text-[clamp(2.1rem,4.4vw,2.9rem)] font-normal leading-[1.1] tracking-[-0.018em] text-[#101210]">{t.pricing.title}</h2>
-          <div className="mt-10">
-            <LandingPricing t={t.pricing} ctaLabel={t.nav.getStarted} />
+      {/* Pricing and FAQ side by side; stacked on phones. */}
+      <section id="pricing" className="scroll-mt-16 px-5 py-28 sm:px-6 lg:py-40">
+        <div className="mx-auto grid max-w-[80rem] gap-20 lg:grid-cols-2 lg:gap-24">
+          <BlurFade>
+            <h2 className="text-balance text-[clamp(2.1rem,4.4vw,2.9rem)] font-normal leading-[1.1] tracking-[-0.018em] text-[#101210]">{t.pricing.title}</h2>
+            <div className="mt-8">
+              <LandingPricing t={t.pricing} ctaLabel={t.nav.getStarted} />
+            </div>
+          </BlurFade>
+          <div id="faq" className="scroll-mt-16">
+            <LandingFaq t={t.faq} />
           </div>
-        </BlurFade>
-      </section>
-
-      <section id="faq" className="scroll-mt-16 px-5 py-28 sm:px-6 lg:py-40">
-        <div className="mx-auto max-w-[48rem]">
-          <LandingFaq t={t.faq} />
         </div>
       </section>
 
@@ -114,25 +113,17 @@ export default async function Home() {
         </div>
       </section>
 
-      <footer className="mx-auto mt-20 max-w-[80rem] px-5 pb-10 sm:px-6">
-        <div className="grid gap-10 pt-4 sm:grid-cols-[1.5fr_1fr_1fr]">
-          <div>
-            <TallyWordmark />
-            <p className="mt-3 max-w-[16rem] text-[0.9rem] text-[#6f726d]">{t.footer.tagline}</p>
-          </div>
-          <nav aria-label="Product" className="flex flex-col gap-2.5 text-[0.92rem]">
-            <p className="text-[0.82rem] font-medium text-[#8a8d88]">Product</p>
-            <a href="#how-it-works" className="text-[#4a4d48] hover:text-[#101210]">{t.nav.howItWorks}</a>
-            <a href="#pricing" className="text-[#4a4d48] hover:text-[#101210]">{t.nav.pricing}</a>
-            <Link href="/login" className="text-[#4a4d48] hover:text-[#101210]">{t.nav.login}</Link>
-          </nav>
-          <nav aria-label="Legal" className="flex flex-col items-start gap-2.5 text-[0.92rem]">
-            <p className="text-[0.82rem] font-medium text-[#8a8d88]">Legal</p>
-            <Link href="/privacy" className="text-[#4a4d48] hover:text-[#101210]">{t.footer.privacy}</Link>
-            <Link href="/terms" className="text-[#4a4d48] hover:text-[#101210]">{t.footer.terms}</Link>
-          </nav>
+      {/* One footer row: mark and copyright left, the few links right. */}
+      <footer className="mx-auto flex max-w-[80rem] flex-col gap-5 px-5 py-10 text-[0.88rem] text-[#6f726d] sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <TallyWordmark />
+          <span>© {new Date().getFullYear()} Tally. {t.footer.tagline}</span>
         </div>
-        <p className="mt-12 text-[0.82rem] text-[#8a8d88]">© {new Date().getFullYear()} Tally. {t.footer.tagline}</p>
+        <nav aria-label="Footer" className="flex gap-6">
+          <Link href="/login" className="hover:text-[#101210]">{t.nav.login}</Link>
+          <Link href="/privacy" className="hover:text-[#101210]">{t.footer.privacy}</Link>
+          <Link href="/terms" className="hover:text-[#101210]">{t.footer.terms}</Link>
+        </nav>
       </footer>
     </div>
   );

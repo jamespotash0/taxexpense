@@ -9,7 +9,7 @@
 import { runAgent, type AgentStep } from '../agent';
 import { buildMonthEndTools, FINISH_REVIEW_TOOL } from '../agent-tools';
 import { MONTH_END_REVIEW_AGENT_PROMPT } from '../prompts';
-import { SONNET_MODEL } from '../claude';
+import { OPUS_MODEL } from '../claude';
 import { userContextLine } from '../categorize';
 import { getSupabaseAdmin } from '../supabase';
 import { log, maskPhone } from '../log';
@@ -95,13 +95,14 @@ export async function runMonthEndReview(user: AppUser, month: string): Promise<M
     `Review this month's logged expenses and prepare the draft accountant email.`;
 
   const result = await runAgent({
-    model: SONNET_MODEL,
+    model: OPUS_MODEL, // once a month per user; judgment-heavy
     system: MONTH_END_REVIEW_AGENT_PROMPT,
     userText,
     tools: buildMonthEndTools(user.organization_id, month),
     stopTool: FINISH_REVIEW_TOOL,
     maxSteps: MAX_STEPS,
-    maxTokens: 2000,
+    maxTokens: 8000, // per step; Opus thinking counts toward this
+    timeoutMs: 90_000, // Opus steps run longer than the 30s default; this is a background job
   });
 
   const out = result.stopToolInput ?? {};

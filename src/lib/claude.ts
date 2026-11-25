@@ -21,6 +21,11 @@ export const HAIKU_MODEL = optionalEnv('HAIKU_MODEL') ?? 'claude-haiku-4-5-20251
 // SONNET_MODEL env override: A/B claude-sonnet-5-5 (cheaper, $2/$10 vs $3/$15) without a code change.
 export const SONNET_MODEL = optionalEnv('SONNET_MODEL') ?? 'claude-sonnet-4-6'; // categorization + conversation
 
+// Stronger model for rare, high-stakes calls only (month-end review, business profile, second
+// opinion on an uncertain category). Never on the per-message path. Opus 5.5 always thinks
+// (effort default medium), and thinking counts toward max_tokens, so give these calls headroom.
+export const OPUS_MODEL = optionalEnv('OPUS_MODEL') ?? 'claude-opus-5-5';
+
 /** 5.x Haiku/Sonnet think by default (Sonnet 5.5 at effort high). Our jobs are short
  *  classify/compose calls, so keep thinking minimal: thinking tokens bill as output and add latency. */
 export function effortFor(model: string): { output_config?: { effort: 'low' } } {

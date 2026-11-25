@@ -6,7 +6,7 @@
 // to the bare business_type line (today's behavior), retrying on the next message. OWNER: Raj + Priya.
 
 import { claudeJSON } from './llm';
-import { SONNET_MODEL } from './claude';
+import { OPUS_MODEL } from './claude';
 import { BUSINESS_PROFILE_BUILDER_PROMPT } from './prompts';
 import { isValidCategory } from './categories';
 import { updateUser, type AppUser } from './users';
@@ -59,11 +59,11 @@ export async function generateBusinessProfile(
   if (!desc) return null;
   try {
     const raw = await claudeJSON<Partial<BusinessProfile>>({
-      model: SONNET_MODEL,
+      model: OPUS_MODEL, // once per user, steers every later categorization
       system: BUSINESS_PROFILE_BUILDER_PROMPT,
       userText: `Work description: ${desc}\nEntity: ${entityType ?? 'unknown'}`,
       cacheSystem: true,
-      maxTokens: 512,
+      maxTokens: 4096, // Opus thinking counts toward this
     });
     const profile = sanitizeProfile(raw);
     return isEmptyProfile(profile) ? null : profile;

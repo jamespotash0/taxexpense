@@ -4,7 +4,7 @@
 // OWNER: Raj + Priya (categorize), Sofia (response wording).
 
 import { claudeJSON, claudeText, type CallMeta } from './llm';
-import { HAIKU_MODEL, SONNET_MODEL } from './claude';
+import { HAIKU_MODEL, OPUS_MODEL, SONNET_MODEL } from './claude';
 import { CATEGORIZATION_HELPER_PROMPT, CATEGORIZATION_RESPONSE_PROMPT } from './prompts';
 import { canonicalizeCategory } from './categories';
 import { renderProfileForPrompt } from './businessProfile';
@@ -134,6 +134,25 @@ export async function categorizeExpense(
     onMeta,
   });
   return normalizeCategoryResult(result);
+}
+
+/** Second opinion on an uncertain category: same prompt, stronger model. Only called when the
+ *  first guess is below the review floor (~5-10% of expenses). Returns null on any failure so the
+ *  caller keeps the first guess; it never blocks logging. */
+export async function secondOpinionCategory(input: ExpenseInput, user: AppUser): Promise<CategoryResult | null> {
+  try {
+    const result = await claudeJSON<Partial<CategoryResult>>({
+      model: OPUS_MODEL,
+      system: CATEGORIZATION_HELPER_PROMPT,
+      userText: `## User Context\n${userContextLine(user)}\n\n## Expense\n${expenseSummary(input)}`,
+      cacheSystem: true,
+      maxTokens: 4096, // Opus thinking counts toward this
+    });
+    return normalizeCategoryResult(result);
+  } catch (err) {
+    log.warn('category_second_opinion_failed', { message: err instanceof Error ? err.message : 'unknown' });
+    return null;
+  }
 }
 
 /**

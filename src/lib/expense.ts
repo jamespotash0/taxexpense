@@ -3,7 +3,7 @@
 // processClarification (TSNAP-023, Prompt 4): apply a context answer, recompute, confirm
 // processAttachment   (TSNAP-024, Prompt 5): match a late photo to a pending receipt
 
-import { categorizeExpense, composeResponse, type ExpenseInput, type CategoryResult } from './categorize';
+import { categorizeExpense, composeResponse, secondOpinionCategory, type ExpenseInput, type CategoryResult } from './categorize';
 import { applyVendorMemory, rememberVendorCategory } from './vendor-memory';
 import {
   getSubstantiationRule,
@@ -14,7 +14,7 @@ import {
 import { getIrcSummary, lookupIrcSectionFlexible } from './irc';
 import { categoryLabel } from './categories';
 import { ircCitation, withDisclaimer } from './categorize';
-import { assessCategoryReview } from './review';
+import { assessCategoryReview, REVIEW_CONFIDENCE_FLOOR } from './review';
 import { log } from './log';
 import {
   saveReceipt,
@@ -26,7 +26,7 @@ import {
 import type { AppUser } from './users';
 import type { ContextState } from './conversations';
 import { claudeJSON, type CallMeta } from './llm';
-import { HAIKU_MODEL, SONNET_MODEL } from './claude';
+import { HAIKU_MODEL, OPUS_MODEL, SONNET_MODEL } from './claude';
 import { logAiEvent, type AskReason } from './ai-events';
 import { CLARIFICATION_PROMPT, CORRECTION_PROMPT, RECEIPT_ATTACHMENT_PROMPT } from './prompts';
 import { storePhotoBuffer, type OcrResult } from './ocr';
@@ -236,7 +236,19 @@ export async function processNewExpense(
   const modelCat = precomputedCategory ?? (await categorizeExpense(input, user, (m) => { catMeta = m; }));
   // Per-org vendor memory (DEC-070): if the user has previously corrected this vendor's category,
   // honor that over a fresh model guess so they don't have to correct the same vendor twice.
-  const cat = await applyVendorMemory(user.organization_id, input.vendor, modelCat);
+  let cat = await applyVendorMemory(user.organization_id, input.vendor, modelCat);
+  // Second opinion (2026-11-25): an uncertain first guess (below the review floor, not from vendor
+  // memory) goes to the stronger model once. If it's confident, the user isn't asked to confirm
+  // (DEC-073); if not, or it fails, the original flow (micro-confirm) runs as before.
+  let secondOpinion = false;
+  if (!cat.fromMemory && cat.confidence < REVIEW_CONFIDENCE_FLOOR) {
+    const second = await secondOpinionCategory(input, user);
+    if (second) {
+      log.info('category_second_opinion', { user: user.id, from: cat.category, to: second.category, confidence: second.confidence });
+      cat = second;
+      secondOpinion = true;
+    }
+  }
   const rule = await loadRuleOrFallback(cat.category);
 
   // Vehicle mileage entries give miles, not dollars — derive the dollar amount from the
@@ -274,7 +286,7 @@ export async function processNewExpense(
       userId: user.id,
       receiptId: rid,
       kind: 'categorize',
-      model: cat.fromMemory ? null : HAIKU_MODEL, // null = the category came from vendor memory, no model
+      model: cat.fromMemory ? null : secondOpinion ? OPUS_MODEL : HAIKU_MODEL, // null = from vendor memory, no model
       category: cat.category,
       ircSection: rule.irc_section,
       confidence: cat.confidence,
