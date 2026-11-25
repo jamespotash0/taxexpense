@@ -2,7 +2,7 @@
 // Server Component: resolves locale + dictionary.
 import Link from 'next/link';
 import { Geist } from 'next/font/google';
-import { HeroThread } from '@/components/HeroThread';
+import { HeroVisual } from '@/components/HeroVisual';
 import { HeroExposure } from '@/components/HeroExposure';
 import { LandingFaq } from '@/components/LandingFaq';
 import { RecordCosts } from '@/components/RecordCosts';
@@ -34,36 +34,39 @@ export default async function Home() {
       {/* Nav: flat sticky bar. */}
       <SiteHeader login={t.nav.login} getStarted={t.nav.getStarted} />
 
-      {/* Hero: content sits high under the nav (text left, Penny right, stacked on phones, then who it's
-          for), and the section fills the first screen so the next section only shows on scroll. */}
-      <section className="min-h-[calc(100svh-4rem)] px-5 pb-16 pt-10 sm:px-6 lg:pb-20 lg:pt-14">
-        <div className="mx-auto grid w-full max-w-[80rem] items-center gap-12 lg:grid-cols-[1.45fr_1fr] lg:gap-14">
-          <div>
-            <h1 className="text-balance text-[clamp(2.8rem,5.9vw,5.75rem)] font-normal leading-[1.02] tracking-[-0.04em] text-[#101210]">
+      {/* Hero (Privy-style split), one screen tall: copy on a pale ground left, a full-bleed red panel
+          right holding the dashboard and Penny, then the social bar along the bottom. */}
+      <section className="flex min-h-[calc(100svh-4rem)] flex-col">
+        <div className="grid flex-1 lg:grid-cols-2">
+          <div className="flex flex-col justify-center bg-[#f7f7f8] px-5 py-14 sm:px-6 lg:py-16 lg:pl-[max(1.5rem,calc((100vw-80rem)/2))] lg:pr-14">
+            <h1 className="text-balance text-[clamp(2.8rem,5vw,5.25rem)] font-normal leading-[1.02] tracking-[-0.04em] text-[#101210]">
               {t.hero.line1pre}
               <span className="text-[#d92d20]">{t.hero.line1em}</span>
               {t.hero.line1post}
             </h1>
-            <p className="mt-7 max-w-[42rem] text-pretty text-[1.15rem] leading-[1.5] text-[#6f726d] sm:text-[1.4rem]">{t.hero.subtitle}</p>
-            <div className="mt-10">
-              <StartButton label={t.nav.getStarted} variant={heroVariant} experiment="hero-copy" />
+            <p className="mt-7 max-w-[36rem] text-pretty text-[1.15rem] leading-[1.5] text-[#2c2e2a] sm:text-[1.3rem]">{t.hero.subtitle}</p>
+            <div className="mt-10 flex flex-wrap gap-3">
+              <StartButton label={t.nav.getStarted} variant={heroVariant} experiment="hero-copy" ink />
+              <a href="#how-it-works" className="inline-flex items-center rounded-full px-7 py-4 text-[1.05rem] font-medium text-[#101210] ring-[1.5px] ring-inset ring-[#101210] transition-colors hover:bg-[#101210] hover:text-white">
+                {t.nav.howItWorks}
+              </a>
             </div>
-            <p className="mt-3.5 text-[0.85rem] text-[#8a8d88]">{t.hero.disclaimer}</p>
+            <p className="mt-4 text-[0.85rem] text-[#8a8d88]">{t.hero.disclaimer}</p>
           </div>
-          <HeroThread />
+          <HeroVisual />
         </div>
 
         {/* Social bar: who it's for, as a slow marquee with faded edges (no customer logos exist yet).
             Two copies of the list scroll as one strip; the second is hidden from screen readers. Pauses
             on hover; static and wrapped under reduced motion. */}
-        <div className="mx-auto mt-12 flex w-full max-w-[80rem] flex-col gap-5 border-t border-black/[0.06] pt-8 lg:mt-14 lg:flex-row lg:items-center lg:gap-10">
+        <div className="mx-auto flex w-full max-w-[80rem] flex-col gap-4 px-5 py-8 sm:px-6 lg:flex-row lg:items-center lg:gap-10 lg:py-9">
           <p className="shrink-0 text-[0.85rem] text-[#8a8d88]">{t.hero.builtFor}</p>
           <div className="group relative min-w-0 flex-1 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)] motion-reduce:[mask-image:none]">
             <div className="marquee flex w-max group-hover:[animation-play-state:paused] motion-reduce:w-auto motion-reduce:flex-wrap">
               {[0, 1].map((copy) => (
                 <ul key={copy} aria-hidden={copy === 1 || undefined} className={`flex shrink-0 items-center ${copy === 1 ? 'motion-reduce:hidden' : 'motion-reduce:flex-wrap motion-reduce:gap-y-3'}`}>
                   {t.hero.audienceChips.map((a) => (
-                    <li key={a} className="flex items-center whitespace-nowrap text-[1.2rem] font-medium tracking-[-0.02em] text-[#5f625c] sm:text-[1.35rem]">
+                    <li key={a} className="flex items-center whitespace-nowrap text-[1.35rem] font-semibold tracking-[-0.03em] text-[#101210] sm:text-[1.6rem]">
                       {a}
                       <span aria-hidden className="mx-7 h-1.5 w-1.5 rounded-full bg-[#d92d20]/80 sm:mx-9" />
                     </li>
@@ -131,14 +134,14 @@ export default async function Home() {
 
 // The one CTA: /start. No phone number anywhere on the landing; the shared Linq line drops texts
 // from numbers that haven't registered on /start first (DEC-089).
-function StartButton({ label, variant, experiment, onRed = false }: { label: string; variant: HeroVariant; experiment: string; onRed?: boolean }) {
+function StartButton({ label, variant, experiment, onRed = false, ink = false }: { label: string; variant: HeroVariant; experiment: string; onRed?: boolean; ink?: boolean }) {
   return (
     <TrackedLink
       href="/start"
       event="hero_cta_click"
       data={{ experiment, variant }}
       className={`inline-flex items-center gap-2 rounded-full px-7 py-4 text-[1.05rem] font-medium transition-colors ${
-        onRed ? 'bg-white text-[#d92d20] hover:bg-[#fbeeec] focus-visible:outline-white' : 'bg-[#d92d20] text-white hover:bg-[#b8241a]'
+        onRed ? 'bg-white text-[#d92d20] hover:bg-[#fbeeec] focus-visible:outline-white' : ink ? 'bg-[#101210] text-white hover:bg-[#d92d20]' : 'bg-[#d92d20] text-white hover:bg-[#b8241a]'
       }`}
     >
       {label}
