@@ -32,15 +32,7 @@ export default async function Home() {
       <HeroExposure variant={heroVariant} />
 
       {/* Nav: flat sticky bar. */}
-      <SiteHeader
-        login={t.nav.login}
-        getStarted={t.nav.getStarted}
-        links={[
-          { href: '#how-it-works', label: t.nav.howItWorks },
-          { href: '#pricing', label: t.nav.pricing },
-          { href: '#faq', label: 'FAQ' },
-        ]}
-      />
+      <SiteHeader login={t.nav.login} getStarted={t.nav.getStarted} />
 
       {/* Hero: headline + CTA left; texting Penny, right. */}
       <section className="px-5 pb-20 pt-12 sm:px-6 lg:pb-28 lg:pt-20">

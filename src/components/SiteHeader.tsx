@@ -1,5 +1,4 @@
-// Landing nav: a flat sticky bar, same color as the page. Wordmark left; section links, Log in and
-// Get started on the right. Links collapse to just the two buttons on phones.
+// Landing nav: a flat sticky bar, same color as the page. Wordmark left; Log in and Get started right.
 import Link from 'next/link';
 
 /** The mark: four tally strokes crossed by one red slash, the way you count to five. The red is
@@ -32,25 +31,12 @@ export function TallyWordmark({ back = false }: { back?: boolean }) {
   );
 }
 
-export function SiteHeader({
-  login,
-  getStarted,
-  links,
-}: {
-  login: string;
-  getStarted: string;
-  links: { href: string; label: string }[];
-}) {
+export function SiteHeader({ login, getStarted }: { login: string; getStarted: string }) {
   return (
     <header className="sticky top-0 z-30 bg-[#f3f2ee]/95 backdrop-blur-md">
       <nav className="mx-auto flex h-16 max-w-[80rem] items-center justify-between gap-4 px-5 sm:px-6">
         <TallyWordmark />
         <div className="flex items-center gap-1 text-[0.9rem] font-medium text-[#101210]">
-          {links.map((l) => (
-            <a key={l.href} href={l.href} className="hidden rounded-full px-3.5 py-2 transition-colors hover:bg-black/[0.05] md:block">
-              {l.label}
-            </a>
-          ))}
           <Link href="/login" className="ml-1 rounded-full px-4 py-[0.55rem] transition-colors hover:bg-black/[0.05]">
             {login}
           </Link>
