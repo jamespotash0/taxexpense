@@ -2,7 +2,7 @@
 // Server Component: resolves locale + dictionary.
 import Link from 'next/link';
 import { Geist } from 'next/font/google';
-import { HeroRecord } from '@/components/HeroRecord';
+import { HeroThread } from '@/components/HeroThread';
 import { HeroExposure } from '@/components/HeroExposure';
 import { LandingFaq } from '@/components/LandingFaq';
 import { RecordCosts } from '@/components/RecordCosts';
@@ -42,7 +42,7 @@ export default async function Home() {
         ]}
       />
 
-      {/* Hero: headline + CTA left; one text becoming one numbered expense record, right. */}
+      {/* Hero: headline + CTA left; texting Penny, right. */}
       <section className="px-5 pt-12 sm:px-6 lg:pt-20">
         <div className="mx-auto grid max-w-[80rem] items-center gap-14 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10">
           <div>
@@ -59,24 +59,24 @@ export default async function Home() {
             <p className="mt-4 max-w-[33rem] text-[0.88rem] text-[#6f726d]">{t.hero.disclaimer}</p>
           </div>
 
-          <HeroRecord t={t.hero.record} />
+          <HeroThread />
         </div>
       </section>
 
       {/* How it works: three rows, one idea each. */}
-      <section id="how-it-works" className="scroll-mt-24 px-5 pt-32 sm:px-6 lg:pt-48">
+      <section id="how-it-works" className="mt-28 scroll-mt-16 bg-white px-5 py-28 sm:px-6 lg:mt-40 lg:py-40">
         <BlurFade>
           <Features t={t.features} />
         </BlurFade>
       </section>
 
       {/* Compliance: the IRS rules, beside what a missing record costs. */}
-      <section className="px-5 pt-32 sm:px-6 lg:pt-48">
+      <section className="bg-[#101210] px-5 py-28 selection:bg-[#d92d20] selection:text-white sm:px-6 lg:py-40">
         <RecordCosts t={t.costs} />
       </section>
 
       {/* Pricing: one centered block. FAQ below it. */}
-      <section id="pricing" className="scroll-mt-24 px-5 pt-32 sm:px-6 lg:pt-48">
+      <section id="pricing" className="scroll-mt-16 px-5 pt-28 sm:px-6 lg:pt-40">
         <BlurFade className="mx-auto max-w-[34rem]">
           <h2 className="text-balance text-center text-[clamp(2.1rem,4.4vw,2.9rem)] font-normal leading-[1.1] tracking-[-0.018em] text-[#101210]">{t.pricing.title}</h2>
           <div className="mt-10">
@@ -85,14 +85,15 @@ export default async function Home() {
         </BlurFade>
       </section>
 
-      <section id="faq" className="scroll-mt-24 px-5 pt-32 sm:px-6 lg:pt-40">
+      <section id="faq" className="scroll-mt-16 px-5 py-28 sm:px-6 lg:py-40">
         <div className="mx-auto max-w-[48rem]">
           <LandingFaq t={t.faq} />
         </div>
       </section>
 
-      {/* Closing: centered line and the same CTA, on the plain page. */}
-      <section className="px-5 pt-32 sm:px-6 lg:pt-48">
+      {/* Closing: soft red band carries the close and the footer. */}
+      <div className="bg-[#fbeeec]">
+      <section className="px-5 pt-28 sm:px-6 lg:pt-40">
         <div className="mx-auto flex max-w-[40rem] flex-col items-center text-center">
           <h2 className="text-balance text-[clamp(2.4rem,5vw,3.6rem)] font-normal leading-[1.08] tracking-[-0.02em] text-[#101210]">{t.cta.heading}</h2>
           <p className="mt-4 max-w-[30rem] text-pretty text-[1.1rem] text-[#6f726d]">{t.cta.sub}</p>
@@ -102,8 +103,8 @@ export default async function Home() {
         </div>
       </section>
 
-      <footer className="mx-auto mt-32 max-w-[80rem] px-5 pb-10 sm:px-6">
-        <div className="grid gap-10 border-t border-black/[0.08] pt-12 sm:grid-cols-[1.5fr_1fr_1fr]">
+      <footer className="mx-auto mt-28 max-w-[80rem] px-5 pb-10 sm:px-6 lg:mt-40">
+        <div className="grid gap-10 border-t border-[#d92d20]/[0.15] pt-12 sm:grid-cols-[1.5fr_1fr_1fr]">
           <div>
             <TallyWordmark />
             <p className="mt-3 max-w-[16rem] text-[0.9rem] text-[#6f726d]">{t.footer.tagline}</p>
@@ -122,6 +123,7 @@ export default async function Home() {
         </div>
         <p className="mt-12 text-[0.82rem] text-[#8a8d88]">© {new Date().getFullYear()} Tally. {t.footer.tagline}</p>
       </footer>
+      </div>
     </div>
   );
 }

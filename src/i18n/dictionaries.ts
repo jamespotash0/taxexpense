@@ -47,8 +47,6 @@ const en = {
     audienceChips: ['Freelancers', 'Contractors', 'Sole proprietors', 'Single-member LLCs'],
     copied: 'Copied. Text it from your phone 📱',
     disclaimer: 'For sole proprietors and small LLCs. Recordkeeping, not tax advice. Reply STOP to opt out.',
-    // Hero record leaf (illustrative example of one text turned into a record).
-    record: { label: 'Expense record', date: 'Date', dateValue: 'Nov 7, 2026', paidTo: 'Paid to', amount: 'Amount', category: 'Category', categoryValue: 'Client meal · IRC §274(d)', why: 'Why', whyValue: 'Client lunch w/ Sarah from Acme', complete: 'Documentation complete' },
     // A/B variant B (experiment: hero-copy): conversational / first-person (Tally speaks).
     vb: {
       line1pre: 'Hey, I’m ',
@@ -413,7 +411,6 @@ const es: Dict = {
     audienceChips: ['Freelancers', 'Contratistas', 'Propietarios únicos', 'LLC de un solo miembro'],
     copied: 'Copiado. Escríbenos desde tu teléfono 📱',
     disclaimer: 'Para independientes y LLC pequeñas. Llevar registros, no asesoría fiscal. Responde STOP para darte de baja.',
-    record: { label: 'Registro de gasto', date: 'Fecha', dateValue: '7 nov 2026', paidTo: 'Pagado a', amount: 'Monto', category: 'Categoría', categoryValue: 'Comida con cliente · IRC §274(d)', why: 'Por qué', whyValue: 'Almuerzo con Sarah de Acme', complete: 'Documentación completa' },
     // Variante B del A/B (experimento: hero-copy): conversacional / en primera persona (habla Tally).
     vb: {
       line1pre: 'Hola, soy ',
