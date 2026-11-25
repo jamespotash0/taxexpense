@@ -30,7 +30,7 @@ export function RecordCosts({ t }: { t: { title: string; costsHeading: string; r
                   )}
                 </p>
                 <p className="mt-5 max-w-[34rem] text-[1.05rem] leading-[1.55] text-[#e6e7e4]">{r.text}</p>
-                <p className="mt-3 text-[0.8rem] leading-snug text-[#8f928c]">{r.source}</p>
+                <p className="mt-3 text-[0.8rem] italic leading-snug text-[#8f928c]">{r.source}</p>
               </BlurFade>
             </li>
           ))}
