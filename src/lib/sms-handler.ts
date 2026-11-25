@@ -48,6 +48,7 @@ import { getOrgEntitlement } from './subscription';
 import { getUsageCounts, decideUsage, ANNUAL_RECEIPT_QUOTA, type UsageDecision } from './usage';
 import { PUBLIC_ENV } from './env';
 import { log, maskPhone } from './log';
+import { SONNET_MODEL } from './claude';
 
 export interface InboundMessage {
   from: string;
@@ -524,7 +525,15 @@ async function handleExpenseFlow(user: AppUser, msg: InboundMessage): Promise<Pr
     // to Storage once we know the image links to a receipt (prevents orphaned uploads from
     // non-receipt / unmatched photos). On the attachment path below the category is unused.
     const { buffer, contentType } = await fetchInboundMedia(msg.mediaUrls[0]);
-    const { ocr, category } = await extractAndCategorizeReceiptFromImageData(buffer, contentType, user, caption);
+    let { ocr, category } = await extractAndCategorizeReceiptFromImageData(buffer, contentType, user, caption);
+    // Hard receipt (blurry, crumpled, handwritten): Haiku couldn't read it or is unsure of the
+    // amount. Retry once with the stronger vision model before asking the user. Not for
+    // "not a receipt" (a selfie won't improve). Rare, so cost stays pennies (2026-11-25).
+    if ((!ocr.ok && ocr.error === 'unreadable') || (ocr.ok && ocr.data.confidence < 0.7)) {
+      const retry = await extractAndCategorizeReceiptFromImageData(buffer, contentType, user, caption, SONNET_MODEL);
+      log.info('ocr_retry_stronger_model', { user: user.id, before_ok: ocr.ok, after_ok: retry.ocr.ok });
+      if (retry.ocr.ok && (!ocr.ok || retry.ocr.data.confidence > ocr.data.confidence)) ({ ocr, category } = retry);
+    }
 
     // If a receipt is awaiting a photo, try to attach this one first (stores on match).
     if (pending) {

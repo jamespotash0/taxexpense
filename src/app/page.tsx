@@ -89,21 +89,22 @@ export default async function Home() {
 
       {/* Pricing and FAQ side by side; stacked on phones. */}
       <section id="pricing" className="scroll-mt-16 px-5 py-28 sm:px-6 lg:py-40">
-        <div className="mx-auto grid max-w-[80rem] gap-20 lg:grid-cols-2 lg:gap-24">
-          <BlurFade>
+        {/* Two columns on a shared row grid (subgrid): headings align, and the card and FAQ list share one height. */}
+        <div className="mx-auto grid max-w-[80rem] gap-20 lg:grid-cols-2 lg:grid-rows-[auto_1fr] lg:gap-x-24 lg:gap-y-10">
+          <BlurFade className="lg:row-span-2 lg:grid lg:grid-rows-subgrid">
             <h2 className="text-balance text-[clamp(2.1rem,4.4vw,2.9rem)] font-normal leading-[1.1] tracking-[-0.018em] text-[#101210]">{t.pricing.title}</h2>
-            <div className="mt-8">
+            <div className="mt-8 lg:mt-0">
               <LandingPricing t={t.pricing} ctaLabel={t.nav.getStarted} />
             </div>
           </BlurFade>
-          <div id="faq" className="scroll-mt-16">
+          <div id="faq" className="scroll-mt-16 lg:row-span-2 lg:grid lg:grid-rows-subgrid">
             <LandingFaq t={t.faq} />
           </div>
         </div>
       </section>
 
-      {/* Closing: full red band, white type, white button. */}
-      <section className="bg-[#d92d20] px-5 py-28 selection:bg-white selection:text-[#d92d20] sm:px-6 lg:py-40">
+      {/* Closing: full red band, white type, white button, with the footer at its foot. */}
+      <section className="bg-[#d92d20] px-5 pb-10 pt-28 selection:bg-white selection:text-[#d92d20] sm:px-6 lg:pt-40">
         <div className="mx-auto flex max-w-[40rem] flex-col items-center text-center">
           <h2 className="text-balance text-[clamp(2.4rem,5vw,3.6rem)] font-normal leading-[1.08] tracking-[-0.02em] text-white">{t.cta.heading}</h2>
           <p className="mt-4 max-w-[30rem] text-pretty text-[1.1rem] text-white/85">{t.cta.sub}</p>
@@ -111,20 +112,21 @@ export default async function Home() {
             <StartButton label={t.nav.getStarted} variant={heroVariant} experiment="footer-cta" onRed />
           </div>
         </div>
+
+        {/* The footer lives inside the red band: one row, mark and copyright left, links right. */}
+        <footer className="mx-auto mt-28 flex max-w-[80rem] flex-col gap-5 border-t border-white/20 pt-8 text-[0.88rem] text-white/80 sm:flex-row sm:items-center sm:justify-between lg:mt-36">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <TallyWordmark onRed />
+            <span>© {new Date().getFullYear()} Tally. {t.footer.tagline}</span>
+          </div>
+          <nav aria-label="Footer" className="flex gap-6">
+            <Link href="/login" className="hover:text-white">{t.nav.login}</Link>
+            <Link href="/privacy" className="hover:text-white">{t.footer.privacy}</Link>
+            <Link href="/terms" className="hover:text-white">{t.footer.terms}</Link>
+          </nav>
+        </footer>
       </section>
 
-      {/* One footer row: mark and copyright left, the few links right. */}
-      <footer className="mx-auto flex max-w-[80rem] flex-col gap-5 px-5 py-10 text-[0.88rem] text-[#6f726d] sm:flex-row sm:items-center sm:justify-between sm:px-6">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <TallyWordmark />
-          <span>© {new Date().getFullYear()} Tally. {t.footer.tagline}</span>
-        </div>
-        <nav aria-label="Footer" className="flex gap-6">
-          <Link href="/login" className="hover:text-[#101210]">{t.nav.login}</Link>
-          <Link href="/privacy" className="hover:text-[#101210]">{t.footer.privacy}</Link>
-          <Link href="/terms" className="hover:text-[#101210]">{t.footer.terms}</Link>
-        </nav>
-      </footer>
     </div>
   );
 }

@@ -170,11 +170,12 @@ export async function extractAndCategorizeReceiptFromImageData(
   contentType: string,
   user: AppUser,
   caption: string,
+  model: string = HAIKU_MODEL,
 ): Promise<{ ocr: OcrResult; category: CategoryResult | null }> {
   try {
     const note = caption.trim() ? `\n\n## Note the user texted with the photo\n${caption.trim()}` : '';
     const parsed = await claudeJSON<ExtractedReceipt & { error?: string } & RawCategoryFields>({
-      model: HAIKU_MODEL,
+      model,
       system: RECEIPT_EXTRACT_CATEGORIZE_PROMPT,
       userText: `Extract the receipt data and categorize the expense.\n\n## User Context\n${userContextLine(user)}${note}`,
       imageBase64: buffer.toString('base64'),

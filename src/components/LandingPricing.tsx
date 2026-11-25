@@ -27,7 +27,7 @@ export function LandingPricing({ t, ctaLabel }: { t: Dict['pricing']; ctaLabel: 
         : t.billedWeekly;
 
   return (
-    <div className="overflow-hidden rounded-[28px] bg-white ring-1 ring-black/[0.06]">
+    <div className="flex h-full flex-col overflow-hidden rounded-[28px] bg-white ring-1 ring-black/[0.06]">
       <div className="p-6 sm:p-10">
         <div className="inline-flex rounded-full bg-[#f0f0ee] p-1" role="group" aria-label="Billing period">
           {tabs.map((tab) => {
@@ -59,7 +59,7 @@ export function LandingPricing({ t, ctaLabel }: { t: Dict['pricing']; ctaLabel: 
         </Link>
       </div>
 
-      <div className="border-t border-black/[0.06] bg-[#fafaf9] p-6 sm:p-10">
+      <div className="flex-1 border-t border-black/[0.06] bg-[#fafaf9] p-6 sm:p-10">
         <ul className="space-y-4">
           {t.included.map((f) => (
             <li key={f} className="flex gap-3 text-[1rem] text-[#101210]">
