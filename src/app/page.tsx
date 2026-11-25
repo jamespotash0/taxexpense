@@ -63,9 +63,8 @@ export default async function Home() {
               {[0, 1].map((copy) => (
                 <ul key={copy} aria-hidden={copy === 1 || undefined} className={`flex shrink-0 items-center ${copy === 1 ? 'motion-reduce:hidden' : 'motion-reduce:flex-wrap motion-reduce:gap-y-3'}`}>
                   {t.hero.audienceChips.map((a) => (
-                    <li key={a} className="flex items-center whitespace-nowrap text-[1.35rem] font-semibold tracking-[-0.03em] text-[#101210] sm:text-[1.6rem]">
+                    <li key={a} className="whitespace-nowrap pr-12 text-[1.15rem] tracking-[-0.015em] text-[#4a4d48] sm:pr-16 sm:text-[1.3rem]">
                       {a}
-                      <span aria-hidden className="mx-7 h-1.5 w-1.5 rounded-full bg-[#d92d20]/80 sm:mx-9" />
                     </li>
                   ))}
                 </ul>
