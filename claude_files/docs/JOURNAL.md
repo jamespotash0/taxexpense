@@ -2802,6 +2802,19 @@ under default-deny for V1; only add an anon read policy if rendering them client
   personal charges kept + labeled as §262 / owner's draw, not deleted). Accountant export with
   Schedule C summary split out as V1-sized `claude_files/specs/11-accountant-export.md`.
 
+### DEC-095 — Daily inbound cap 200 -> 40 texts, with a one-time notice (2026-11-25)
+
+- **Why.** Worst-case abuse at 200 texts/day was ~$16/day (~$480/mo) in LLM + messaging cost
+  against a $9.99-12.49 plan. Typical sole prop costs ~$1-5/mo.
+- **Options.** Pay-per-credit pricing (rejected: a meter discourages texting every expense, the
+  core habit); cap expenses at 10/day (rejected: travel and catch-up days legitimately exceed it,
+  and one expense is 1-4 texts); **cap texts at 40/day (chosen, founder)** ≈ 10-13 expenses.
+- **Decision.** `INBOUND_MAX_PER_DAY = 40` (sms-handler.ts). The first text over the cap gets one
+  friendly "hit my limit for today" reply instead of silence; later ones are dropped silently to
+  avoid SMS loops. STOP/START still work (handled before the cap). 10-min burst cap unchanged (25).
+- **Follow-ups (not done).** Per-user cost logging from `response.usage`; evaluate Sonnet 4.6 ->
+  Sonnet 5.5 for categorize/compose (cheaper) behind the evals; prompt caching on the IRC system prompt.
+
 ### DEC-096 — Stronger models only where calls are rare and mistakes are costly (2026-11-25)
 
 - **Principle.** Per-message path stays cheap (Haiku 5.5 routing/OCR, Sonnet compose). Upgrade
@@ -2827,3 +2840,29 @@ under default-deny for V1; only add an anon read policy if rendering them client
 - **Not evaluated yet:** month-end review and profile builder on Opus (`eval:profile-build`),
   OCR retry on real hard receipts.
 
+### DEC-097 — Per-user LLM cost tracking + correction to DEC-095 (2026-11-25)
+
+- **What.** `src/lib/llm-usage.ts`: an AsyncLocalStorage tally per unit of work (each inbound
+  message via `handleInboundSms`, each `runMonthEndReview`). `claudeText` (llm.ts) and `runAgent`
+  (agent.ts) add every response's tokens; at the end one `ai_events` row per model is written in a
+  single insert (`kind='llm_usage'`, input_tokens includes cache reads at 0.1x). No migration
+  (`kind` is TEXT). Flush failures only warn. Calls outside a unit (evals, scripts) record nothing.
+- **Report.** `npm run cost:report [YYYY-MM]` prices each org's month (prices in
+  `scripts/cost-report.ts`) and flags orgs over $8. AI cost only; messaging is billed separately.
+- **Correction to DEC-095.** DEC-050 already caps *expenses* at 30/day and 1,200/year per org
+  (`src/lib/usage.ts`), which DEC-095's analysis missed. So the "$480/mo worst case" overstated it:
+  expense logging was already bounded; the 200-text cap mainly allowed unbounded *non-expense*
+  traffic (questions, chat, corrections). The 40-texts/day cap still stands as the message-level
+  bound, alongside DEC-050's expense caps.
+- **Note.** `usage.ts` (receipt caps) and `llm-usage.ts` (token cost) are different things.
+- **Sonnet 5.5 is now the default (founder, 2026-11-25),** switched without running the evals.
+  `SONNET_MODEL` defaults to `claude-sonnet-5-5` at effort low; roll back by setting
+  `SONNET_MODEL=claude-sonnet-4-6` in Vercel (no deploy). Watch: reply tone/length, and any
+  `stop_reason: refusal` (Sonnet 5.5 has broader safety classifiers; a failed compose currently
+  falls to the generic failure SMS after the receipt is saved).
+- **Compose fallback (2026-11-25).** If `composeResponse` throws (timeout, refusal), the already-
+  saved expense gets a friendly fixed reply from `fallbackLogMessage` (expense.ts) instead of the
+  generic failure SMS: "Got it! $140.00 at Nobu is saved under Business Meals (§274(d)). Can you
+  tell me who it was with and what it was for?" It asks exactly what the context state expects
+  (fields in plain words / receipt photo / "You're all set ✓"); the category micro-confirm is
+  skipped on this path. Tests: expense-fallback.test.ts.
