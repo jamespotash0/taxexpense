@@ -74,9 +74,11 @@ const en = {
   faq: {
     heading: 'FAQ',
     items: [
-      { q: 'Does Tally replace QuickBooks?', a: 'No, it feeds it. Tally captures the why and exports a clean CSV or QuickBooks-ready file. Keep your books and your accountant; Tally fills the context gap.' },
-      { q: 'What if I lose a receipt?', a: 'For most expenses you don’t need the paper at all; your text is the record. Tally only asks for a receipt when the IRS actually requires one (for example, a meal of $75 or more).' },
-      { q: 'How does categorization work?', a: 'Tally reads each expense, suggests the right category, and cites the IRC section behind it. You always have the final say.' },
+      { q: 'Do I need to download an app?', a: 'No. Tally works over text, in iMessage or regular SMS. Send a photo of a receipt or a quick note like you’d text a friend. The web dashboard is there when you want to review or export.' },
+      { q: 'What does Tally’s AI actually do?', a: 'It reads each receipt or note, suggests the tax category it typically falls under with the IRC section behind it, and checks it against IRS recordkeeping rules. It asks a question only when a rule needs more, like a receipt for a meal of $75 or more. You can change anything it suggests.' },
+      { q: 'What if I forget something or text it later?', a: 'Text it whenever you remember. Tally matches a late detail to the right expense, or asks which one if it isn’t sure. You can send several charges in one text, and fix anything on the dashboard.' },
+      { q: 'Does Tally replace QuickBooks or my accountant?', a: 'No, it feeds them. Export a clean CSV or a QuickBooks-ready file, or email the whole year to your accountant in one tap. Tally fills in the why your bank statement is missing.' },
+      { q: 'How much does it cost?', a: '21 days free, no card needed. After that, pick a weekly, monthly or yearly plan. Cancel anytime in one tap, and your records stay viewable and exportable.' },
       { q: 'Is my data secure?', a: 'Yes. Receipts live in private storage behind signed URLs, and we never sell your data. See our Privacy Policy for details.' },
       { q: 'Is this tax advice?', a: 'No. Tally is recordkeeping, not advice. For your specific situation, consult a licensed tax professional.' },
     ],
@@ -434,9 +436,11 @@ const es: Dict = {
   faq: {
     heading: 'Preguntas frecuentes',
     items: [
-      { q: '¿Tally reemplaza a QuickBooks?', a: 'No, lo alimenta. Tally captura el porqué y exporta un CSV limpio o un archivo listo para QuickBooks. Conserva tus libros y tu contador; Tally llena el vacío de contexto.' },
-      { q: '¿Y si pierdo un recibo?', a: 'Para la mayoría de los gastos no necesitas el papel; tu texto es el registro. Tally solo pide recibo cuando el IRS realmente lo exige (por ejemplo, una comida de $75 o más).' },
-      { q: '¿Cómo funciona la categorización?', a: 'Tally lee cada gasto, sugiere la categoría correcta y cita la sección del IRC detrás. La última palabra siempre es tuya.' },
+      { q: '¿Tengo que descargar una app?', a: 'No. Tally funciona por mensaje de texto, en iMessage o SMS normal. Manda una foto del recibo o una nota rápida como le escribirías a un amigo. El panel web está ahí cuando quieras revisar o exportar.' },
+      { q: '¿Qué hace exactamente la IA de Tally?', a: 'Lee cada recibo o nota, sugiere la categoría fiscal donde normalmente cae con la sección del IRC correspondiente y la revisa según las reglas de registro del IRS. Solo pregunta cuando una regla pide más, como un recibo para una comida de $75 o más. Puedes cambiar cualquier sugerencia.' },
+      { q: '¿Y si se me olvida algo o lo escribo después?', a: 'Escríbelo cuando lo recuerdes. Tally asocia el detalle con el gasto correcto, o te pregunta cuál es si no está seguro. Puedes mandar varios cargos en un solo mensaje y corregir lo que sea en el panel.' },
+      { q: '¿Tally reemplaza a QuickBooks o a mi contador?', a: 'No, los alimenta. Exporta un CSV limpio o un archivo listo para QuickBooks, o manda el año completo a tu contador con un toque. Tally llena el porqué que le falta a tu estado de cuenta.' },
+      { q: '¿Cuánto cuesta?', a: '21 días gratis, sin tarjeta. Después eliges un plan semanal, mensual o anual. Cancela cuando quieras con un toque, y tus registros siguen visibles y exportables.' },
       { q: '¿Mis datos están seguros?', a: 'Sí. Los recibos viven en almacenamiento privado tras URLs firmadas, y nunca vendemos tus datos. Consulta nuestra Política de Privacidad.' },
       { q: '¿Esto es asesoría fiscal?', a: 'No. Tally lleva registros, no da asesoría. Para tu situación específica, consulta a un profesional fiscal con licencia.' },
     ],
