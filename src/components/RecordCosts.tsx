@@ -17,9 +17,8 @@ export function RecordCosts({ t }: { t: { title: string; costsHeading: string; r
         <BlurFade>
           <h3 className="text-[1.15rem] font-normal tracking-[-0.02em] text-white">{t.costsHeading}</h3>
         </BlurFade>
-        {/* Side by side (4 across wide, 2 on tablets, stacked on phones); each stat sits under its own
-            hairline, with even gutters between columns. */}
-        <ul className="mt-10 grid gap-x-12 gap-y-14 sm:grid-cols-2 xl:grid-cols-4">
+        {/* Two by two (stacked on phones); each stat sits under its own hairline, with even gutters. */}
+        <ul className="mt-10 grid gap-x-16 gap-y-14 sm:grid-cols-2">
           {t.rows.map((r, i) => (
             <li key={r.source} className="border-t border-white/[0.15] pt-7">
               <BlurFade delay={i * 0.08}>
@@ -30,7 +29,7 @@ export function RecordCosts({ t }: { t: { title: string; costsHeading: string; r
                     <span className="ml-2 text-[1.2rem] font-normal tracking-[-0.02em] text-[#c4c6c1]">{r.suffix.trim()}</span>
                   )}
                 </p>
-                <p className="mt-5 text-[1rem] leading-[1.55] text-[#e6e7e4]">{r.text}</p>
+                <p className="mt-5 max-w-[34rem] text-[1.05rem] leading-[1.55] text-[#e6e7e4]">{r.text}</p>
                 <p className="mt-3 text-[0.8rem] leading-snug text-[#8f928c]">{r.source}</p>
               </BlurFade>
             </li>
