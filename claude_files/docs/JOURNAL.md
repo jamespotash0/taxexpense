@@ -2772,3 +2772,33 @@ under default-deny for V1; only add an anon read policy if rendering them client
   the hotel over the flight; fixed with an explicit trip rule.
 - **Post-V1 idea (not built).** Trip memory: "I'm in Austin this week" pre-fills business purpose on
   later receipts from that trip.
+
+### IDEA — Bank feeds (Plaid) as the capture source (2026-11-25, not built)
+
+- **Founder's thought.** Pull bank/card feeds so sole props don't have to text every expense; Tally
+  just organizes, maps each line to its IRC section, and texts a question only when the
+  substantiation tree needs the WHY.
+- **Fit.** Strong: the feed supplies the WHAT, Tally asks for the WHY. Keeps the positioning; changes
+  the trigger from "user texts" to "transaction lands -> Tally texts if needed".
+- **Cost.** Plaid production approval + per-item fees, token storage/security review (Jordan),
+  dedupe against texted receipts, personal-card noise (many feeds mix personal spend), and a
+  pre-filled CSV of bank lines is what QuickBooks/banks already give, so the moat stays the WHY.
+- **Status.** Already V2 in SPEC ("Bank linking via Plaid"). Not adding to V1; landing copy should
+  not promise bank feeds until it ships. Validate with the 5-user interviews first: would they link
+  a bank to a new app?
+- **Flow (founder, 2026-11-25).** Each new transaction: known merchant -> categorize silently;
+  unknown -> "What's this?" (batched daily, answer by number), then the substantiation tree.
+- **Target banks.** TD, Valley, Capital One, Bank of America, Chase. Chase/BofA/Capital One are on
+  Plaid's OAuth list; TD's Plaid page lists Auth/Balance/Assets (Transactions unconfirmed); Valley
+  unconfirmed. Verify each for *Transactions* in Plaid's dashboard and Stripe Financial Connections
+  before choosing a vendor.
+- **"Flag suspicious activity" (founder idea).** Keep it to recordkeeping signals that fall out of
+  the "what's this?" flow: duplicate charges, an unrecognized merchant, a subscription price jump.
+  Do not market it as fraud protection (feeds lag hours to days; banks own fraud + liability).
+- **Vendor lean (2026-11-25).** Founder checked Stripe Financial Connections: all five target banks
+  supported with transactions. Lean Stripe FC over Plaid: already a Stripe customer (no new vendor
+  or Plaid production approval), one bill, same Link-style modal.
+- **Specs (2026-11-25).** Full design in `claude_files/specs/12-bank-feeds.md` (vendor: Stripe FC;
+  personal charges kept + labeled as §262 / owner's draw, not deleted). Accountant export with
+  Schedule C summary split out as V1-sized `claude_files/specs/11-accountant-export.md`.
+

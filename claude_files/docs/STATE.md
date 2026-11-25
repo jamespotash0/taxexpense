@@ -119,6 +119,16 @@ _Last updated: 2026-11-23_
 
 ## Open threads
 
+- **Accountant-ready export (V1-sized, design, 2026-11-25).** Schedule C line per category, summary
+  tab with totals (meals at 50%), `Source` column, .xlsx with Summary / Transactions / Personal tabs.
+  Draft mapping needs a CPA spot-check; show a mock to 2-3 CPAs first. Spec:
+  `claude_files/specs/11-accountant-export.md`.
+- **Bank feeds via Stripe Financial Connections (V2, design, 2026-11-25).** Link by texted one-time
+  link, daily batched "what's this?", merchant rules, personal charges kept + labeled (owner's draw
+  on business accounts), pending/posted handling, restricted Stripe key. Target banks confirmed on
+  Stripe FC: Chase, BofA, Capital One, TD, Valley. Not approved for build; validate with user
+  interviews. Spec: `claude_files/specs/12-bank-feeds.md`.
+
 - **Verticalization + agency channel (exploration, 2026-06-10).** Evaluating verticals (adult
   creators / locums / photo-video) to differentiate from Keeper/FlyFin. Thesis: the moat is the
   substantiation/WHY-capture engine (now profession-aware via the business profile, DEC-081), not
