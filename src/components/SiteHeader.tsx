@@ -42,7 +42,7 @@ export function SiteHeader({
   links: { href: string; label: string }[];
 }) {
   return (
-    <header className="sticky top-0 z-30 bg-[#fafafa]/85 backdrop-blur-md">
+    <header className="sticky top-0 z-30 bg-[#fafafa]/95 backdrop-blur-md">
       <nav className="mx-auto flex h-16 max-w-[80rem] items-center justify-between gap-4 px-5 sm:px-6">
         <TallyWordmark />
         <div className="flex items-center gap-1 text-[0.9rem] font-medium text-[#101210]">

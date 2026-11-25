@@ -56,7 +56,11 @@ export default async function Home() {
             <div className="mt-9">
               <StartButton label={t.nav.getStarted} variant={heroVariant} experiment="hero-copy" />
             </div>
-            <p className="mt-4 max-w-[33rem] text-[0.88rem] text-[#6f726d]">{t.hero.disclaimer}</p>
+            <p className="mt-6 flex items-start gap-2 text-[0.98rem] text-[#101210]">
+              <svg viewBox="0 0 16 16" className="mt-[0.2rem] h-4 w-4 shrink-0 text-[#0f7a47]" fill="none" aria-hidden><path d="m3.5 8.5 3 3 6-7" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              {t.hero.builtFor}
+            </p>
+            <p className="mt-2 max-w-[33rem] text-[0.85rem] text-[#6f726d]">{t.hero.disclaimer}</p>
           </div>
 
           <HeroThread />
@@ -91,20 +95,19 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Closing: soft red band carries the close and the footer. */}
-      <div className="bg-[#fbeeec]">
-      <section className="px-5 pt-28 sm:px-6 lg:pt-40">
+      {/* Closing: full red band, white type, white button. */}
+      <section className="bg-[#d92d20] px-5 py-28 selection:bg-white selection:text-[#d92d20] sm:px-6 lg:py-40">
         <div className="mx-auto flex max-w-[40rem] flex-col items-center text-center">
-          <h2 className="text-balance text-[clamp(2.4rem,5vw,3.6rem)] font-normal leading-[1.08] tracking-[-0.02em] text-[#101210]">{t.cta.heading}</h2>
-          <p className="mt-4 max-w-[30rem] text-pretty text-[1.1rem] text-[#6f726d]">{t.cta.sub}</p>
+          <h2 className="text-balance text-[clamp(2.4rem,5vw,3.6rem)] font-normal leading-[1.08] tracking-[-0.02em] text-white">{t.cta.heading}</h2>
+          <p className="mt-4 max-w-[30rem] text-pretty text-[1.1rem] text-white/85">{t.cta.sub}</p>
           <div className="mt-9">
-            <StartButton label={t.nav.getStarted} variant={heroVariant} experiment="footer-cta" />
+            <StartButton label={t.nav.getStarted} variant={heroVariant} experiment="footer-cta" onRed />
           </div>
         </div>
       </section>
 
-      <footer className="mx-auto mt-28 max-w-[80rem] px-5 pb-10 sm:px-6 lg:mt-40">
-        <div className="grid gap-10 border-t border-[#d92d20]/[0.15] pt-12 sm:grid-cols-[1.5fr_1fr_1fr]">
+      <footer className="mx-auto mt-20 max-w-[80rem] px-5 pb-10 sm:px-6">
+        <div className="grid gap-10 pt-4 sm:grid-cols-[1.5fr_1fr_1fr]">
           <div>
             <TallyWordmark />
             <p className="mt-3 max-w-[16rem] text-[0.9rem] text-[#6f726d]">{t.footer.tagline}</p>
@@ -123,20 +126,21 @@ export default async function Home() {
         </div>
         <p className="mt-12 text-[0.82rem] text-[#8a8d88]">© {new Date().getFullYear()} Tally. {t.footer.tagline}</p>
       </footer>
-      </div>
     </div>
   );
 }
 
 // The one CTA: /start. No phone number anywhere on the landing; the shared Linq line drops texts
 // from numbers that haven't registered on /start first (DEC-089).
-function StartButton({ label, variant, experiment }: { label: string; variant: HeroVariant; experiment: string }) {
+function StartButton({ label, variant, experiment, onRed = false }: { label: string; variant: HeroVariant; experiment: string; onRed?: boolean }) {
   return (
     <TrackedLink
       href="/start"
       event="hero_cta_click"
       data={{ experiment, variant }}
-      className="inline-flex items-center gap-2 rounded-full bg-[#d92d20] px-7 py-4 text-[1.05rem] font-medium text-white transition-colors hover:bg-[#b8241a]"
+      className={`inline-flex items-center gap-2 rounded-full px-7 py-4 text-[1.05rem] font-medium transition-colors ${
+        onRed ? 'bg-white text-[#d92d20] hover:bg-[#fbeeec] focus-visible:outline-white' : 'bg-[#d92d20] text-white hover:bg-[#b8241a]'
+      }`}
     >
       {label}
       <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" aria-hidden><path d="M3 8h9.5m0 0L8.5 4M12.5 8l-4 4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>

@@ -46,7 +46,8 @@ const en = {
     audienceEyebrow: 'Built for the self-employed',
     audienceChips: ['Freelancers', 'Contractors', 'Sole proprietors', 'Single-member LLCs'],
     copied: 'Copied. Text it from your phone 📱',
-    disclaimer: 'For sole proprietors and small LLCs. Recordkeeping, not tax advice. Reply STOP to opt out.',
+    builtFor: 'Built for sole proprietors and single-member LLCs',
+    disclaimer: 'Recordkeeping, not tax advice. Reply STOP to opt out.',
     // A/B variant B (experiment: hero-copy): conversational / first-person (Tally speaks).
     vb: {
       line1pre: 'Hey, I’m ',
@@ -410,7 +411,8 @@ const es: Dict = {
     audienceEyebrow: 'Hecho para trabajadores independientes',
     audienceChips: ['Freelancers', 'Contratistas', 'Propietarios únicos', 'LLC de un solo miembro'],
     copied: 'Copiado. Escríbenos desde tu teléfono 📱',
-    disclaimer: 'Para independientes y LLC pequeñas. Llevar registros, no asesoría fiscal. Responde STOP para darte de baja.',
+    builtFor: 'Hecho para trabajadores independientes y LLC de un solo miembro',
+    disclaimer: 'Llevar registros, no asesoría fiscal. Responde STOP para darte de baja.',
     // Variante B del A/B (experimento: hero-copy): conversacional / en primera persona (habla Tally).
     vb: {
       line1pre: 'Hola, soy ',
