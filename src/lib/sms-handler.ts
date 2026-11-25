@@ -66,7 +66,9 @@ const ONBOARDING_BURST_MS = 1500;
 // enough for a real burst of receipts.
 const INBOUND_WINDOW_MIN = 10;
 const INBOUND_MAX = 25;
-const INBOUND_MAX_PER_DAY = 200;
+// ~3 texts per expense (photo, WHY, a follow-up), so 40 ≈ a heavy travel or catch-up day of
+// 10-13 expenses. Caps worst-case LLM spend near ~$1.50/user/day (founder, 2026-11-25).
+const INBOUND_MAX_PER_DAY = 40;
 
 // Partial-capture ("how much was this?") retry cap (DEC-064). After this many re-asks with
 // still no amount, give up cleanly rather than loop. 1 = at most two prompts total.
@@ -750,10 +752,14 @@ export async function handleInboundSms(msg: InboundMessage): Promise<void> {
     log.warn('inbound_rate_limited', { user: user.id, recent: recentInbound });
     return;
   }
-  // Daily backstop: well above any real day's usage; catches sustained low-rate abuse the
-  // 10-min cap would miss. Stay silent (already warned in-burst) to avoid amplification.
+  // Daily cap: catches sustained use the 10-min cap would miss. Tell them once (on the first
+  // message over), then stay silent to avoid amplifying an SMS loop.
   const dayAgo = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
-  if ((await countRecentInbound(user.id, dayAgo)) > INBOUND_MAX_PER_DAY) {
+  const dayInbound = await countRecentInbound(user.id, dayAgo);
+  if (dayInbound > INBOUND_MAX_PER_DAY) {
+    if (dayInbound === INBOUND_MAX_PER_DAY + 1) {
+      await safeSend(phone, "That's a big day! I've hit my limit for today. Send anything else tomorrow and I'll log it.", msg.channel);
+    }
     log.warn('inbound_daily_capped', { user: user.id });
     return;
   }

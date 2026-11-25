@@ -33,7 +33,7 @@ export function TallyWordmark({ back = false }: { back?: boolean }) {
 
 export function SiteHeader({ login, getStarted }: { login: string; getStarted: string }) {
   return (
-    <header className="sticky top-0 z-30 bg-[#f3f2ee]/95 backdrop-blur-md">
+    <header className="sticky top-0 z-30 border-b border-black/[0.05] bg-white/85 backdrop-blur-md">
       <nav className="mx-auto flex h-16 max-w-[80rem] items-center justify-between gap-4 px-5 sm:px-6">
         <TallyWordmark />
         <div className="flex items-center gap-1 text-[0.9rem] font-medium text-[#101210]">
