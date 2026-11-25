@@ -6,9 +6,9 @@ import Link from 'next/link';
  *  the WHY accent. `light` draws it for dark backgrounds (Penny's avatar). */
 export function TallyMark({ className = 'h-7 w-7', light = false }: { className?: string; light?: boolean }) {
   return (
-    <svg viewBox="0 0 32 32" className={className} fill="none" aria-hidden strokeLinecap="round">
-      <path d="M8.5 7v18M13.5 7v18M18.5 7v18M23.5 7v18" stroke={light ? '#fff' : '#101210'} strokeWidth="2.6" />
-      <path d="M4.5 22.5 27.5 9.5" stroke="#d92d20" strokeWidth="2.9" />
+    <svg viewBox="0 0 32 32" className={className} fill="none" aria-hidden strokeLinecap="butt">
+      <path d="M8 6v20M13.33 6v20M18.67 6v20M24 6v20" stroke={light ? '#fff' : '#101210'} strokeWidth="2.4" />
+      <path d="M4 22.4 28 9.6" stroke="#d92d20" strokeWidth="2.4" />
     </svg>
   );
 }

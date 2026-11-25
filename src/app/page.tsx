@@ -1,7 +1,8 @@
 // Landing page (EPIC-5), localized (DEC-025). Plain page, one accent: hero, how it works (3 rows), IRS costs, pricing, FAQ, closing line.
 // Server Component: resolves locale + dictionary.
 import Link from 'next/link';
-import { HeroThread } from '@/components/HeroThread';
+import { Geist } from 'next/font/google';
+import { HeroRecord } from '@/components/HeroRecord';
 import { HeroExposure } from '@/components/HeroExposure';
 import { LandingFaq } from '@/components/LandingFaq';
 import { RecordCosts } from '@/components/RecordCosts';
@@ -14,6 +15,8 @@ import { TrafficSource } from '@/components/TrafficSource';
 import { type HeroVariant } from '@/lib/ab';
 import { getI18n } from '@/i18n/server';
 
+const geist = Geist({ subsets: ['latin'], display: 'swap' });
+
 export default async function Home() {
   const { locale, t } = await getI18n();
   // Copy A/B is paused (DEC-079): render the single champion for everyone — including browsers
@@ -21,7 +24,7 @@ export default async function Home() {
   const heroVariant: HeroVariant = 'A';
 
   return (
-    <div className="relative overflow-x-clip bg-[#fafafa] text-gray-900">
+    <div className={`${geist.className} relative overflow-x-clip bg-[#fafafa] text-gray-900 antialiased selection:bg-[#fdecea] selection:text-[#101210]`}>
       {/* Records where the visit came from (utm_source/ref or external referrer, e.g. Product Hunt)
           once per session — aggregate channel analytics, no PII (DEC-084). Renders nothing. */}
       <TrafficSource locale={locale} />
@@ -39,11 +42,11 @@ export default async function Home() {
         ]}
       />
 
-      {/* Hero: headline + CTA left, the iMessage thread with Tally right. Nothing else. */}
+      {/* Hero: headline + CTA left; one text becoming one numbered expense record, right. */}
       <section className="px-5 pt-12 sm:px-6 lg:pt-20">
         <div className="mx-auto grid max-w-[80rem] items-center gap-14 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10">
           <div>
-            <h1 className="text-balance text-[clamp(2.6rem,5.6vw,4.4rem)] font-normal leading-[1.04] tracking-[-0.022em] text-[#101210]">
+            <h1 className="text-balance text-[clamp(2.6rem,5.6vw,4.4rem)] font-normal leading-[1.04] tracking-[-0.035em] text-[#101210]">
               {t.hero.line1pre}
               <span className="text-[#d92d20]">{t.hero.line1em}</span>
               {t.hero.line1post}
@@ -56,7 +59,7 @@ export default async function Home() {
             <p className="mt-4 max-w-[33rem] text-[0.88rem] text-[#6f726d]">{t.hero.disclaimer}</p>
           </div>
 
-          <HeroThread />
+          <HeroRecord t={t.hero.record} />
         </div>
       </section>
 
