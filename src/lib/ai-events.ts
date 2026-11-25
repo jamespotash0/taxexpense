@@ -12,7 +12,7 @@ import { log } from './log';
 
 /** 'categorize' = a fresh AI categorization decision. 'correction' = the user told us the right
  *  answer (the labeled eval example). */
-export type AiEventKind = 'categorize' | 'correction';
+export type AiEventKind = 'categorize' | 'correction' | 'llm_usage';
 
 /** Why the workflow decided to ask the user something (null when we logged silently). The
  *  over-asking rate — asked / total — is the metric the product's positioning lives on. */

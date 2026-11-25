@@ -49,6 +49,7 @@ import { getUsageCounts, decideUsage, ANNUAL_RECEIPT_QUOTA, type UsageDecision }
 import { PUBLIC_ENV } from './env';
 import { log, maskPhone } from './log';
 import { SONNET_MODEL } from './claude';
+import { withUsage, setUsageOwner } from './llm-usage';
 
 export interface InboundMessage {
   from: string;
@@ -685,8 +686,13 @@ async function handleExpenseFlow(user: AppUser, msg: InboundMessage): Promise<Pr
   return withAnnualNudge(decision, await captureTextExpense(user, msg.body));
 }
 
-/** Top-level inbound handler. Always sends exactly one SMS reply. */
-export async function handleInboundSms(msg: InboundMessage): Promise<void> {
+/** Top-level inbound handler. Always sends exactly one SMS reply. Token usage of every Claude
+ *  call made while handling it is attributed to the sender (DEC-097). */
+export function handleInboundSms(msg: InboundMessage): Promise<void> {
+  return withUsage(() => handleInboundSmsInner(msg));
+}
+
+async function handleInboundSmsInner(msg: InboundMessage): Promise<void> {
   const phone = normalizeToE164(msg.from);
   if (!phone) {
     log.warn('inbound_unparseable_from', { from: maskPhone(msg.from) });
@@ -697,6 +703,7 @@ export async function handleInboundSms(msg: InboundMessage): Promise<void> {
   try {
     const result = await getOrCreateUserByPhone(phone);
     user = result.user;
+    setUsageOwner(user.organization_id, user.id);
     // Best-effort founder notification on brand-new signups (abuse monitoring). Never let a
     // flaky email fail the signup — the helper self-swallows, but guard the call anyway.
     if (result.isNew) {

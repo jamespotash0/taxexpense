@@ -17,6 +17,7 @@
 // read-only + a terminator that returns a DRAFT for a human to approve.
 
 import { getClaude, effortFor } from './claude';
+import { recordUsage } from './llm-usage';
 import { log } from './log';
 
 const DEFAULT_MAX_STEPS = 8;
@@ -118,6 +119,7 @@ export async function runAgent(opts: RunAgentOpts): Promise<AgentResult> {
     );
     usage.input_tokens += res.usage?.input_tokens ?? 0;
     usage.output_tokens += res.usage?.output_tokens ?? 0;
+    recordUsage(opts.model, res.usage);
 
     const content = res.content as AnthropicBlock[];
     messages.push({ role: 'assistant', content });

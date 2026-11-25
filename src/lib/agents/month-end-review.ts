@@ -10,6 +10,7 @@ import { runAgent, type AgentStep } from '../agent';
 import { buildMonthEndTools, FINISH_REVIEW_TOOL } from '../agent-tools';
 import { MONTH_END_REVIEW_AGENT_PROMPT } from '../prompts';
 import { OPUS_MODEL } from '../claude';
+import { withUsage, setUsageOwner } from '../llm-usage';
 import { userContextLine } from '../categorize';
 import { getSupabaseAdmin } from '../supabase';
 import { log, maskPhone } from '../log';
@@ -88,7 +89,15 @@ export async function listMonthEndRuns(orgId: string, limit = 12): Promise<PastR
  * Run the month-end review agent for one user + month ('YYYY-MM') and persist the result.
  * Returns the draft accountant email for the user to review, edit, and send.
  */
-export async function runMonthEndReview(user: AppUser, month: string): Promise<MonthEndDraft> {
+export function runMonthEndReview(user: AppUser, month: string): Promise<MonthEndDraft> {
+  // Attribute this run's (Opus) token usage to the user for cost tracking (DEC-097).
+  return withUsage(() => {
+    setUsageOwner(user.organization_id, user.id);
+    return runMonthEndReviewInner(user, month);
+  });
+}
+
+async function runMonthEndReviewInner(user: AppUser, month: string): Promise<MonthEndDraft> {
   const userText =
     `Review month: ${month}\n\n` +
     `## About the user\n${userContextLine(user)}\n\n` +

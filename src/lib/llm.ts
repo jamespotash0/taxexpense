@@ -3,6 +3,7 @@
 // categorization, clarification, and attachment flows.
 
 import { getClaude, effortFor } from './claude';
+import { recordUsage } from './llm-usage';
 import { log } from './log';
 
 const DEFAULT_TIMEOUT_MS = 15_000;
@@ -81,6 +82,7 @@ export async function claudeText(opts: CallOpts): Promise<string> {
   const res = await getClaude().messages.create(buildArgs(opts) as any, {
     timeout: DEFAULT_TIMEOUT_MS,
   });
+  recordUsage(opts.model, (res as { usage?: Parameters<typeof recordUsage>[1] }).usage);
   if (opts.onMeta) {
     const usage = (res as { usage?: { input_tokens?: number; output_tokens?: number } }).usage;
     opts.onMeta({

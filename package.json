@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "node --import tsx --test $(find src -name '*.test.ts')",
+    "cost:report": "node --experimental-websocket --import tsx --env-file=.env.local scripts/cost-report.ts",
     "eval:categorize": "node --import tsx --env-file=.env.local scripts/eval/run.ts",
     "eval:profession": "node --import tsx --env-file=.env.local scripts/eval/profession.ts",
     "eval:profile-build": "node --import tsx --env-file=.env.local scripts/eval/profile-build.ts",
