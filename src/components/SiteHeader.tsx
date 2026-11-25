@@ -1,8 +1,6 @@
-// Landing nav: a floating white pill (sticky) that tightens once you scroll (NavPill). Wordmark
-// left; section links, an outlined Log in and the red Get started on the right. Links collapse to
-// just the two buttons on phones.
+// Landing nav: a flat sticky bar, same color as the page. Wordmark left; section links, Log in and
+// Get started on the right. Links collapse to just the two buttons on phones.
 import Link from 'next/link';
-import { NavPill } from './NavPill';
 
 /** The mark: four tally strokes crossed by one red slash, the way you count to five. The red is
  *  the WHY accent. `light` draws it for dark backgrounds (Penny's avatar). */
@@ -44,8 +42,8 @@ export function SiteHeader({
   links: { href: string; label: string }[];
 }) {
   return (
-    <header className="sticky top-0 z-30 px-3 pt-3 sm:px-6">
-      <NavPill>
+    <header className="sticky top-0 z-30 bg-[#fafafa]/85 backdrop-blur-md">
+      <nav className="mx-auto flex h-16 max-w-[80rem] items-center justify-between gap-4 px-5 sm:px-6">
         <TallyWordmark />
         <div className="flex items-center gap-1 text-[0.9rem] font-medium text-[#101210]">
           {links.map((l) => (
@@ -60,7 +58,7 @@ export function SiteHeader({
             {getStarted}
           </Link>
         </div>
-      </NavPill>
+      </nav>
     </header>
   );
 }

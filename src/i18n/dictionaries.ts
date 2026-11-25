@@ -4,22 +4,14 @@ import type { Locale } from './config';
 
 const en = {
   nav: { login: 'Log in', getStarted: 'Get started', howItWorks: 'How it works', pricing: 'Pricing' },
-  announce: 'For sole proprietors, single-member and small LLCs',
-  announceShort: 'For sole proprietors and small LLCs',
   // "What a missing record costs" (sourced facts only, no marketing stats; see JOURNAL).
   features: {
     heading: 'Out of the spreadsheet. Into real time.',
     sub: 'No more saving receipts for a spreadsheet and waiting months to sort them. Tally logs each expense the moment you text it, so your records are current every day.',
     items: [
-      { title: 'Cites the tax code', body: 'Every expense shows the IRC section it typically falls under.' },
-      { title: 'Asks only when required', body: 'A receipt request only when IRS rules call for one.' },
-      { title: 'Your text is the record', body: 'Under $75, the message you sent is the written record.' },
-      { title: 'Receipt photos', body: 'Snap the receipt. It’s stored privately with the expense.' },
-      { title: 'Web dashboard', body: 'Review, fix categories, and add missing context.' },
-      { title: 'CSV and QuickBooks', body: 'Export a standard CSV or a QuickBooks-ready file.' },
-      { title: 'Email your accountant', body: 'Send the whole year in one tap.' },
-      { title: 'Month-end review', body: 'A quick pass each month to catch gaps early.' },
-      { title: 'You have the final say', body: 'Every suggestion is editable.' },
+      { title: 'Text it', body: 'Snap the receipt or send a quick note the moment you spend. Under $75, the text you sent is the written record.' },
+      { title: 'Tally asks only when the IRS requires it', body: 'Meals, travel, gifts and car expenses have stricter rules. Tally knows which ones, cites the IRC section, and asks for a receipt only when the law calls for one.' },
+      { title: 'Export for your accountant', body: 'Download a standard CSV or a QuickBooks-ready file, or email the whole year to your accountant in one tap.' },
     ],
   },
   costs: {
@@ -53,9 +45,7 @@ const en = {
     audienceEyebrow: 'Built for the self-employed',
     audienceChips: ['Freelancers', 'Contractors', 'Sole proprietors', 'Single-member LLCs'],
     copied: 'Copied. Text it from your phone 📱',
-    disclaimer: 'Recordkeeping, not tax advice. Reply STOP to opt out.',
-    // Hero trust strip: honest product facts only (no logos or stats exist to show).
-    trust: ['Works in iMessage and SMS', 'No app to install', 'Cites the IRC section', 'Exports to QuickBooks'],
+    disclaimer: 'For sole proprietors and small LLCs. Recordkeeping, not tax advice. Reply STOP to opt out.',
     // A/B variant B (experiment: hero-copy): conversational / first-person (Tally speaks).
     vb: {
       line1pre: 'Hey, I’m ',
@@ -84,7 +74,6 @@ const en = {
   faq: {
     heading: 'FAQ',
     items: [
-      { q: 'Do I need to connect my bank?', a: 'No. Tally works entirely by text, so you send expenses as they happen. No bank linking, no logins to hand over.' },
       { q: 'Does Tally replace QuickBooks?', a: 'No, it feeds it. Tally captures the why and exports a clean CSV or QuickBooks-ready file. Keep your books and your accountant; Tally fills the context gap.' },
       { q: 'What if I lose a receipt?', a: 'For most expenses you don’t need the paper at all; your text is the record. Tally only asks for a receipt when the IRS actually requires one (for example, a meal of $75 or more).' },
       { q: 'How does categorization work?', a: 'Tally reads each expense, suggests the right category, and cites the IRC section behind it. You always have the final say.' },
@@ -382,21 +371,13 @@ type Dict = typeof en;
 
 const es: Dict = {
   nav: { login: 'Iniciar sesión', getStarted: 'Empezar', howItWorks: 'Cómo funciona', pricing: 'Precios' },
-  announce: 'Para independientes, LLC de un dueño y LLC pequeñas',
-  announceShort: 'Para independientes y LLC pequeñas',
   features: {
     heading: 'Fuera de la hoja de cálculo. En tiempo real.',
     sub: 'Nada de guardar recibos para una hoja de cálculo y esperar meses para ordenarlos. Tally registra cada gasto en el momento en que lo escribes, así tus registros están al día, todos los días.',
     items: [
-      { title: 'Cita el código fiscal', body: 'Cada gasto muestra la sección del IRC donde normalmente cae.' },
-      { title: 'Pregunta solo cuando hace falta', body: 'Pide recibo solo cuando las reglas del IRS lo exigen.' },
-      { title: 'Tu mensaje es el registro', body: 'Menos de $75, el mensaje que enviaste es el registro escrito.' },
-      { title: 'Fotos de recibos', body: 'Toma foto del recibo. Se guarda en privado con el gasto.' },
-      { title: 'Panel web', body: 'Revisa, corrige categorías y agrega el contexto que falte.' },
-      { title: 'CSV y QuickBooks', body: 'Exporta un CSV estándar o un archivo listo para QuickBooks.' },
-      { title: 'Envía a tu contador', body: 'Manda el año completo con un toque.' },
-      { title: 'Revisión de fin de mes', body: 'Un repaso rápido cada mes para detectar huecos a tiempo.' },
-      { title: 'Tú tienes la última palabra', body: 'Cada sugerencia se puede editar.' },
+      { title: 'Escríbelo', body: 'Toma foto del recibo o manda una nota rápida en el momento en que gastas. Menos de $75, el mensaje que enviaste es el registro escrito.' },
+      { title: 'Tally pregunta solo cuando el IRS lo exige', body: 'Las comidas, viajes, regalos y gastos de auto tienen reglas más estrictas. Tally sabe cuáles, cita la sección del IRC y pide recibo solo cuando la ley lo exige.' },
+      { title: 'Exporta para tu contador', body: 'Descarga un CSV estándar o un archivo listo para QuickBooks, o manda el año completo a tu contador con un toque.' },
     ],
   },
   costs: {
@@ -427,8 +408,7 @@ const es: Dict = {
     audienceEyebrow: 'Hecho para trabajadores independientes',
     audienceChips: ['Freelancers', 'Contratistas', 'Propietarios únicos', 'LLC de un solo miembro'],
     copied: 'Copiado. Escríbenos desde tu teléfono 📱',
-    disclaimer: 'Llevar registros, no asesoría fiscal. Responde STOP para darte de baja.',
-    trust: ['Funciona en iMessage y SMS', 'Sin app que instalar', 'Cita la sección del IRC', 'Exporta a QuickBooks'],
+    disclaimer: 'Para independientes y LLC pequeñas. Llevar registros, no asesoría fiscal. Responde STOP para darte de baja.',
     // Variante B del A/B (experimento: hero-copy): conversacional / en primera persona (habla Tally).
     vb: {
       line1pre: 'Hola, soy ',
@@ -454,7 +434,6 @@ const es: Dict = {
   faq: {
     heading: 'Preguntas frecuentes',
     items: [
-      { q: '¿Necesito conectar mi banco?', a: 'No. Tally funciona por completo por texto, así que envías los gastos cuando ocurren. Sin conectar el banco, sin entregar contraseñas.' },
       { q: '¿Tally reemplaza a QuickBooks?', a: 'No, lo alimenta. Tally captura el porqué y exporta un CSV limpio o un archivo listo para QuickBooks. Conserva tus libros y tu contador; Tally llena el vacío de contexto.' },
       { q: '¿Y si pierdo un recibo?', a: 'Para la mayoría de los gastos no necesitas el papel; tu texto es el registro. Tally solo pide recibo cuando el IRS realmente lo exige (por ejemplo, una comida de $75 o más).' },
       { q: '¿Cómo funciona la categorización?', a: 'Tally lee cada gasto, sugiere la categoría correcta y cita la sección del IRC detrás. La última palabra siempre es tuya.' },

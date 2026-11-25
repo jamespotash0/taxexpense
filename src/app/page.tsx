@@ -1,10 +1,9 @@
-// Landing page (EPIC-5), localized (DEC-025). ZeroSettle-style: hero, use cases, who it is for, features, pricing, FAQ, closing card.
+// Landing page (EPIC-5), localized (DEC-025). Plain page, one accent: hero, how it works (3 rows), IRS costs, pricing, FAQ, closing line.
 // Server Component: resolves locale + dictionary.
 import Link from 'next/link';
 import { HeroThread } from '@/components/HeroThread';
 import { HeroExposure } from '@/components/HeroExposure';
 import { LandingFaq } from '@/components/LandingFaq';
-import { Announcement } from '@/components/Announcement';
 import { RecordCosts } from '@/components/RecordCosts';
 import { Features } from '@/components/Features';
 import { BlurFade } from '@/components/Reveal';
@@ -29,9 +28,7 @@ export default async function Home() {
 
       <HeroExposure variant={heroVariant} />
 
-      <Announcement text={t.announce} short={t.announceShort} href="/start" />
-
-      {/* Nav: floating pill that tightens on scroll. */}
+      {/* Nav: flat sticky bar. */}
       <SiteHeader
         login={t.nav.login}
         getStarted={t.nav.getStarted}
@@ -42,85 +39,67 @@ export default async function Home() {
         ]}
       />
 
-      {/* Hero: one rounded panel on a soft pastel wash. Headline + texting CTA left, a real-looking
-          iMessage thread with Tally right, honest trust strip along the bottom. */}
-      <section className="px-3 pt-4 sm:px-6">
-        <div className="hero-wash relative mx-auto max-w-[80rem] overflow-hidden rounded-[32px] sm:rounded-[40px]">
-          <div className="grid items-center gap-12 px-6 pb-12 pt-14 sm:px-10 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10 lg:px-14 lg:pb-16 lg:pt-20">
-            <div>
-              <h1 className="text-balance text-[clamp(2.6rem,5.6vw,4.4rem)] font-normal leading-[1.04] tracking-[-0.022em] text-[#101210]">
-                {t.hero.line1pre}
-                <span className="text-[#d92d20]">{t.hero.line1em}</span>
-                {t.hero.line1post}
-              </h1>
-              <p className="mt-6 max-w-[33rem] text-pretty text-[1.15rem] leading-[1.5] text-[#6f726d] sm:text-[1.25rem]">{t.hero.subtitle}</p>
+      {/* Hero: headline + CTA left, the iMessage thread with Tally right. Nothing else. */}
+      <section className="px-5 pt-12 sm:px-6 lg:pt-20">
+        <div className="mx-auto grid max-w-[80rem] items-center gap-14 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10">
+          <div>
+            <h1 className="text-balance text-[clamp(2.6rem,5.6vw,4.4rem)] font-normal leading-[1.04] tracking-[-0.022em] text-[#101210]">
+              {t.hero.line1pre}
+              <span className="text-[#d92d20]">{t.hero.line1em}</span>
+              {t.hero.line1post}
+            </h1>
+            <p className="mt-6 max-w-[33rem] text-pretty text-[1.15rem] leading-[1.5] text-[#6f726d] sm:text-[1.25rem]">{t.hero.subtitle}</p>
 
-              <div className="mt-9">
-                <StartButton label={t.nav.getStarted} variant={heroVariant} experiment="hero-copy" />
-              </div>
-              <p className="mt-3 pl-1 text-[0.88rem] text-[#6f726d]">{t.hero.disclaimer}</p>
+            <div className="mt-9">
+              <StartButton label={t.nav.getStarted} variant={heroVariant} experiment="hero-copy" />
             </div>
-
-            <HeroThread />
+            <p className="mt-4 max-w-[33rem] text-[0.88rem] text-[#6f726d]">{t.hero.disclaimer}</p>
           </div>
 
-          {/* Trust strip: product facts only (no logos or stats exist to show). */}
-          <div className="mx-6 border-t border-black/[0.08] py-6 sm:mx-10 lg:mx-14">
-            <ul className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-[0.9rem] text-[#4a4d48]">
-              {t.hero.trust.map((item) => (
-                <li key={item} className="flex items-center gap-2">
-                  <svg viewBox="0 0 16 16" className="h-4 w-4 text-[#d92d20]" fill="none" aria-hidden><path d="m3.5 8.5 3 3 6-7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
+          <HeroThread />
         </div>
       </section>
 
-      {/* Time saved: out of the spreadsheet, into real time. */}
-      <section id="how-it-works" className="scroll-mt-24 px-5 pt-32 sm:px-6 lg:pt-44">
+      {/* How it works: three rows, one idea each. */}
+      <section id="how-it-works" className="scroll-mt-24 px-5 pt-32 sm:px-6 lg:pt-48">
         <BlurFade>
           <Features t={t.features} />
         </BlurFade>
       </section>
 
       {/* Compliance: the IRS rules, beside what a missing record costs. */}
-      <section className="px-5 pt-32 sm:px-6 lg:pt-44">
+      <section className="px-5 pt-32 sm:px-6 lg:pt-48">
         <RecordCosts t={t.costs} />
       </section>
 
-      {/* Pricing and FAQ side by side; stacked on phones. */}
-      <section id="pricing" className="scroll-mt-24 px-5 pt-32 sm:px-6 lg:pt-44">
-        <div className="mx-auto grid max-w-[80rem] gap-16 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20">
-          <BlurFade>
-            <h2 className="text-balance text-[clamp(2.1rem,4.4vw,2.9rem)] font-normal leading-[1.1] tracking-[-0.018em] text-[#101210]">{t.pricing.title}</h2>
-            <div className="mt-10">
-              <LandingPricing t={t.pricing} ctaLabel={t.nav.getStarted} />
-            </div>
-          </BlurFade>
-          <BlurFade delay={0.08} >
-            <div id="faq" className="scroll-mt-24">
-              <LandingFaq t={t.faq} />
-            </div>
-          </BlurFade>
+      {/* Pricing: one centered block. FAQ below it. */}
+      <section id="pricing" className="scroll-mt-24 px-5 pt-32 sm:px-6 lg:pt-48">
+        <BlurFade className="mx-auto max-w-[34rem]">
+          <h2 className="text-balance text-center text-[clamp(2.1rem,4.4vw,2.9rem)] font-normal leading-[1.1] tracking-[-0.018em] text-[#101210]">{t.pricing.title}</h2>
+          <div className="mt-10">
+            <LandingPricing t={t.pricing} ctaLabel={t.nav.getStarted} />
+          </div>
+        </BlurFade>
+      </section>
+
+      <section id="faq" className="scroll-mt-24 px-5 pt-32 sm:px-6 lg:pt-40">
+        <div className="mx-auto max-w-[48rem]">
+          <LandingFaq t={t.faq} />
         </div>
       </section>
 
-      {/* Closing card: same soft wash as the hero, same CTA. */}
-      <section className="px-3 pt-32 sm:px-6 lg:pt-44">
-        <div className="hero-wash mx-auto flex max-w-[80rem] flex-col items-start gap-8 rounded-[32px] px-6 py-12 sm:rounded-[40px] sm:px-10 lg:flex-row lg:items-center lg:justify-between lg:px-14 lg:py-16">
-          <div>
-            <h2 className="text-balance text-[clamp(2.1rem,4.4vw,2.9rem)] font-normal leading-[1.1] tracking-[-0.018em] text-[#101210]">{t.cta.heading}</h2>
-            <p className="mt-3 max-w-[30rem] text-[1.1rem] text-[#6f726d]">{t.cta.sub}</p>
-          </div>
-          <div className="shrink-0">
+      {/* Closing: centered line and the same CTA, on the plain page. */}
+      <section className="px-5 pt-32 sm:px-6 lg:pt-48">
+        <div className="mx-auto flex max-w-[40rem] flex-col items-center text-center">
+          <h2 className="text-balance text-[clamp(2.4rem,5vw,3.6rem)] font-normal leading-[1.08] tracking-[-0.02em] text-[#101210]">{t.cta.heading}</h2>
+          <p className="mt-4 max-w-[30rem] text-pretty text-[1.1rem] text-[#6f726d]">{t.cta.sub}</p>
+          <div className="mt-9">
             <StartButton label={t.nav.getStarted} variant={heroVariant} experiment="footer-cta" />
           </div>
         </div>
       </section>
 
-      <footer className="mx-auto mt-20 max-w-[80rem] px-5 pb-10 sm:px-6">
+      <footer className="mx-auto mt-32 max-w-[80rem] px-5 pb-10 sm:px-6">
         <div className="grid gap-10 border-t border-black/[0.08] pt-12 sm:grid-cols-[1.5fr_1fr_1fr]">
           <div>
             <TallyWordmark />
