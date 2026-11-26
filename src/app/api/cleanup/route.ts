@@ -2,7 +2,7 @@
 // Org-scoped (DEC-001). Deterministic checks always run; the vague-memo LLM pass
 // runs only when memo=1 (it costs a Haiku call). Defaults to the current year.
 import { NextResponse } from 'next/server';
-import { requireUser } from '@/lib/api';
+import { requireUser, requirePaidQuota } from '@/lib/api';
 import { getReceiptsForYear } from '@/lib/receipts';
 import { scanReceipts, scanWithMemoReview } from '@/lib/cleanup';
 
@@ -17,6 +17,10 @@ export async function GET(req: Request): Promise<NextResponse> {
       ? yearParam
       : new Date().getFullYear();
   const withMemo = url.searchParams.get('memo') === '1';
+  if (withMemo) {
+    const denied = await requirePaidQuota(user.organization_id, 'memo', 5); // memo pass = LLM call
+    if (denied) return denied;
+  }
 
   const receipts = await getReceiptsForYear(user.organization_id, year);
   const report = withMemo

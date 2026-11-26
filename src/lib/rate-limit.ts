@@ -1,3 +1,5 @@
+import { getSupabaseAdmin } from './supabase';
+
 // Best-effort in-memory sliding-window rate limiter. Per-process only — state resets on cold
 // start and is NOT shared across serverless lanes, so treat it as a courtesy throttle, not a
 // security guarantee. Flows that need a hard limit (OTP) use the DB-backed counter in lib/auth.
@@ -27,4 +29,25 @@ export function getClientIp(req: Request): string {
   const xff = req.headers.get('x-forwarded-for');
   if (xff) return xff.split(',')[0].trim();
   return req.headers.get('x-real-ip') ?? 'unknown';
+}
+
+/**
+ * Durable rate limit (migration 0035): shared across serverless instances, unlike
+ * createRateLimiter. Counts `key` hits in the window, then records this one. Returns true when
+ * the limit is already reached. Count-then-insert can let a simultaneous burst through by a few;
+ * fine for these quotas (emails, AI runs, opt-ins), not for auth (lib/auth has its own CAS).
+ * Fails open if the table is unavailable.
+ */
+export async function isOverQuota(key: string, max: number, windowMs: number): Promise<boolean> {
+  const admin = getSupabaseAdmin();
+  const since = new Date(Date.now() - windowMs).toISOString();
+  const { count, error } = await admin
+    .from('rate_events')
+    .select('id', { count: 'exact', head: true })
+    .eq('key', key)
+    .gte('created_at', since);
+  if (error) return false;
+  if ((count ?? 0) >= max) return true;
+  await admin.from('rate_events').insert({ key });
+  return false;
 }

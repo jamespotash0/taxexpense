@@ -7,6 +7,8 @@ import type { ZodType } from 'zod';
 import { getCurrentUser, type AppUser } from './session';
 import { optionalEnv, PUBLIC_ENV } from './env';
 import { log } from './log';
+import { getOrgEntitlement } from './subscription';
+import { isOverQuota } from './rate-limit';
 
 /** Uniform JSON error response: { error } with the given status (plus optional extra fields). */
 export function jsonError(error: string, status: number, extra?: Record<string, unknown>): NextResponse {
@@ -58,4 +60,18 @@ export function serverError(event: string, err: unknown, fields?: Record<string,
 /** Public base URL for building redirect/return links: configured app URL, else request origin. */
 export function getAppBase(req: Request): string {
   return PUBLIC_ENV.appUrl || new URL(req.url).origin;
+}
+
+/**
+ * Paywall + durable per-org daily quota for routes that cost real money (LLM runs, outbound email
+ * from our domain). Returns a 402/429 response, or null to proceed. Call it after validating the
+ * body so a malformed request doesn't burn quota.
+ */
+export async function requirePaidQuota(orgId: string, kind: 'email' | 'agent' | 'memo', perDay: number): Promise<NextResponse | null> {
+  const entitlement = await getOrgEntitlement(orgId);
+  if (!entitlement.entitled) return jsonError('not_entitled', 402, { message: 'Subscribe to keep using this.' });
+  if (await isOverQuota(`${kind}:${orgId}`, perDay, 24 * 60 * 60 * 1000)) {
+    return jsonError('rate_limited', 429, { message: "You've hit today's limit for this. Try again tomorrow." });
+  }
+  return null;
 }

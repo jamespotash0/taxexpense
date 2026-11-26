@@ -2,7 +2,7 @@
 // configured accountant (TSNAP-048, EPIC-8). PDF generation deferred (DEC-015).
 // Jordan: only send to the configured accountant_email; never an arbitrary address.
 import { NextResponse } from 'next/server';
-import { requireUser, jsonError, serverError } from '@/lib/api';
+import { requireUser, jsonError, serverError, requirePaidQuota } from '@/lib/api';
 import { getMonthlySummary, getAllReceiptsForExport } from '@/lib/receipts';
 import { toStandardCsv } from '@/lib/csv';
 import { sendEmail } from '@/lib/email';
@@ -16,6 +16,8 @@ export async function POST(): Promise<NextResponse> {
   if (!user.accountant_email) {
     return jsonError('no_accountant_email', 400, { message: 'Add your accountant’s email in Settings first.' });
   }
+  const denied = await requirePaidQuota(user.organization_id, 'email', 5);
+  if (denied) return denied;
 
   try {
     const [summary, receipts] = await Promise.all([

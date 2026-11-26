@@ -5,7 +5,7 @@
 // the existing /api/email-accountant path after reviewing.
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireUser, jsonError, serverError } from '@/lib/api';
+import { requireUser, jsonError, serverError, requirePaidQuota } from '@/lib/api';
 import { runMonthEndReview, listMonthEndRuns } from '@/lib/agents/month-end-review';
 
 // Agent loops over several model calls + image fetches — give it more room than a single call.
@@ -38,6 +38,9 @@ export async function POST(req: Request): Promise<NextResponse> {
   const raw = await req.json().catch(() => ({})); // bare POST has no body → treat as {}
   const parsed = BodySchema.safeParse(raw ?? {});
   if (!parsed.success) return jsonError('invalid_request', 400);
+  // Each run is several Opus calls; a lapsed trial or a reload loop shouldn't run up the bill.
+  const denied = await requirePaidQuota(user.organization_id, 'agent', 3);
+  if (denied) return denied;
 
   try {
     const draft = await runMonthEndReview(user, parsed.data.month ?? currentMonth());

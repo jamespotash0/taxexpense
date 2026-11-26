@@ -4,7 +4,7 @@
 // Jordan (SEC): only ever send to the configured accountant_email, never an arbitrary address.
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireUser, parseBody, jsonError, serverError } from '@/lib/api';
+import { requireUser, parseBody, jsonError, serverError, requirePaidQuota } from '@/lib/api';
 import { sendEmail } from '@/lib/email';
 
 const BodySchema = z.object({
@@ -29,6 +29,10 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   const body = await parseBody(req, BodySchema);
   if (body instanceof NextResponse) return body;
+  // accountant_email is user-set, so cap sends: otherwise this is a relay for arbitrary mail
+  // from our domain. Shared 'email' quota with /api/email-accountant.
+  const denied = await requirePaidQuota(user.organization_id, 'email', 5);
+  if (denied) return denied;
 
   try {
     await sendEmail({ to: user.accountant_email, subject: body.subject, html: toHtml(body.body) });
