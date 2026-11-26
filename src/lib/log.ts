@@ -1,5 +1,6 @@
 // Logging helpers. DEC-003 / Jordan: NEVER log full phone numbers or PII.
 // Use maskPhone() for any phone value that reaches a log line.
+import * as Sentry from '@sentry/nextjs';
 
 /** Mask a phone number to its last 4 digits, e.g. +14155551234 -> ***1234. */
 export function maskPhone(phone: string | null | undefined): string {
@@ -16,6 +17,9 @@ function emit(level: 'info' | 'warn' | 'error', event: string, fields: LogFields
   const line = { level, event, ...fields, ts: new Date().toISOString() };
   const out = level === 'error' ? console.error : level === 'warn' ? console.warn : console.log;
   out(JSON.stringify(line));
+  // Handled errors never reach onRequestError, so report them explicitly. Fields are PII-masked
+  // by the same convention as the log line. No-op when Sentry isn't initialised (tests, scripts).
+  if (level === 'error') Sentry.captureMessage(event, { level: 'error', extra: fields });
 }
 
 export const log = {

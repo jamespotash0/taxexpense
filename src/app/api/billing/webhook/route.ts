@@ -67,7 +67,9 @@ export async function POST(req: Request): Promise<NextResponse> {
     }
   } catch (err) {
     log.error('stripe_webhook_handler_failed', { type: event.type, message: err instanceof Error ? err.message : 'unknown' });
-    // 200 anyway so Stripe doesn't hammer retries on a transient DB blip we've logged.
+    // 500 so Stripe retries (with backoff). Acking a failed activation would leave a paying
+    // customer un-entitled forever; the handlers are idempotent, so a retry is safe.
+    return NextResponse.json({ error: 'handler_failed' }, { status: 500 });
   }
 
   return NextResponse.json({ received: true });
