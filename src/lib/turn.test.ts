@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { formatTurnContext, isAnythingOpen, type OpenState, type TurnContext } from './turn';
+import { formatTurnContext, isAnythingOpen, guardDecision, type OpenState, type TurnContext } from './turn';
 import type { ReceiptRow } from './receipts';
 
 const NOW = new Date('2026-11-25T12:00:00Z');
@@ -123,4 +123,37 @@ test('canSkipInterpreter: a pending amount is open → ask the model', () => {
 
 test('canSkipInterpreter: a question never skips', () => {
   assert.equal(canSkipInterpreter('how much did I spend?', ctx(), NOW), false);
+});
+
+// 2026-11-26 Home Depot thread: "Bought screws for a job" right after logging "$30 Home Depot" was
+// read as a NEW expense (Haiku 5.5, 4/5 runs) and answered "how much was it?". A text with no number
+// can't be a new expense while a question is open or right after a log; it's a detail.
+test('guardDecision: amountless "new expense" with a question open → answers that question', () => {
+  const open: OpenState = { ...NONE, question: { receiptId: 'hd', contextState: 'awaiting_confirm', questionText: 'Got it! $30 at Home Depot' } };
+  const d = guardDecision(validateDecision({ action: 'new_expense' }, ['hd'])!, 'Bought screws for a job', ctx({ open, receipts: [receipt('hd', 'Home Depot', 30, 'office_supplies', 2)] }), NOW);
+  assert.equal(d.action, 'answer_open_question');
+  assert.equal(d.answer, 'detail');
+});
+
+test('guardDecision: amountless "new expense" just after a log, nothing open → edits that expense', () => {
+  const d = guardDecision(validateDecision({ action: 'new_expense' }, ['hd'])!, 'Bought screws for a job', ctx({ receipts: [receipt('hd', 'Home Depot', 30, 'office_supplies', 5)] }), NOW);
+  assert.equal(d.action, 'edit_expense');
+  assert.equal(d.receiptId, 'hd');
+});
+
+test('guardDecision: leaves real new expenses alone', () => {
+  const recent = ctx({ receipts: [receipt('hd', 'Home Depot', 30, 'office_supplies', 2)] });
+  // Has a number → genuinely could be new.
+  assert.equal(guardDecision(validateDecision({ action: 'new_expense' }, [])!, '12 coffee', recent, NOW).action, 'new_expense');
+  // No number, but nothing open and nothing logged recently → a new expense that needs its amount.
+  const old = ctx({ receipts: [receipt('hd', 'Home Depot', 30, 'office_supplies', 120)] });
+  assert.equal(guardDecision(validateDecision({ action: 'new_expense' }, [])!, 'bought lunch', old, NOW).action, 'new_expense');
+  // Other actions pass through.
+  assert.equal(guardDecision(validateDecision({ action: 'help' }, [])!, 'thanks', recent, NOW).action, 'help');
+  // Amount in words → could be new (eval intent:cap-no-symbol).
+  assert.equal(guardDecision(validateDecision({ action: 'new_expense' }, [])!, 'spent forty bucks on gas to the client site', recent, NOW).action, 'new_expense');
+  // Names a different store than the expense it would attach to → a new purchase (intent:cap-coffee-detail).
+  assert.equal(guardDecision(validateDecision({ action: 'new_expense' }, [])!, 'bought printer paper at staples for the office', recent, NOW).action, 'new_expense');
+  // Naming the SAME store is still a detail.
+  assert.equal(guardDecision(validateDecision({ action: 'new_expense' }, ['hd'])!, 'I bought screws at Home Depot', recent, NOW).action, 'edit_expense');
 });

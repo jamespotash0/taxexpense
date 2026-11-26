@@ -9,7 +9,7 @@ export const CATEGORY_LABELS: Record<string, string> = {
   business_gifts: 'Business Gifts',
   vehicle_business: 'Vehicle / Mileage',
   software: 'Software',
-  office_supplies: 'Office Supplies',
+  office_supplies: 'Supplies',
   professional_services: 'Professional Services',
   advertising: 'Advertising',
   internet_phone: 'Internet & Phone',

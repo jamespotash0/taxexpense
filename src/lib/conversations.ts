@@ -179,15 +179,23 @@ export async function getPendingAmount(userId: string): Promise<PendingAmount | 
     .select('pending_data, context_state, created_at')
     .eq('user_id', userId)
     .eq('direction', 'outbound')
-    .eq('context_state', 'awaiting_amount')
     .gte('created_at', cutoff)
     .order('created_at', { ascending: false })
     .limit(1);
   if (error) throw error;
-  const pd = data?.[0]?.pending_data as PendingData | null;
-  const priorText = pd?.priorText;
+  return pickPendingAmount((data ?? []) as Array<{ context_state: string | null; pending_data: PendingData | null; created_at: string }>);
+}
+
+/** The partial awaiting its amount, if our NEWEST reply is still the "how much was it?". Any later
+ *  reply closes it, like the other pending pickers; it used to stay open for the whole window, so
+ *  an unrelated later text got glued onto it and re-asked the amount (2026-11-26). Pure, for tests. */
+export function pickPendingAmount(
+  rows: Array<{ context_state: string | null; pending_data: PendingData | null; created_at: string }>,
+): PendingAmount | null {
+  const newest = [...rows].sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
+  const priorText = newest?.context_state === 'awaiting_amount' ? newest.pending_data?.priorText : undefined;
   if (!priorText) return null;
-  return { priorText, attempts: pd?.amountAttempts ?? 0 };
+  return { priorText, attempts: newest!.pending_data?.amountAttempts ?? 0 };
 }
 
 export type PendingChoice = { kind: 'flag' | 'context'; candidateIds: string[]; contextText?: string };

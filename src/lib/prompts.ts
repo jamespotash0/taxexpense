@@ -202,7 +202,7 @@ STRICT SUBSTANTIATION (IRC §274(d)):
 
 GENERAL SUBSTANTIATION (IRC §162):
 - software — SaaS subscriptions, apps
-- office_supplies — supplies, small office items
+- office_supplies — supplies: office items, small tools, hardware, and materials used up in the work (screws, tape, paint for a job). Call it "supplies" when talking to the user, never "office supplies"
 - professional_services — legal, accounting, consulting fees paid out
 - advertising — marketing, ads, promotional spend
 - internet_phone — telecom services for business
@@ -551,7 +551,8 @@ Logic:
 2. If the user corrects the AMOUNT (e.g. "actually it was $200", "make it 200", "should be $200, not $167"), set updates.amount to the new amount in DOLLARS (200, not 20000). Otherwise null. Do not change the amount unless they clearly restate it.
 3. RE-EVALUATE the category in light of the correction. If the corrected facts imply a different category than the one shown (e.g. "it's a restaurant" / "that was a client meal" → meals_business; "that was personal" / "not business" → personal; "that was for the office" → the right business category), set category_change_needed=true and new_category to the correct category from the list above. If the category is still right, set category_change_needed=false and new_category=null.
 4. The confirmation MUST read as an EDIT, not a new log: start with "Updated!" and say what changed (e.g. "Updated! Now logged as a client meal (50% deductible)" or "Updated! Amount is now $200"). No checkmarks or emoji. Max 320 chars.
-5. Write confirmation_message in the SAME LANGUAGE the user wrote in. Keep it warm and casual, like a friend texting back, with no em dashes.
+5. If the user ASKS why it's in this category (e.g. "why office supplies and not a business expense?"), re-check it with everything you know (vendor, purpose). If a different category fits better, change it (rule 3) and say so. If it still fits, change nothing and, instead of "Updated!", explain in one or two short sentences what the category covers and that it's still a business expense, using "typically falls under" language, then say they can reply with a different category. Never refuse this as tax advice: it's about how you filed their own expense.
+6. Write confirmation_message in the SAME LANGUAGE the user wrote in. Keep it warm and casual, like a friend texting back, with no em dashes.
 
 Note: substantiation_complete, needs_receipt, deductible amount and IRC section are recomputed in code after your updates; do not try to set them.`;
 

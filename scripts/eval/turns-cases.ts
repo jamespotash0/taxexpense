@@ -31,6 +31,7 @@ const grocery = rcpt('grocery', 'Grocery store', 100, 'office_supplies', 40);
 const optimum = rcpt('optimum', 'Optimum', 200, 'internet_phone', 10);
 const netflix = rcpt('netflix', 'Netflix', 50, 'personal', 1);
 const anthropic = rcpt('anthropic', 'Anthropic', 100, 'software', 21);
+const homeDepot = (ageMin: number) => rcpt('homedepot', 'Home Depot', 30, 'office_supplies', ageMin);
 
 export const TURN_CASES: TurnCase[] = [
   // ---- 2026-11-25 real sequences, rewritten ----
@@ -108,4 +109,16 @@ export const TURN_CASES: TurnCase[] = [
   { id: 'messy-advice', text: 'can i write off my netflix', tags: ['messy'], ctx: ctxOf({ receipts: [netflix] }), expect: { action: 'advice' } },
   { id: 'messy-capability', text: 'can u read receipts', tags: ['messy'], ctx: ctxOf(), expect: { action: 'capability' } },
   { id: 'messy-export', text: 'send everything to my accountant', tags: ['messy'], ctx: ctxOf(), expect: { action: 'command' } },
+
+  // ---- 2026-11-26 Home Depot thread, rewritten ----
+  { id: 'detail-no-amount-verify-open', text: 'Bought screws for a job', tags: ['edge'],
+    ctx: ctxOf({ receipts: [homeDepot(2)], open: { ...NONE, question: { receiptId: 'homedepot', contextState: 'awaiting_confirm', questionText: "Got it! $30 at Home Depot, logged as supplies. Not 100% sure on the category, so just reply with the right one if that's off!" } },
+      messages: [you('30 for Home Depot', 2), tally("Got it! $30 at Home Depot, logged as supplies. Not 100% sure on the category, so just reply with the right one if that's off!", 2)] }),
+    expect: { action: 'answer_open_question', answer: 'detail' }, note: 'Was read as a NEW expense and asked "how much?".' },
+  { id: 'detail-no-amount-just-logged', text: 'Bought screws for a job', tags: ['edge'],
+    ctx: ctxOf({ receipts: [homeDepot(3)] }), expect: { action: 'edit_expense', receiptId: 'homedepot' } },
+  { id: 'why-this-category', text: 'Why office supplies and not an expense to the business for cost of doing business', tags: ['edge'],
+    ctx: ctxOf({ receipts: [homeDepot(60), anthropic], messages: [
+      you('I went to Home Depot spent $30 to buy screws', 61), tally('Updated! Added the note that this $30 Home Depot run was for screws. Still logged as supplies.', 60) ] }),
+    expect: { action: 'edit_expense', receiptId: 'homedepot' }, note: 'Was refused as tax advice.' },
 ];

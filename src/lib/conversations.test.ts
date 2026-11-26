@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { pickPendingChoice, pickPendingContext } from './conversations';
+import { pickPendingAmount, pickPendingChoice, pickPendingContext } from './conversations';
 
 const flag = (at: string) => ({ context_state: 'awaiting_flag_choice', pending_data: { candidateIds: ['f1', 'f2'] }, created_at: at });
 const ctx = (at: string) => ({ context_state: 'awaiting_context_choice', pending_data: { candidateIds: ['c1', 'c2'], contextText: 'that hotel was for the conference' }, created_at: at });
@@ -40,4 +40,15 @@ test('pickPendingContext: a newer expense closes the older question for texts, n
   const netflix = { receipt_id: 'netflix', context_state: null, message_text: 'Got it! $50 to Netflix', created_at: '2026-11-25T03:35:47Z' };
   assert.equal(pickPendingContext([netflix, ask]), null);
   assert.equal(pickPendingContext([netflix, ask], 'photo')?.receiptId, 'optimum'); // late receipt photo can still attach
+});
+
+// A half-logged expense waiting for its amount closes as soon as any newer reply goes out, like the
+// other pending pickers. It stayed open for the whole 15-min window, so a later unrelated text was
+// glued onto it and re-asked "how much was it?" (2026-11-26 Home Depot thread).
+test('pickPendingAmount: only the newest outbound counts', () => {
+  const ask = { context_state: 'awaiting_amount', pending_data: { priorText: 'Bought screws for a job', amountAttempts: 0 }, created_at: '2026-11-26T14:58:03Z' };
+  assert.deepEqual(pickPendingAmount([ask]), { priorText: 'Bought screws for a job', attempts: 0 });
+  const laterReply = { context_state: null, pending_data: null, created_at: '2026-11-26T14:58:27Z' };
+  assert.equal(pickPendingAmount([ask, laterReply]), null);
+  assert.equal(pickPendingAmount([]), null);
 });

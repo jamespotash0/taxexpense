@@ -435,15 +435,18 @@ export async function routeDecision(user: AppUser, text: string, d: TurnDecision
       return reply(CANT_HELP_TEXT);
     case 'edit_expense': {
       const t = editTarget(d, ctx.receipts);
+      // A half-logged expense ("Bought screws for a job", waiting for its amount) that the user now
+      // points at an existing expense is that expense's detail: carry its text along, don't drop it.
+      const detail = ctx.open.amount ? `${ctx.open.amount.priorText} ${text}`.trim() : text;
       if ('apply' in t) {
-        const applied = await applyContext(user, t.apply, text);
+        const applied = await applyContext(user, t.apply, detail);
         if (applied) return applied;
       } else if ('ask' in t) {
         return {
           smsText: contextChoiceMessage(t.ask),
           receiptId: null,
           contextState: 'awaiting_context_choice',
-          pendingData: { candidateIds: t.ask.map((r) => r.id), contextText: text },
+          pendingData: { candidateIds: t.ask.map((r) => r.id), contextText: detail },
         };
       }
       log.info('conversational_no_log', { user: user.id, kind: 'context_statement', applied: false });
