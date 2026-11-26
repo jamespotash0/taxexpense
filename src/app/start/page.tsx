@@ -48,6 +48,12 @@ export default async function StartPage() {
 
           <p className="mt-5 text-[0.88rem] text-[#6f726d]">{register ? o.startDesktopNoteRegister : o.startDesktopNote}</p>
           <p className="mt-1 text-[0.88rem] text-[#6f726d]">{o.startDisclaimer}</p>
+          <p className="mt-3 max-w-[34rem] text-[0.8rem] leading-relaxed text-[#8a8d88]">
+            {o.startConsent}{' '}
+            <Link href="/terms" className="underline decoration-black/20 underline-offset-2 hover:text-[#101210]">{t.footer.terms}</Link>
+            {' · '}
+            <Link href="/privacy" className="underline decoration-black/20 underline-offset-2 hover:text-[#101210]">{t.footer.privacy}</Link>
+          </p>
         </div>
 
         <div className="hidden sm:block">

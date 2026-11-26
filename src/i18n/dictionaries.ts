@@ -110,7 +110,10 @@ const en = {
     startBadge: '21-day free trial · no card',
     startTitle: 'Send your first expense',
     startText: 'Text to start',
-    startDisclaimer: 'Recordkeeping, not tax advice. Reply STOP to opt out.',
+    startDisclaimer: 'Recordkeeping, not tax advice.',
+    // A2P 10DLC opt-in disclosure: program, frequency, rates, HELP, STOP, plus Terms/Privacy links.
+    startConsent:
+      'By texting Tally you agree to receive recurring automated texts from Tally: expense confirmations, account notices and login codes. Message frequency varies. Msg & data rates may apply. Reply HELP for help, STOP to opt out. Consent is not a condition of purchase.',
     startSub: 'Text this number and Tally starts capturing the why behind every expense. No app to install.',
     startDesktopNote: 'On a computer? Text the number above from your phone to get started.',
     // Linq shared line (DEC-089): the visitor registers their number first, so no number shows yet.
@@ -473,7 +476,9 @@ const es: Dict = {
     startBadge: '21 días gratis · sin tarjeta',
     startTitle: 'Envía tu primer gasto',
     startText: 'Escribe para empezar',
-    startDisclaimer: 'Llevar registros, no asesoría fiscal. Responde STOP para darte de baja.',
+    startDisclaimer: 'Llevar registros, no asesoría fiscal.',
+    startConsent:
+      'Al enviar un mensaje a Tally aceptas recibir mensajes automatizados recurrentes de Tally: confirmaciones de gastos, avisos de la cuenta y códigos de inicio de sesión. La frecuencia de mensajes varía. Pueden aplicar tarifas de mensajes y datos. Responde HELP para ayuda, STOP para darte de baja. El consentimiento no es condición de compra.',
     startSub: 'Escribe a este número y Tally empieza a capturar el porqué de cada gasto. Sin instalar ninguna app.',
     startDesktopNote: '¿En una computadora? Escribe al número de arriba desde tu teléfono para empezar.',
     startSubRegister: 'Ingresa tu número de celular y abriremos un mensaje a Tally. Envía tu primer gasto desde ahí. Sin instalar ninguna app.',
