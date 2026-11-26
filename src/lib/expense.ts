@@ -62,6 +62,10 @@ function readCheckMessage(input: ExpenseInput, category: string, sectionId: stri
   return `Quick check! I read that as ${amount}${at}${filing}. Reply YES if that's right, or send the correct amount and I'll fix it.`;
 }
 
+/** Model-written confirmations sometimes add a ✓ anyway. Founder: no check on "Updated"/confirm
+ *  replies (and ✓ forces UCS-2, doubling segments). "Documentation complete" keeps its own ✓. */
+const noCheckmark = (s: string) => s.replace(/\s*✓\s*/g, ' ').trim();
+
 // How Penny asks for each required context field, in plain words.
 const FIELD_ASK: Record<string, string> = {
   attendees: 'who it was with',
@@ -107,7 +111,7 @@ export async function confirmReceiptMessage(orgId: string, receiptId: string): P
   const receipt = await getReceipt(orgId, receiptId);
   if (!receipt) {
     // Receipt vanished mid-flight — still acknowledge so the user isn't left hanging.
-    return { smsText: '✓ Got it, locked in!', receiptId, contextState: null };
+    return { smsText: 'Got it, locked in!', receiptId, contextState: null };
   }
   // Resolve the IRC summary flexibly (receipts store "§274(n)"; section_id keys are bare "274").
   const irc = receipt.irc_section ? await lookupIrcSectionFlexible(receipt.irc_section) : null;
@@ -137,12 +141,32 @@ export function formatConfirmation(args: {
   const amount = `$${(args.amountCents / 100).toFixed(2)}`;
   const at = args.vendor ? ` at ${args.vendor}` : '';
   const citation = ircCitation({ sectionId: args.sectionId });
-  const lines = [`✓ Locked in! ${amount}${at}, filed under ${categoryLabel(args.category)}.`];
+  const lines = [`Locked in! ${amount}${at}, filed under ${categoryLabel(args.category)}.`];
   if (citation) {
     const desc = args.summary ? `: ${args.summary}` : '';
     lines.push(`Typically falls under ${citation}${desc}`);
   }
   return withDisclaimer(lines.join('\n'));
+}
+
+/** Pure: when a correction/clarification moves an expense to a new category, append the
+ *  code-computed tax facts (category, IRC §, deductible %) + disclaimer. The model's ack alone
+ *  ("Got it, thanks!") drops them, and those facts must never be model-dependent. */
+export function withRecategorizedTaxLine(
+  message: string,
+  args: { category: string; sectionId: string | null; summary: string | null; deductionPct: number },
+): string {
+  if (args.category === 'personal') return `${message.trimEnd()}\nMoved to personal, so it's not counted as a business deduction.`;
+  const citation = ircCitation({ sectionId: args.sectionId });
+  const lines = [`${message.trimEnd()}\nNow filed under ${categoryLabel(args.category)} (${args.deductionPct}% deductible).`];
+  if (citation) lines.push(`Typically falls under ${citation}${args.summary ? `: ${args.summary}` : ''}`);
+  return withDisclaimer(lines.join('\n'));
+}
+
+async function recategorizedReply(message: string, category: string, ircSection: string | null, deductionPct: number): Promise<string> {
+  const irc = ircSection ? await lookupIrcSectionFlexible(ircSection) : null;
+  const sectionId = irc?.section_id ?? ((ircSection ?? '').replace(/§/g, '').replace(/[^0-9A-Za-z]/g, '') || null);
+  return withRecategorizedTaxLine(message, { category, sectionId, summary: irc?.short_summary ?? null, deductionPct });
 }
 
 function generalFallback(category: string): SubstantiationRule {
@@ -492,8 +516,11 @@ export async function processClarification(
     ...patch,
   });
 
+  const ack = noCheckmark(parsed.confirmation_message);
   return {
-    smsText: parsed.confirmation_message,
+    smsText: category !== receipt.category
+      ? await recategorizedReply(ack, category, patch.irc_section, patch.deduction_percentage)
+      : ack,
     receiptId,
     contextState: nextContextState(decision),
   };
@@ -607,8 +634,11 @@ export async function processCorrection(
     await rememberVendorCategory(user.organization_id, receipt.vendor, category);
   }
 
+  const ack = noCheckmark(parsed.confirmation_message);
   return {
-    smsText: parsed.confirmation_message,
+    smsText: categoryChanged && category !== receipt.category
+      ? await recategorizedReply(ack, category, patch.irc_section, patch.deduction_percentage)
+      : ack,
     receiptId,
     contextState: nextContextState(decision),
   };
@@ -674,7 +704,7 @@ export async function processAttachment(
       substantiation_missing_fields: decision.missing_context_fields,
     });
     return {
-      smsText: parsed.confirmation_message,
+      smsText: noCheckmark(parsed.confirmation_message),
       receiptId: target.id,
       contextState: nextContextState(decision),
     };

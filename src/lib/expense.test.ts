@@ -6,7 +6,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { formatConfirmation } from './expense';
+import { formatConfirmation, withRecategorizedTaxLine } from './expense';
 import { DISCLAIMER_LINE } from './categorize';
 
 test('formatConfirmation: names the amount, vendor, category, IRC section + link, and summary', () => {
@@ -40,4 +40,20 @@ test('formatConfirmation: missing vendor still reads cleanly (no dangling " at "
   const out = formatConfirmation({ amountCents: 2000, vendor: null, category: 'software', sectionId: '162', summary: null });
   assert.ok(!out.includes(' at ,'), out);
   assert.ok(out.includes('$20.00, filed under Software.'), out);
+});
+
+test('withRecategorizedTaxLine: a recategorized correction keeps the IRC section, deductible %, and disclaimer', () => {
+  const out = withRecategorizedTaxLine('Got it, thanks for the heads up!', {
+    category: 'office_supplies', sectionId: '162', summary: null, deductionPct: 100,
+  });
+  assert.match(out, /^Got it, thanks for the heads up!/);
+  assert.match(out, /Office Supplies \(100% deductible\)/);
+  assert.match(out, /§162/);
+  assert.ok(out.endsWith(DISCLAIMER_LINE));
+});
+
+test('withRecategorizedTaxLine: moved to personal says so, no IRC cite', () => {
+  const out = withRecategorizedTaxLine('Updated!', { category: 'personal', sectionId: '262', summary: null, deductionPct: 0 });
+  assert.match(out, /not counted as a business deduction/);
+  assert.doesNotMatch(out, /§/);
 });
