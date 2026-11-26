@@ -4,7 +4,7 @@ This file is automatically read by Claude Code on every session start. It contai
 
 **For deeper detail, Claude Code should read specific files referenced below.**
 
-> **Next.js framework rules:** This repo was scaffolded with **Next.js 16 + React 19 + Tailwind v4**. See [`AGENTS.md`](./AGENTS.md) for framework-version rules before writing framework code. Project planning docs live in [`claude_files/`](./claude_files/).
+> **Next.js framework rules:** This repo was scaffolded with **Next.js 16 + React 19 + Tailwind v4**. See [`AGENTS.md`](./AGENTS.md) for framework-version rules before writing framework code. Project planning docs live in [`claude_files/`](./claude_files/), which is its own **private** git repo (`jamespotash0/taxexpense-docs`), cloned into this folder and gitignored by the public app repo. Commit and push doc changes (JOURNAL, STATE, specs) from inside `claude_files/`, never from the app repo.
 
 ---
 

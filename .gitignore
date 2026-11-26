@@ -42,3 +42,6 @@ next-env.d.ts
 
 # design reference images (large binaries — keep local only)
 /design_refs
+
+# Planning docs live in a separate private repo (jamespotash0/taxexpense-docs), cloned here.
+/claude_files/
