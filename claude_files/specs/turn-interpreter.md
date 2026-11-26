@@ -153,8 +153,9 @@ replaces the classifier + picker calls, so net cost is about flat.
 
 ### Rollout
 
-Env flag `TURN_INTERPRETER` (default on after evals pass). Off = today's path, for instant
-rollback in Vercel without a deploy. Delete the old path and the flag after ~1 week of clean logs.
+No flag and no parallel old path (founder, 2026-11-25: no real users yet, so build it for
+production now). The replay eval is the gate: the old routing is deleted in the same change once
+`eval:turns` passes. Rollback is `git revert`.
 
 ## Testing
 
