@@ -58,3 +58,50 @@ test('isAnythingOpen: nothing, pending amount, renewal', () => {
   assert.equal(isAnythingOpen({ ...NONE, amount: { priorText: 'lunch', attempts: 0 } }), true);
   assert.equal(isAnythingOpen({ ...NONE, renewal: { id: 't1' } as OpenState['renewal'] }), true);
 });
+
+// ---- Task 2: decision validation + fallback -------------------------------------------------
+import { fallbackDecision, validateDecision } from './turn';
+
+test('validateDecision discards a receipt id that was not offered', () => {
+  const d = validateDecision({ action: 'edit_expense', receipt_id: 'r9' }, ['netflix']);
+  assert.equal(d?.action, 'edit_expense');
+  assert.equal(d?.receiptId, null);
+  assert.deepEqual(d?.candidates, []);
+});
+
+test('validateDecision filters candidates to offered ids', () => {
+  const d = validateDecision({ action: 'edit_expense', receipt_id: null, candidates: ['uber1', 'evil', 'uber2'] }, ['uber1', 'uber2']);
+  assert.deepEqual(d?.candidates, ['uber1', 'uber2']);
+});
+
+test('validateDecision returns null for an unknown action', () => {
+  assert.equal(validateDecision({ action: 'delete_everything' }, []), null);
+  assert.equal(validateDecision('nope', []), null);
+});
+
+test('validateDecision sanitizes query fields like sanitizeIntent (bad tool → aggregate)', () => {
+  const d = validateDecision({ action: 'query', tool: 'hack', category: 'meals', period: 'this_month' }, []);
+  assert.equal(d?.query?.tool, 'aggregate');
+  assert.equal(d?.query?.period, 'this_month');
+});
+
+test('validateDecision keeps answer only when it is a known value', () => {
+  assert.equal(validateDecision({ action: 'answer_open_question', answer: 'affirm' }, [])?.answer, 'affirm');
+  assert.equal(validateDecision({ action: 'answer_open_question', answer: 'maybe' }, [])?.answer, 'detail');
+});
+
+test('fallbackDecision answers an open receipt question', () => {
+  const d = fallbackDecision('it was with a client', { ...NONE, question: { receiptId: 'r1', contextState: 'awaiting_context', questionText: 'Who was it with?' } });
+  assert.equal(d.action, 'answer_open_question');
+  assert.equal(d.answer, 'detail');
+});
+
+test('fallbackDecision answers a pending amount', () => {
+  assert.equal(fallbackDecision('167', { ...NONE, amount: { priorText: 'lunch', attempts: 0 } }).action, 'answer_open_question');
+});
+
+test('fallbackDecision with nothing open: an expense captures, chit-chat is help, never an edit', () => {
+  assert.equal(fallbackDecision('$30 gas', NONE).action, 'new_expense');
+  assert.equal(fallbackDecision('thanks', NONE).action, 'help');
+  for (const t of ['$30 gas', 'thanks', 'that was personal']) assert.notEqual(fallbackDecision(t, NONE).action, 'edit_expense');
+});
