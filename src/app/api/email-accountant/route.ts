@@ -24,7 +24,7 @@ export async function POST(): Promise<NextResponse> {
     ]);
 
     const monthLabel = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-    const who = user.full_name ?? 'A Tally user';
+    const who = (user.full_name ?? 'A Tally user').replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
     const csv = toStandardCsv(receipts);
     const flaggedCount = receipts.filter((r) => r.flagged_for_cpa).length;
 

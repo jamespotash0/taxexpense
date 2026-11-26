@@ -58,3 +58,10 @@ test('QuickBooks CSV: maps category to QBO account', () => {
   assert.equal(header, 'Date,Description,Amount,Account');
   assert.match(row, /Meals and Entertainment$/);
 });
+
+test('CSV: text that starts like a formula is neutralized (export goes to a CPA spreadsheet)', () => {
+  const row = toStandardCsv([receipt({ vendor: '=HYPERLINK("http://x","y")', business_purpose: '@SUM(A1)' })]).split('\n')[1];
+  assert.match(row, /'=HYPERLINK/);
+  assert.match(row, /'@SUM/);
+  assert.match(row, /,340\.00,/); // amounts untouched
+});

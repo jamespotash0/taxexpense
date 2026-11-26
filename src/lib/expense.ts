@@ -690,8 +690,15 @@ export async function processAttachment(
     // Only NOW do we persist the image — confirmed it links to a receipt (no orphan).
     const { path } = await storePhotoBuffer(buffer, contentType, user.id);
     const rule = (await getSubstantiationRule(target.category!)) ?? generalFallback(target.category!);
+    // Model output (fed by OCR text from the user's image) is untrusted: take only the two
+    // fields the prompt asks for, type-checked. Spreading it let any key (organization_id,
+    // photo_url, deduction_percentage...) through to a service-role update.
+    const ocr = parsed.use_ocr_data ? parsed.updates ?? {} : {};
+    const ocrUpdates: { amount_cents?: number; vendor?: string } = {};
+    if (Number.isInteger(ocr.amount_cents) && ocr.amount_cents! > 0) ocrUpdates.amount_cents = ocr.amount_cents;
+    if (typeof ocr.vendor === 'string' && ocr.vendor.trim() && ocr.vendor.length <= 200) ocrUpdates.vendor = ocr.vendor.trim();
     const decision = evaluateSubstantiation(rule, {
-      amount_cents: parsed.use_ocr_data && parsed.updates.amount_cents ? parsed.updates.amount_cents : target.amount_cents,
+      amount_cents: ocrUpdates.amount_cents ?? target.amount_cents,
       has_photo: true,
       captured_fields: capturedFrom(target),
     });
@@ -700,7 +707,7 @@ export async function processAttachment(
       needs_receipt: false,
       receipt_reason: null,
       receipt_waived_at: null, // a photo arrived → un-waive (DEC-078); the gap is closed
-      ...(parsed.use_ocr_data ? parsed.updates : {}),
+      ...ocrUpdates,
       substantiation_complete: decision.substantiation_complete,
       substantiation_missing_fields: decision.missing_context_fields,
     });

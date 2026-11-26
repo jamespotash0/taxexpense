@@ -4,7 +4,10 @@ import { categoryLabel, qboAccount } from './categories';
 
 /** RFC-4180 field escaping. `emptyAs` is substituted for null/empty values (e.g. '-'). */
 function cell(value: unknown, emptyAs = ''): string {
-  const s = value == null || value === '' ? emptyAs : String(value);
+  let s = value == null || value === '' ? emptyAs : String(value);
+  // Formula injection: a vendor like "=HYPERLINK(...)" would execute in Excel/Sheets. Numbers
+  // (e.g. "-12.50") and the empty placeholder pass through untouched.
+  if (s !== emptyAs && /^[=+\-@\t\r]/.test(s) && !/^-?\d+(\.\d+)?$/.test(s)) s = `'${s}`;
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
