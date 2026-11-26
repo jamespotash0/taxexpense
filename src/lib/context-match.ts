@@ -11,7 +11,7 @@ const MIN = 60_000;
 const HOUR = 60 * MIN;
 const DAY = 24 * HOUR;
 
-function age(createdAt: string, now: Date): string {
+export function age(createdAt: string, now: Date): string {
   const ms = Math.max(0, now.getTime() - new Date(createdAt).getTime());
   if (ms < HOUR) return `${Math.round(ms / MIN)} min ago`;
   if (ms < DAY) return `${Math.round(ms / HOUR)} hours ago`;

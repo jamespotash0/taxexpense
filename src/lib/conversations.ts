@@ -93,6 +93,30 @@ export async function countRecentInbound(userId: string, sinceIso: string): Prom
   return count ?? 0;
 }
 
+export interface RecentMessage {
+  direction: 'inbound' | 'outbound';
+  text: string;
+  createdAt: string;
+}
+
+/** The user's last `limit` messages (both directions) within the 24h window, oldest first. Feeds the
+ *  turn interpreter (claude_files/specs/turn-interpreter.md). */
+export async function getRecentMessages(userId: string, limit = 7): Promise<RecentMessage[]> {
+  const cutoff = new Date(Date.now() - PENDING_WINDOW_HOURS * 3600 * 1000).toISOString();
+  const { data, error } = await getSupabaseAdmin()
+    .from('conversations')
+    .select('direction, message_text, created_at')
+    .eq('user_id', userId)
+    .gte('created_at', cutoff)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? [])
+    .filter((r) => r.message_text)
+    .map((r) => ({ direction: r.direction as RecentMessage['direction'], text: r.message_text as string, createdAt: r.created_at as string }))
+    .reverse();
+}
+
 export interface PendingContext {
   receiptId: string;
   contextState: ContextState;
