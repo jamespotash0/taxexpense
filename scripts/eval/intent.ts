@@ -43,6 +43,15 @@ const CASES: IntentCase[] = [
     tags: ['edge'], check: isKind('context_statement') },
   { id: 'ctx-vendor', text: 'Tabernacle is a restaurant', expect: 'context_statement',
     tags: ['edge'], check: isKind('context_statement'), note: 'Vendor clarification, no amount.' },
+  // Real texts (2026-11-25): "Log as business expense" right after Netflix logged personal → was "help".
+  { id: 'ctx-log-as-business', text: 'Log as business expense', expect: 'context_statement',
+    tags: ['edge'], check: isKind('context_statement'), note: 'Imperative recategorize of the last expense.' },
+  { id: 'ctx-bare-business', text: 'business', expect: 'context_statement',
+    tags: ['edge'], check: isKind('context_statement'), note: 'One-word reply meaning "that was business".' },
+  { id: 'ctx-its-for-work', text: 'its for work', expect: 'context_statement',
+    tags: ['edge'], check: isKind('context_statement') },
+  { id: 'ctx-make-it-software', text: 'make it software', expect: 'context_statement',
+    tags: ['edge'], check: isKind('context_statement'), note: 'Imperative category change.' },
 
   // ---- capture (records a NEW expense; phrased without an obvious $ the fast-path catches) ----
   { id: 'cap-no-symbol', text: 'spent forty bucks on gas to the client site', expect: 'capture',

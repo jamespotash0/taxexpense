@@ -537,8 +537,9 @@ async function handleExpenseFlow(user: AppUser, msg: InboundMessage): Promise<Pr
       if (retry.ocr.ok && (!ocr.ok || retry.ocr.data.confidence > ocr.data.confidence)) ({ ocr, category } = retry);
     }
 
-    // If a receipt is awaiting a photo, try to attach this one first (stores on match).
-    if (pending) {
+    // If a receipt is awaiting a photo, try to attach this one first (stores on match). Looser
+    // 'photo' lookup: a newer expense logged in between doesn't rule out a late receipt photo.
+    if (pending ?? (await getPendingContext(user.id, 'photo'))) {
       const attached = await processAttachment(user, ocr, buffer, contentType);
       if (attached) return withExtraPhotosNote(attached, extraPhotos);
     }

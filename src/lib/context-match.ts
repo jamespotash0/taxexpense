@@ -57,6 +57,7 @@ Rules:
 - If two expenses could both fit (two hotels, two expenses from the same trip), return null with both in the shortlist. Never guess between them.
 - A trip or place ("the Austin trip one", "the Denver one") fits EVERY expense from that trip: the hotel, the flight (airport codes like AUS count), rides and meals logged around the same days. If more than one is listed, return null with all of them.
 - A bare reference with nothing else ("that one", "it", "that was personal") means the most recent expense ONLY if it was logged less than 2 hours ago. Otherwise return null.
+- "It's business" / "log as business" / "for work" that names NO vendor, expense type, amount, or person is a bare reference too: the most recent expense (under 2 hours). Don't pick an older expense just because it is already business. (This rule is only for messages that name nothing; if the message names a type like "dinner", match on that as usual.)
 - Only use ids from the list. Never invent one.`;
 
 /** Ask Haiku which recent expense a late detail refers to. Any failure means "no match" (we ask). */

@@ -39,6 +39,14 @@ const CASES: Case[] = [
   { id: 'bare-fresh', text: 'that one was personal',
     rows: [r('starbucks', 'Starbucks', 6.5, 'meals_business', 20 * MIN), marriott],
     expect: 'starbucks' },
+  // Real texts (2026-11-25): "its for business" after Netflix logged personal → shortlisted the
+  // already-business expenses instead of the one just logged.
+  { id: 'business-fresh-personal', text: 'its for business',
+    rows: [r('netflix', 'Netflix', 50, 'personal', 1 * MIN), r('optimum', 'Optimum', 200, 'internet_phone', 10 * MIN), r('anthropic', 'Anthropic', 100, 'software', 21 * MIN)],
+    expect: 'netflix' },
+  { id: 'log-as-business-fresh', text: 'Log as business expense',
+    rows: [r('netflix', 'Netflix', 50, 'personal', 1 * MIN), r('optimum', 'Optimum', 200, 'internet_phone', 10 * MIN)],
+    expect: 'netflix' },
   { id: 'bare-stale', text: 'that one was personal',
     rows: [r('starbucks', 'Starbucks', 6.5, 'meals_business', 5 * HOUR), marriott],
     expect: 'ASK' },

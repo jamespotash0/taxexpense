@@ -104,7 +104,7 @@ export interface PendingContext {
  * context_state + receipt_id, within the 24h window). Returns null if none — caller then
  * treats the inbound message as a new expense.
  */
-export async function getPendingContext(userId: string): Promise<PendingContext | null> {
+export async function getPendingContext(userId: string, mode: 'text' | 'photo' = 'text'): Promise<PendingContext | null> {
   const cutoff = new Date(Date.now() - PENDING_WINDOW_HOURS * 3600 * 1000).toISOString();
   const { data, error } = await getSupabaseAdmin()
     .from('conversations')
@@ -116,20 +116,23 @@ export async function getPendingContext(userId: string): Promise<PendingContext 
     .order('created_at', { ascending: false })
     .limit(20); // ponytail: scan cap; a question buried under 20+ replies in 24h is treated as stale
   if (error) throw error;
-  return pickPendingContext(data ?? []);
+  return pickPendingContext(data ?? [], mode);
 }
 
-/** The newest open question, unless a LATER reply on the same receipt carries no context_state
- *  (the question was answered). A clean log of a different expense doesn't close it, so a late
- *  receipt photo can still attach. Pure, for tests. */
+/** The open question a TEXT answers: only the newest receipt-linked reply counts, so an answered
+ *  question (or a newer expense logged after it) closes it. 'photo' mode is looser, only a later
+ *  reply on the SAME receipt closes it, because photo attach finds its own target in the DB and
+ *  just needs to know a photo may still be expected. Pure, for tests. */
 export function pickPendingContext(
   rows: Array<{ receipt_id: string | null; context_state: string | null; message_text: string | null; created_at: string }>,
+  mode: 'text' | 'photo' = 'text',
 ): PendingContext | null {
   const sorted = [...rows].sort((a, b) => b.created_at.localeCompare(a.created_at));
   const i = sorted.findIndex((r) => r.receipt_id && r.context_state);
   if (i < 0) return null;
   const row = sorted[i];
-  if (sorted.slice(0, i).some((r) => r.receipt_id === row.receipt_id)) return null; // answered
+  const closedBy = (r: (typeof sorted)[number]) => (mode === 'text' ? true : r.receipt_id === row.receipt_id);
+  if (sorted.slice(0, i).some(closedBy)) return null;
   return { receiptId: row.receipt_id!, contextState: row.context_state as ContextState, questionText: row.message_text ?? null };
 }
 

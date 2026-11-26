@@ -2967,3 +2967,19 @@ under default-deny for V1; only add an anon read policy if rendering them client
   logged last, so its `awaiting_recurring_optin` is what a "YES" answers.
 - **Verified.** Live compose spot-check: "Got it! $100 to Anthropic, logged as software, 100%
   deductible per §162 (link)." (151 chars incl. disclaimer). CLAUDE.md UX bullet updated.
+
+### DEC-104 — A text answers the NEWEST expense; short commands are edits (supersedes part of DEC-101)
+
+- **Bug.** Optimum logged with an open "not sure on the category" line, then "$50 Netflix" logged
+  clean, then "Log as business expense" edited Optimum. DEC-101 had deliberately kept an older
+  receipt's question open across a different receipt's clean log (for late photos); that was wrong
+  for text replies.
+- **Fix.** `pickPendingContext` has two modes: 'text' (default: only the newest receipt-linked reply
+  counts) and 'photo' (the old looser rule, used only to decide whether to try attaching a photo,
+  since `processAttachment` finds its own target in the DB).
+- **Classifier/picker.** "Log as business expense", "business", "make it software" were `help` or
+  `capture`; "its for business" picked already-business expenses. Prompt lines added; 4 intent + 2
+  context-match eval cases. On prod's Haiku 5.5: intent 42/42, context 10/10, merged 31/31. (Local
+  evals had silently run Haiku 4.5, the code default, which fails cases 5.5 passes.)
+- **Next.** These are patches on fragment-based routing; the real fix is the turn interpreter
+  (`claude_files/specs/turn-interpreter.md`, founder-approved).

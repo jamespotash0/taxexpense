@@ -33,8 +33,11 @@ test('pickPendingContext: an answered question (newer reply on a receipt, no sta
   assert.deepEqual(pickPendingContext([ask]), { receiptId: 'r1', contextState: 'awaiting_confirm', questionText: 'Quick check!' });
 });
 
-test('pickPendingContext: a clean log of a DIFFERENT expense keeps the older question open', () => {
-  const ask = { receipt_id: 'r1', context_state: 'awaiting_receipt', message_text: 'Send a receipt?', created_at: '2026-11-25T02:00:00Z' };
-  const other = { receipt_id: 'r2', context_state: null, message_text: 'Locked in!', created_at: '2026-11-25T02:05:00Z' };
-  assert.equal(pickPendingContext([other, ask])?.receiptId, 'r1');
+// Repro (2026-11-25): Optimum "not sure on the category" left open, then "$50 Netflix" logged clean,
+// then "Log as business expense" was applied to Optimum. A text answers the NEWEST expense only.
+test('pickPendingContext: a newer expense closes the older question for texts, not for photos', () => {
+  const ask = { receipt_id: 'optimum', context_state: 'awaiting_confirm', message_text: 'Not 100% sure on the category', created_at: '2026-11-25T03:26:49Z' };
+  const netflix = { receipt_id: 'netflix', context_state: null, message_text: 'Got it! $50 to Netflix', created_at: '2026-11-25T03:35:47Z' };
+  assert.equal(pickPendingContext([netflix, ask]), null);
+  assert.equal(pickPendingContext([netflix, ask], 'photo')?.receiptId, 'optimum'); // late receipt photo can still attach
 });
