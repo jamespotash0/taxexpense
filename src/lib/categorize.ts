@@ -187,7 +187,6 @@ export async function composeResponse(args: {
       category,
       irc_section: rule.irc_section,
       deduction_percentage: decision.deduction_percentage,
-      deductible_amount: `$${(decision.deductible_amount_cents / 100).toFixed(2)}`,
       needs_receipt: decision.needs_receipt,
       receipt_reason: decision.receipt_reason,
       missing_context_fields: decision.missing_context_fields,

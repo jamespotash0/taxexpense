@@ -128,7 +128,7 @@ Keep `STATE.md` current as work lands. JOURNAL.md is the append-only history; ST
 - One question per message, max
 - Acknowledge first, ask second
 - Match user's words ("client meal" not "business meal" if they said the former)
-- Celebrate completion ("✓ Documentation complete")
+- Keep log replies short: amount, vendor, category, deduction %, IRC link. No deductible dollar amount, no "documentation complete" on a routine log, extra offers go in a separate follow-up text (JOURNAL DEC-103)
 
 **For security decisions:**
 - Webhook signature validation = non-negotiable

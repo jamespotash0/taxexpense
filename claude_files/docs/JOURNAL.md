@@ -2952,3 +2952,18 @@ under default-deny for V1; only add an anon read policy if rendering them client
 ### DEC-102 — Recategorized reply: category + deductible % + code link only
 - Founder: no IRC summary text. Now "Now filed under Equipment (100% deductible), §179 (link)." +
   disclaimer.
+
+### DEC-103 — Shorter log replies; recurring offer as its own text (founder)
+
+- **Context.** "$100 anthropic" got: "...100% deductible ($100.00) per §162 (link). Documentation
+  complete. Nice and easy. 🎉" + disclaimer + the subscription offer, all in one text. Founder: too
+  long; no deductible dollar amount; no "documentation complete"; offer can come after (Linq texts
+  cost us nothing).
+- **Decision.** COMPOSE prompt: one or two short sentences (~200 chars + disclaimer), state amount,
+  vendor (or the user's words if none, never "vendor unknown"), category, deduction %, IRC link.
+  `deductible_amount` dropped from the decision block so the model can't print it. "Documentation
+  complete" no longer required on a log (still the approved phrase vs "audit-ready" where used).
+  `ProcessResult.followUp`: the recurring offer is sent + logged as a second text after the reply;
+  logged last, so its `awaiting_recurring_optin` is what a "YES" answers.
+- **Verified.** Live compose spot-check: "Got it! $100 to Anthropic, logged as software, 100%
+  deductible per §162 (link)." (151 chars incl. disclaimer). CLAUDE.md UX bullet updated.

@@ -383,9 +383,10 @@ async function maybeOfferRecurring(user: AppUser, result: ProcessResult): Promis
   if (priors < 1 && !subscription) return result; // neither a repeat nor a subscription-type → no offer
 
   const reason = priors >= 1 ? 'repeat' : 'subscription';
+  // Its own text after the log reply (DEC-103): keeps the confirmation short.
   return {
-    smsText: `${result.smsText}\n\n${offerRecurring(receipt.vendor, receipt.amount_cents, reason)}`,
-    receiptId: result.receiptId,
+    ...result,
+    followUp: offerRecurring(receipt.vendor, receipt.amount_cents, reason),
     contextState: 'awaiting_recurring_optin',
   };
 }
@@ -848,16 +849,20 @@ async function handleInboundSmsInner(msg: InboundMessage): Promise<void> {
     replyTo: reply.contextState ? msg.linq?.messageId : undefined,
     effect: reply.effect,
   };
-  await safeSend(phone, reply.smsText, msg.channel, opts);
-  await logConversation({
-    userId: user.id,
-    organizationId: user.organization_id,
-    direction: 'outbound',
-    messageText: reply.smsText,
-    receiptId: reply.receiptId,
-    contextState: reply.contextState,
-    pendingData: reply.pendingData,
-  });
+  for (const text of [reply.smsText, reply.followUp]) {
+    if (!text) continue;
+    await safeSend(phone, text, msg.channel, opts);
+    // Both carry the same receipt + state; the follow-up is logged last, so it's the open question.
+    await logConversation({
+      userId: user.id,
+      organizationId: user.organization_id,
+      direction: 'outbound',
+      messageText: text,
+      receiptId: reply.receiptId,
+      contextState: reply.contextState,
+      pendingData: reply.pendingData,
+    });
+  }
   if (msg.linq) await afterLinqReply(user, msg, reply, msg.linq);
 }
 

@@ -38,6 +38,8 @@ export interface ProcessResult {
   contextState: ContextState | null;
   /** Structured payload persisted with the outbound (e.g. flag-disambiguation candidate ids). */
   pendingData?: import('./conversations').PendingData | null;
+  /** A second, separate text sent right after smsText (e.g. the recurring offer, DEC-103). */
+  followUp?: string;
   /** iMessage screen effect for a milestone reply (Linq only, DEC-087). */
   effect?: import('./linq').SendOptions['effect'];
 }
