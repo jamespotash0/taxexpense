@@ -98,12 +98,18 @@ export function ircCitation(opts: { sectionId: string | null; appUrl?: string })
 }
 
 /**
- * Append the always-present legal disclaimer (DEC-065b-i / Jordan). INVARIANT: the not-advice +
- * CPA deferral is present on EVERY tax-guidance reply by construction — never model-dependent.
- * Single source of truth the test asserts against. Pure + testable.
+ * Append the legal disclaimer (DEC-065b-i, narrowed by DEC-109). Added in code, never by the model.
+ * Routine logs skip it; it rides on strict-category logs (meals, travel, gifts, vehicle), where the
+ * deduction rules are the closest thing to advice. Welcome, HELP and tax-question replies carry
+ * their own not-advice line. Pure + testable.
  */
 export function withDisclaimer(message: string): string {
   return `${message.trimEnd()}\n\n${DISCLAIMER_LINE}`;
+}
+
+/** DEC-109: disclaimer only on strict-substantiation categories. */
+export function disclaimerIfStrict(message: string, level: 'strict' | 'general'): string {
+  return level === 'strict' ? withDisclaimer(message) : message;
 }
 
 function expenseSummary(input: ExpenseInput): string {
@@ -242,6 +248,6 @@ export async function composeResponse(args: {
   if (citation && !message.includes(`/irc/${sectionId}`)) {
     message = `${message.trimEnd()} ${citation}`;
   }
-  // The not-advice + CPA deferral is always appended in code — never model-dependent.
-  return withDisclaimer(message);
+  // The not-advice + CPA deferral is appended in code (never model-dependent), strict categories only.
+  return disclaimerIfStrict(message, rule.substantiation_level);
 }

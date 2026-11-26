@@ -17,7 +17,8 @@ export const DEFAULT_AGENT_NAME = 'Penny';
 
 export const ONBOARDING_Q_NAME =
   `Hey! I'm Penny from Tally 👋 Text me your business expenses and I'll keep track of the why ` +
-  `behind each one, so tax time isn't a scramble. Your 21-day free trial starts now, no card needed.\n\n` +
+  `behind each one, so tax time isn't a scramble. I'm a record keeper, not a tax advisor, so check ` +
+  `the big calls with a CPA. Your 21-day free trial starts now, no card needed.\n\n` +
   `First things first, what's your name?`;
 
 /**
@@ -453,8 +454,8 @@ Rules:
 - Cite the section EXACTLY ONCE, using that provided string. Do NOT also mention the bare "§274"
   separately, and do NOT write the citation on its own detached line — it belongs in a sentence.
 - Do NOT invent or alter any URL; only ever use the link inside the provided citation string.
-- Do NOT add your own "consult a CPA" sentence. A disclaimer line ("Suggestion, not advice.
-  Confirm with your CPA.") is appended automatically. Never duplicate it.
+- Do NOT add your own "consult a CPA" or "not advice" sentence. Code appends a disclaimer when
+  one is needed. Never write one yourself.
 - If the input says there is no section, do not cite one and do not write any URL.
 
 ## Authoritative Decision (already computed in code, DO NOT recompute)

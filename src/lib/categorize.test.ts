@@ -6,7 +6,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ircCitation, withDisclaimer, DISCLAIMER_LINE } from './categorize';
+import { ircCitation, withDisclaimer, disclaimerIfStrict, DISCLAIMER_LINE } from './categorize';
 
 const FORBIDDEN = ['audit-ready', 'audit-proof', 'guaranteed', 'you should', 'i recommend', 'i advise'];
 
@@ -47,4 +47,9 @@ test('inline citation reads as one in-sentence reference, not a detached re-cite
   assert.equal(out.match(/§274/g)?.length, 1, out);
   // link present, and inline (same line as the section), not on its own trailing line
   assert.ok(out.includes('https://tallywhy.com/irc/274'), out);
+});
+
+test('DEC-109: disclaimer on strict-category logs only', () => {
+  assert.ok(disclaimerIfStrict('Logged $48 lunch.', 'strict').endsWith(DISCLAIMER_LINE));
+  assert.equal(disclaimerIfStrict('Logged $100 Anthropic.', 'general'), 'Logged $100 Anthropic.');
 });

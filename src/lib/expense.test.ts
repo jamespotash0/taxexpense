@@ -24,9 +24,9 @@ test('formatConfirmation: names the amount, vendor, category, IRC section + link
   assert.ok(out.includes('Ordinary and necessary'), out); // plain-English description
 });
 
-test('INVARIANT: the confirmation always closes with the not-advice + CPA deferral', () => {
+test('DEC-109: a routine confirmation carries no disclaimer', () => {
   const out = formatConfirmation({ amountCents: 2000, vendor: 'Twilio', category: 'software', sectionId: '162', summary: null });
-  assert.ok(out.endsWith(DISCLAIMER_LINE), out);
+  assert.ok(!out.includes(DISCLAIMER_LINE), out);
 });
 
 test('formatConfirmation: no section (e.g. personal) → no citation line, no malformed URL', () => {
@@ -42,14 +42,14 @@ test('formatConfirmation: missing vendor still reads cleanly (no dangling " at "
   assert.ok(out.includes('$20.00, filed under Software.'), out);
 });
 
-test('withRecategorizedTaxLine: a recategorized correction shows category, deductible %, IRC link + disclaimer, no summary', () => {
+test('withRecategorizedTaxLine: a recategorized correction shows category, deductible %, IRC link, no summary', () => {
   const out = withRecategorizedTaxLine('Got it, thanks for the heads up!', {
     category: 'office_supplies', sectionId: '162', summary: 'Allows businesses to deduct ordinary costs', deductionPct: 100,
   });
   assert.doesNotMatch(out, /Allows businesses/);
   assert.match(out, /^Got it, thanks for the heads up!/);
   assert.match(out, /Now filed under Supplies \(100% deductible\), §162 \(https?:\/\/[^)]+\/irc\/162\)\./);
-  assert.ok(out.endsWith(DISCLAIMER_LINE));
+  assert.ok(!out.includes(DISCLAIMER_LINE));
 });
 
 test('withRecategorizedTaxLine: moved to personal says so, no IRC cite', () => {

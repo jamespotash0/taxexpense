@@ -507,7 +507,7 @@ async function handleExpenseFlow(user: AppUser, msg: InboundMessage): Promise<Pr
     if (d.action === 'explain_why') {
       if (open.amount && !open.question) {
         return {
-          smsText: `I just need the amount to log it. What did it come to?\n\n${CPA_NOTE}`,
+          smsText: 'I just need the amount to log it. What did it come to?',
           receiptId: null,
           contextState: 'awaiting_amount',
           pendingData: { priorText: open.amount.priorText, amountAttempts: open.amount.attempts },
@@ -632,7 +632,7 @@ async function handleInboundSmsInner(msg: InboundMessage): Promise<void> {
   if (['HELP', 'INFO'].includes(keyword)) {
     await safeSend(
       phone,
-      `Tally here! I log your business expenses by text. Need a hand? Visit ${appBase()}. Msg & data rates may apply. Reply STOP to opt out.`,
+      `Tally here! I log your business expenses by text. Recordkeeping, not tax advice. Need a hand? Visit ${appBase()}. Msg & data rates may apply. Reply STOP to opt out.`,
       msg.channel,
     );
     return;

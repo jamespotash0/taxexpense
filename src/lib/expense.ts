@@ -14,7 +14,7 @@ import {
 } from './substantiation';
 import { getIrcSummary, lookupIrcSectionFlexible } from './irc';
 import { categoryLabel, canonicalizeCategory } from './categories';
-import { ircCitation, withDisclaimer } from './categorize';
+import { ircCitation } from './categorize';
 import { assessCategoryReview, REVIEW_CONFIDENCE_FLOOR } from './review';
 import { log } from './log';
 import {
@@ -143,7 +143,7 @@ export async function confirmReceiptMessage(orgId: string, receiptId: string): P
   };
 }
 
-/** Pure assembly of the confirmation copy (category + IRC §section + link + summary + disclaimer).
+/** Pure assembly of the confirmation copy (category + IRC §section + link + summary).
  *  Split out from confirmReceiptMessage so the wording is unit-testable without a DB. */
 export function formatConfirmation(args: {
   amountCents: number;
@@ -160,11 +160,11 @@ export function formatConfirmation(args: {
     const desc = args.summary ? `: ${args.summary}` : '';
     lines.push(`Typically falls under ${citation}${desc}`);
   }
-  return withDisclaimer(lines.join('\n'));
+  return lines.join('\n');
 }
 
 /** Pure: when a correction/clarification moves an expense to a new category, append the
- *  code-computed tax facts (category, IRC §, deductible %) + disclaimer. The model's ack alone
+ *  code-computed tax facts (category, IRC §, deductible %). The model's ack alone
  *  ("Got it, thanks!") drops them, and those facts must never be model-dependent. */
 export function withRecategorizedTaxLine(
   message: string,
@@ -173,7 +173,7 @@ export function withRecategorizedTaxLine(
   if (args.category === 'personal') return `${message.trimEnd()}\nMoved to personal, so it's not counted as a business deduction.`;
   // Founder: category + deductible % + code link, no IRC summary text (2026-11-25).
   const citation = ircCitation({ sectionId: args.sectionId });
-  return withDisclaimer(`${message.trimEnd()}\nNow filed under ${categoryLabel(args.category)} (${args.deductionPct}% deductible)${citation ? `, ${citation}` : ''}.`);
+  return `${message.trimEnd()}\nNow filed under ${categoryLabel(args.category)} (${args.deductionPct}% deductible)${citation ? `, ${citation}` : ''}.`;
 }
 
 async function recategorizedReply(message: string, category: string, ircSection: string | null, deductionPct: number): Promise<string> {
