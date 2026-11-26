@@ -2898,3 +2898,18 @@ under default-deny for V1; only add an anon read policy if rendering them client
   unexplained; suspected Linq won't show typing in a chat with no prior outbound.
 - **Open.** "Was this for the business?" ask for personal-but-plausible expenses (needs founder OK,
   adds to the decision tree). Shorter, emoji-free onboarding copy (19 → ~10 segments) not yet applied.
+
+### DEC-099 — Per-client/job segmentation: DEFER to post-V1 (2026-11-25)
+
+- **Context.** Founder asked whether users should get segmentation beyond the IRS categories.
+- **Decision.** Tax category stays a fixed, AI-assigned, user-overridable taxonomy. No user-defined
+  categories ever (they'd have no IRC section, substantiation rule, or Schedule C line). Personal
+  segmentation, if built, is a separate optional free-text `project` field the AI extracts when a
+  client/job is named and never asks for, plus a CSV column.
+- **Why defer.** Touches every extraction prompt + evals, dashboard edit UI, export, and the
+  correction path; no user has asked. Workaround today: the CSV's Business Purpose / Notes columns
+  already carry client names from the WHY text and can be filtered in a spreadsheet. (Dashboard has
+  no free-text search.)
+- **Trigger to build.** 2+ of the 5 validation users raise "what did client/job X cost me?" unprompted.
+- **Out of scope regardless.** Multiple side businesses (separate Schedule C = multi-entity) and
+  rental properties (Schedule E).
