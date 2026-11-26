@@ -161,15 +161,27 @@ export async function claimSubscriptionWelcome(orgId: string): Promise<boolean> 
   return (data?.length ?? 0) > 0;
 }
 
-/** Resolve a Stripe customer id back to our org id (for subscription.* webhooks). */
-export async function getOrgIdByStripeCustomer(customerId: string): Promise<string | null> {
-  const { data, error } = await getSupabaseAdmin()
+/** Resolve a Stripe customer id (or, before checkout.completed has stored it, the org id we put
+ *  in the subscription metadata) back to our org, with its current subscription id. */
+export async function getOrgForStripeSubscription(
+  customerId: string,
+  metadataOrgId: string | undefined,
+): Promise<{ id: string; stripe_subscription_id: string | null } | null> {
+  const admin = getSupabaseAdmin();
+  const { data, error } = await admin
     .from('organizations')
-    .select('id')
+    .select('id, stripe_subscription_id')
     .eq('stripe_customer_id', customerId)
     .maybeSingle();
   if (error) throw error;
-  return (data?.id as string | undefined) ?? null;
+  if (data || !metadataOrgId) return data ?? null;
+  const { data: byMeta, error: metaErr } = await admin
+    .from('organizations')
+    .select('id, stripe_subscription_id')
+    .eq('id', metadataOrgId)
+    .maybeSingle();
+  if (metaErr) throw metaErr;
+  return byMeta ?? null;
 }
 
 /** Read an org's stripe_customer_id (for the billing portal). */

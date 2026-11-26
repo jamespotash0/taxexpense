@@ -6,7 +6,8 @@
 // 3. Hand off to handleInboundSms (which sends the reply + logs).
 // 4. Return empty 200 (we reply via the Twilio REST API, not TwiML).
 
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
+import { claimWebhookEvent } from '@/lib/idempotency';
 import { validateTwilioSignature, sendViaTwilio } from '@/lib/twilio';
 import { addLinqContact } from '@/lib/linq';
 import { handleInboundSms, type InboundMessage } from '@/lib/sms-handler';
@@ -35,6 +36,11 @@ export async function POST(req: Request): Promise<NextResponse> {
   if (!valid && !devBypass) {
     log.warn('twilio_signature_invalid');
     return new NextResponse('Forbidden', { status: 403 });
+  }
+
+  // Redelivery of a message we've already taken (Twilio Fallback URL / retry overrides).
+  if (params.MessageSid && !(await claimWebhookEvent(`twilio:${params.MessageSid}`))) {
+    return new NextResponse('', { status: 200 });
   }
 
   const numMedia = parseInt(params.NumMedia ?? '0', 10) || 0;
@@ -69,14 +75,17 @@ export async function POST(req: Request): Promise<NextResponse> {
     }
   }
 
-  try {
-    await handleInboundSms(msg);
-  } catch (err) {
-    // handleInboundSms is defensive, but never 500 back to Twilio (it would retry).
-    log.error('inbound_handler_uncaught', {
-      message: err instanceof Error ? err.message : 'unknown',
-    });
-  }
+  // Ack now and process after the response (as on Linq): OCR + several model calls can outlast
+  // Twilio's 15s webhook timeout. The reply goes out via the REST API, not TwiML.
+  after(async () => {
+    try {
+      await handleInboundSms(msg);
+    } catch (err) {
+      log.error('inbound_handler_uncaught', {
+        message: err instanceof Error ? err.message : 'unknown',
+      });
+    }
+  });
 
   return new NextResponse('', { status: 200 });
 }

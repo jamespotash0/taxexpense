@@ -12,6 +12,7 @@ import { NextResponse, after } from 'next/server';
 import { verifyLinqSignature, parseLinqInbound, parseLinqEdit, showReadAndTyping, type LinqEvent } from '@/lib/linq';
 import { handleInboundSms, handleInboundEdit } from '@/lib/sms-handler';
 import { optionalEnv } from '@/lib/env';
+import { claimWebhookEvent } from '@/lib/idempotency';
 import { log } from '@/lib/log';
 
 export const maxDuration = 30;
@@ -49,6 +50,14 @@ export async function POST(req: Request): Promise<NextResponse> {
       service: parsed.data?.service ?? null,
       messageId: parsed.data?.message_id ?? null,
     });
+    return new NextResponse('', { status: 200 });
+  }
+
+  // Standard Webhooks keeps webhook-id stable across retries: a repeat id is a redelivery of
+  // something already processed (or in flight), so ack and skip. Without this a lost ack meant
+  // a duplicate expense, a second LLM bill and a second reply.
+  const webhookId = req.headers.get('webhook-id');
+  if (webhookId && !(await claimWebhookEvent(`linq:${webhookId}`))) {
     return new NextResponse('', { status: 200 });
   }
 

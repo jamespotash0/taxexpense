@@ -46,6 +46,9 @@ export async function createCheckoutSession(args: {
     cancel_url: args.cancelUrl,
     client_reference_id: args.orgId,
     metadata: { orgId: args.orgId, plan: args.plan },
+    // Also on the subscription, so subscription.* events resolve the org even if they beat
+    // checkout.session.completed (which is what stores stripe_customer_id).
+    subscription_data: { metadata: { orgId: args.orgId } },
     ...(args.customerId ? { customer: args.customerId } : args.customerEmail ? { customer_email: args.customerEmail } : {}),
     allow_promotion_codes: true,
   });
