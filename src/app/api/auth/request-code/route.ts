@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { parseBody, jsonError, serverError } from '@/lib/api';
 import { normalizeToE164 } from '@/lib/phone';
 import { requestCode } from '@/lib/auth';
+import { getUserByPhone } from '@/lib/users';
 import { sendSms } from '@/lib/twilio';
 import { createRateLimiter, getClientIp } from '@/lib/rate-limit';
 import { maskPhone } from '@/lib/log';
@@ -28,6 +29,8 @@ export async function POST(req: Request): Promise<NextResponse> {
   if (!phone) return jsonError('invalid_phone', 400);
 
   try {
+    // No account → no text. Identical response, so this doesn't reveal who has an account.
+    if (!(await getUserByPhone(phone))) return NextResponse.json({ ok: true });
     const result = await requestCode(phone);
     if (!result.ok) {
       return jsonError('rate_limited', 429, { message: 'Too many code requests. Try again in a few minutes.' });

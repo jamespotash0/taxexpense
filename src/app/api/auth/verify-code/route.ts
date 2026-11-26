@@ -6,6 +6,10 @@ import { parseBody, jsonError, serverError } from '@/lib/api';
 import { normalizeToE164 } from '@/lib/phone';
 import { verifyCode, SESSION_COOKIE, SESSION_MAX_AGE_SECONDS } from '@/lib/auth';
 import { maskPhone } from '@/lib/log';
+import { createRateLimiter, getClientIp } from '@/lib/rate-limit';
+
+// Courtesy per-IP throttle in front of the per-code DB attempt cap (5) in verifyCode().
+const ipLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 30 });
 
 const Body = z.object({
   phone_number: z.string().min(7).max(20),
@@ -21,6 +25,9 @@ const FAIL_MESSAGES: Record<string, string> = {
 };
 
 export async function POST(req: Request): Promise<NextResponse> {
+  if (ipLimiter(getClientIp(req), Date.now())) {
+    return jsonError('rate_limited', 429, { message: 'Too many attempts. Try again shortly.' });
+  }
   const body = await parseBody(req, Body);
   if (body instanceof NextResponse) return body;
 

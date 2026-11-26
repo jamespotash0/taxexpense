@@ -30,7 +30,9 @@ interface LoginCopy {
 export function LoginForm({ t }: { t: LoginCopy }) {
   const router = useRouter();
   const params = useSearchParams();
-  const returnTo = params.get('returnTo') || '/dashboard';
+  const raw = params.get('returnTo');
+  // Same-origin paths only: "//evil.com" and "/\\evil.com" are protocol-relative off-site redirects.
+  const returnTo = raw && raw.startsWith('/') && !raw.startsWith('//') && !raw.startsWith('/\\') ? raw : '/dashboard';
 
   const { busy, error, setError, submit } = useFormSubmit();
   const [phase, setPhase] = useState<'phone' | 'code'>('phone');

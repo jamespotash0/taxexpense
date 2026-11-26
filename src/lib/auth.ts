@@ -101,15 +101,26 @@ export async function verifyCode(phoneE164: string, submitted: string): Promise<
   if (!row) return { ok: false, reason: 'no_code' };
 
   if (new Date(row.expires_at).getTime() < Date.now()) return { ok: false, reason: 'expired' };
-  if ((row.attempts ?? 0) >= OTP_MAX_ATTEMPTS) {
+  const attempts = row.attempts ?? 0;
+  if (attempts >= OTP_MAX_ATTEMPTS) {
     await admin.from('auth_codes').update({ used: true }).eq('id', row.id);
     return { ok: false, reason: 'too_many_attempts' };
   }
 
-  if (!safeEqual(String(row.code), submitted.trim())) {
-    await admin.from('auth_codes').update({ attempts: (row.attempts ?? 0) + 1 }).eq('id', row.id);
-    return { ok: false, reason: 'mismatch' };
-  }
+  // Claim this attempt BEFORE comparing, as a compare-and-set on `attempts`. Parallel requests
+  // that read the same count race on this update and only one wins; the losers are refused
+  // without a comparison, so a burst can't get more than OTP_MAX_ATTEMPTS guesses per code.
+  const { data: claimed, error: claimErr } = await admin
+    .from('auth_codes')
+    .update({ attempts: attempts + 1 })
+    .eq('id', row.id)
+    .eq('attempts', attempts)
+    .eq('used', false)
+    .select('id');
+  if (claimErr) throw claimErr;
+  if (!claimed?.length) return { ok: false, reason: 'mismatch' };
+
+  if (!safeEqual(String(row.code), submitted.trim())) return { ok: false, reason: 'mismatch' };
 
   // Correct code — require an existing (SMS-created) account.
   const user = await getUserByPhone(phoneE164);
@@ -118,7 +129,15 @@ export async function verifyCode(phoneE164: string, submitted: string): Promise<
     return { ok: false, reason: 'no_account' };
   }
 
-  await admin.from('auth_codes').update({ used: true }).eq('id', row.id);
+  // Consume the code conditionally so two simultaneous correct submissions can't both mint a session.
+  const { data: consumed, error: useErr } = await admin
+    .from('auth_codes')
+    .update({ used: true })
+    .eq('id', row.id)
+    .eq('used', false)
+    .select('id');
+  if (useErr) throw useErr;
+  if (!consumed?.length) return { ok: false, reason: 'no_code' };
   const token = await createSession(user.id);
   return { ok: true, token, user };
 }

@@ -1,6 +1,7 @@
 // Shared helpers for API route handlers (src/app/api/**). Collapses the auth/parse/
 // error/cron boilerplate that was copy-pasted across ~10 routes into one place so the
 // error contracts ({ error, status }) stay consistent. Server-only.
+import { timingSafeEqual } from 'crypto';
 import { NextResponse } from 'next/server';
 import type { ZodType } from 'zod';
 import { getCurrentUser, type AppUser } from './session';
@@ -40,7 +41,9 @@ export async function parseBody<T>(req: Request, schema: ZodType<T>): Promise<T 
  */
 export function requireCron(req: Request): NextResponse | null {
   const secret = optionalEnv('CRON_SECRET');
-  if (!secret || req.headers.get('authorization') !== `Bearer ${secret}`) {
+  const got = Buffer.from(req.headers.get('authorization') ?? '');
+  const want = Buffer.from(`Bearer ${secret}`);
+  if (!secret || got.length !== want.length || !timingSafeEqual(got, want)) {
     return jsonError('forbidden', 403);
   }
   return null;
