@@ -42,13 +42,13 @@ test('formatConfirmation: missing vendor still reads cleanly (no dangling " at "
   assert.ok(out.includes('$20.00, filed under Software.'), out);
 });
 
-test('withRecategorizedTaxLine: a recategorized correction keeps the IRC section, deductible %, and disclaimer', () => {
+test('withRecategorizedTaxLine: a recategorized correction shows category, deductible %, IRC link + disclaimer, no summary', () => {
   const out = withRecategorizedTaxLine('Got it, thanks for the heads up!', {
-    category: 'office_supplies', sectionId: '162', summary: null, deductionPct: 100,
+    category: 'office_supplies', sectionId: '162', summary: 'Allows businesses to deduct ordinary costs', deductionPct: 100,
   });
+  assert.doesNotMatch(out, /Allows businesses/);
   assert.match(out, /^Got it, thanks for the heads up!/);
-  assert.match(out, /Office Supplies \(100% deductible\)/);
-  assert.match(out, /§162/);
+  assert.match(out, /Now filed under Office Supplies \(100% deductible\), §162 \(https?:\/\/[^)]+\/irc\/162\)\./);
   assert.ok(out.endsWith(DISCLAIMER_LINE));
 });
 
