@@ -149,3 +149,30 @@ test('resolveFlagChoice: out of range re-ask keeps the list open', async () => {
   assert.equal(res.contextState, 'awaiting_flag_choice');
   assert.deepEqual(res.pendingData, { candidateIds: ['a', 'b'] });
 });
+
+// ---- Turn interpreter: which expense an edit lands on (Task 3) ------------------------------
+import { editTarget } from './router';
+import type { TurnDecision } from './turn';
+import type { ReceiptRow } from './receipts';
+
+const rcpt = (id: string) => ({ id, vendor: id, amount_cents: 100, transaction_date: null, created_at: '2026-11-25T00:00:00Z' }) as ReceiptRow;
+const edit = (receiptId: string | null, candidates: string[] = []): TurnDecision => ({
+  action: 'edit_expense', receiptId, candidates, answer: null, query: null, command: null, resolution: null,
+});
+
+test('editTarget: a valid receipt id applies to that expense', () => {
+  assert.deepEqual(editTarget(edit('netflix'), [rcpt('optimum'), rcpt('netflix')]), { apply: rcpt('netflix') });
+});
+
+test('editTarget: unsure with candidates asks about just those', () => {
+  assert.deepEqual(editTarget(edit(null, ['u1', 'u2']), [rcpt('u1'), rcpt('x'), rcpt('u2')]), { ask: [rcpt('u1'), rcpt('u2')] });
+});
+
+test('editTarget: unsure with no candidates asks about the 5 newest', () => {
+  const rows = ['a', 'b', 'c', 'd', 'e', 'f'].map(rcpt);
+  assert.deepEqual(editTarget(edit(null), rows), { ask: rows.slice(0, 5) });
+});
+
+test('editTarget: no expenses at all → none', () => {
+  assert.deepEqual(editTarget(edit(null), []), { none: true });
+});

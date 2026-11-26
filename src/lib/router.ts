@@ -23,6 +23,7 @@ import { updateUser, type AppUser } from './users';
 import { parseAgentName } from './onboarding';
 import { DEFAULT_AGENT_NAME } from './prompts';
 import { processCorrection, type ProcessResult } from './expense';
+import type { TurnContext, TurnDecision } from './turn';
 import {
   aggregateExpenses,
   categoryBreakdown,
@@ -491,6 +492,69 @@ export async function resolveContextChoice(
   const r = await getReceipt(user.organization_id, candidateIds[choice - 1]);
   if (!r) return reply("Hmm, that one's not there anymore.");
   return (await applyContext(user, r, contextText)) ?? reply("Hmm, that one's not there anymore.");
+}
+
+/** Which expense a turn-interpreter edit lands on: the validated id, else ask among the candidates
+ *  (or the 5 newest). Pure. */
+export function editTarget(d: TurnDecision, receipts: ReceiptRow[]): { apply: ReceiptRow } | { ask: ReceiptRow[] } | { none: true } {
+  const hit = d.receiptId ? receipts.find((r) => r.id === d.receiptId) : undefined;
+  if (hit) return { apply: hit };
+  if (receipts.length === 0) return { none: true };
+  const shortlisted = receipts.filter((r) => d.candidates.includes(r.id));
+  return { ask: (shortlisted.length > 0 ? shortlisted : receipts).slice(0, 5) };
+}
+
+/**
+ * Act on a turn-interpreter decision for the actions the router owns (questions, commands, edits).
+ * Returns null for the ones sms-handler owns (new_expense, answer_open_question, explain_why) and for
+ * a bulk receipt_resolution while a single receipt question is open (sms-handler takes that path).
+ */
+export async function routeDecision(user: AppUser, text: string, d: TurnDecision, ctx: TurnContext): Promise<ProcessResult | null> {
+  switch (d.action) {
+    case 'query':
+      return d.query ? runQuery(user.organization_id, { kind: 'query', ...d.query }) : reply(HELP_TEXT);
+    case 'command':
+      return d.command ? commandReply(user, d.command) : reply(greetingReply(user, text));
+    case 'advice':
+      return reply(ADVICE_DEFLECTION);
+    case 'help':
+      return reply(greetingReply(user, text));
+    case 'capability':
+      return answerCapability(text);
+    case 'other':
+      log.info('conversational_no_log', { user: user.id, kind: 'other', applied: false });
+      return reply(CANT_HELP_TEXT);
+    case 'edit_expense': {
+      const t = editTarget(d, ctx.receipts);
+      if ('apply' in t) {
+        const applied = await applyContext(user, t.apply, text);
+        if (applied) return applied;
+      } else if ('ask' in t) {
+        return {
+          smsText: contextChoiceMessage(t.ask),
+          receiptId: null,
+          contextState: 'awaiting_context_choice',
+          pendingData: { candidateIds: t.ask.map((r) => r.id), contextText: text },
+        };
+      }
+      log.info('conversational_no_log', { user: user.id, kind: 'context_statement', applied: false });
+      return reply(NO_RECENT_EXPENSE_REPLY);
+    }
+    case 'receipt_resolution': {
+      if (ctx.open.question?.contextState === 'awaiting_receipt') return null; // single-receipt path
+      if (d.resolution === 'none') {
+        const n = await waiveAllFlaggedReceipts(user.organization_id);
+        if (n > 0) {
+          log.info('receipts_waived_bulk', { user: user.id, count: n });
+          return reply(bulkWaiveMessage(n));
+        }
+        return reply(greetingReply(user, text));
+      }
+      return ctx.flaggedCount > 0 ? reply(RECEIPT_LATER_ACK) : reply(greetingReply(user, text));
+    }
+    default:
+      return null;
+  }
 }
 
 /** Answer a "how does Tally work / can it do X" question from the grounded fact sheet. On any LLM
