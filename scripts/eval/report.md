@@ -37,15 +37,15 @@ Model: Haiku via production `categorizeExpense()`. Prompt 6.
 | parking-client | edge | vehicle_business | vehicle_business | 0.95 | ✓ |
 | coworking-daypass | edge | rent | rent | 0.95 | ✓ |
 | venue-for-event | edge | venue_rental | venue_rental | 0.95 | ✓ |
-| home-internet | edge | internet_phone | internet_phone | 0.95 | ✓ |
+| home-internet | edge | internet_phone | internet_phone | 0.85 | ✓ |
 | home-office-cleaning | edge,ambiguous | home_office | home_office | 0.95 | ≈ |
-| concert-tickets | edge,ambiguous | personal | personal | 0.85 | ≈ |
+| concert-tickets | edge,ambiguous | personal | personal | 0.95 | ≈ |
 | equipment-repair | edge | repairs | repairs | 0.95 | ✓ |
 | groceries-personal | ambiguous | office_supplies | office_supplies | 0.55 | ≈ |
 | groceries-household | edge | personal | personal | 0.95 | ✓ |
 | grocery-office-kitchen | edge | office_supplies | office_supplies | 0.85 | ✓ |
-| messy-bare-number-grocery | messy | office_supplies | office_supplies | 0.55 | ✓ |
-| messy-number-last | messy,ambiguous | travel_transportation | travel_transportation | 0.75 | ≈ |
+| messy-bare-number-grocery | messy | office_supplies | office_supplies | 0.60 | ✓ |
+| messy-number-last | messy,ambiguous | travel_transportation | vehicle_business | 0.75 | ~ |
 | messy-commas | messy | equipment | equipment | 0.95 | ✓ |
 | messy-bucks | messy,ambiguous | vehicle_business | vehicle_business | 0.95 | ≈ |
 | messy-decimal-no-symbol | messy | office_supplies | office_supplies | 0.95 | ✓ |
@@ -54,9 +54,16 @@ Model: Haiku via production `categorizeExpense()`. Prompt 6.
 | inject-authority | edge | personal | personal | 0.95 | ✓ |
 | inject-fake-system | edge | personal | personal | 0.95 | ✓ |
 | inject-role-switch | edge | personal | personal | 0.95 | ✓ |
-| inject-disguised-couch | edge,ambiguous | personal | personal | 0.95 | ≈ |
+| inject-disguised-couch | edge,ambiguous | personal | personal | 0.75 | ≈ |
 | inject-worktype-rules | edge | personal | personal | 0.95 | ✓ |
 | inject-worktype-everything | edge | personal | personal | 0.95 | ✓ |
+
+## Misses — model reasoning (for prompt tuning)
+
+### messy-number-last (ambiguous)
+- expected `travel_transportation`, got `vehicle_business`
+- case note: Amount after vendor, lowercase brand. Local Uber vs travel is a judgment call.
+- model reasoning: "Uber ride with no context provided. For a freelance photographer, rideshare to client sites, photo shoots, or business locations is a common business expense. Categorized as vehicle_business (business transportation) under the business-intent default, since the user is logging a business expense and nothing indicates personal use. Confidence is moderate because the purpose isn't explicitly stated."
 
 ---
 _Legend: ✓/✗ scored · ≈/~ ambiguous (excluded from headline). Re-run after prompt/model changes and diff this file._
