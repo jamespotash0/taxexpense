@@ -105,11 +105,15 @@ export async function fetchInboundMedia(mediaUrl: string): Promise<{ buffer: Buf
 
 /** Remove every stored photo for a user (account deletion / data-purge — SEC-001). */
 export async function deleteAllUserPhotos(userId: string): Promise<void> {
-  const admin = getSupabaseAdmin();
-  const { data, error } = await admin.storage.from(RECEIPTS_BUCKET).list(userId);
-  if (error || !data || data.length === 0) return;
-  const paths = data.map((f) => `${userId}/${f.name}`);
-  await admin.storage.from(RECEIPTS_BUCKET).remove(paths);
+  const bucket = getSupabaseAdmin().storage.from(RECEIPTS_BUCKET);
+  // list() pages (default 100). Always read offset 0: each pass removes what it listed.
+  for (;;) {
+    const { data, error } = await bucket.list(userId, { limit: 1000 });
+    if (error) throw error;
+    if (!data?.length) return;
+    const { error: rmErr } = await bucket.remove(data.map((f) => `${userId}/${f.name}`));
+    if (rmErr) throw rmErr;
+  }
 }
 
 /** Store a photo provided as a buffer (dashboard upload, TSNAP-041). */
