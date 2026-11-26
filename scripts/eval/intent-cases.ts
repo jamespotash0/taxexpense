@@ -1,5 +1,11 @@
 // Intent eval cases (data only). Shared by intent.ts and the turn-interpreter replay eval (turns.ts).
-import type { Intent, ReplyContext } from '../../src/lib/router';
+import type { Intent } from '../../src/lib/router';
+
+/** Conversation state a case runs with (receipts still missing a photo; one was just asked for). */
+export interface ReplyContext {
+  flaggedCount: number;
+  awaitingReceipt?: boolean;
+}
 
 export type Check = (i: Intent) => boolean;
 

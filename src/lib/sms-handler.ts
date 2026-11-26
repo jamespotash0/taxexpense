@@ -6,7 +6,7 @@ import { normalizeToE164 } from './phone';
 import { getOrCreateUserByPhone, getUserByPhone, touchLastActive, updateUser, type AppUser } from './users';
 import { notifyAdminNewSignup } from './admin-notify';
 import { loadTurnContext, interpretTurn, canSkipInterpreter, type TurnContext, type TurnDecision } from './turn';
-import { logConversation, isNewestInbound, getPendingContext, countRecentInbound, getPendingChoice, getPendingAmount, type ContextState, type PendingContext } from './conversations';
+import { logConversation, isNewestInbound, getPendingContext, countRecentInbound, getPendingAmount, type ContextState, type PendingContext } from './conversations';
 import { getSubstantiationRule } from './substantiation';
 import { categoryLabel } from './categories';
 import { handleOnboarding, handleSetupCheckin } from './onboarding';
@@ -22,16 +22,15 @@ import {
 import { processNewExpense, processClarification, processCorrection, processAttachment, confirmReceiptMessage, type ProcessResult } from './expense';
 import type { CategoryResult } from './categorize';
 import { ensureBusinessProfile } from './businessProfile';
-import { routeTextMessage, routeDecision, routeFastPath, resolveFlagChoice, resolveContextChoice, looksLikeExpenseCapture } from './router';
+import { routeDecision, routeFastPath, resolveFlagChoice, resolveContextChoice } from './router';
 import { subscribeUrl } from './subscribe-link';
-import { getReceipt, getLatestReceiptSince, waiveReceipt, updateReceipt, getReceiptBySourceMessage } from './receipts';
+import { getReceipt, waiveReceipt, updateReceipt, getReceiptBySourceMessage } from './receipts';
 import { reactLinq, shareContactCard, type SendOptions } from './linq';
 import { DEFAULT_AGENT_NAME } from './prompts';
 import { todayISO } from './format';
 import {
   isAffirmative,
   isNegative,
-  getAwaitingConfirm,
   advanceRecurring,
   templateToExpenseInput,
   createRecurringFromReceipt,
@@ -76,87 +75,6 @@ const INBOUND_MAX_PER_DAY = 40;
 // Partial-capture ("how much was this?") retry cap (DEC-064). After this many re-asks with
 // still no amount, give up cleanly rather than loop. 1 = at most two prompts total.
 const MAX_AMOUNT_RETRIES = 1;
-
-// Post-log correction / addendum markers (DEC-064). Shared by `looksLikeCorrection` (does this
-// follow-up edit the prior receipt?) and `replyStartsNewExpense` (which strips them, so a marker
-// word is never mistaken for the "description" that makes a message a fresh expense). One source
-// string → a test regex + a global strip regex, so the two never drift.
-const _CORRECTION_MARKER_SRC =
-  "actually|instead|correction|i meant|nope|wrong|change|fix|that'?s not|it'?s not|not (a|an|the|business|personal)|should be|make (it|that)|set (it|that)|mark (it|that)|it'?s (a|an|the|actually|for|not)|that'?s (a|an|the|actually|for|not)|it was|that was|these were|those were|is (a|an|the)|was (a|an|the)|add ";
-const CORRECTION_MARKER_RE = new RegExp(`\\b(${_CORRECTION_MARKER_SRC})`, 'i');
-const _CORRECTION_MARKER_G = new RegExp(`\\b(${_CORRECTION_MARKER_SRC})`, 'gi');
-
-// A reply that on its OWN names an expense (an amount/miles PLUS a real description) is the user
-// starting a fresh capture, not answering "how much?" or correcting the last one — so we log it
-// alone instead of gluing it onto a partial or editing the prior receipt (DEC-064, Priya edge a).
-// A bare "$167", or a pure amount-correction like "actually it was $200" (only a marker survives
-// the strip), has no description left → NOT fresh.
-const _AMOUNT_TOKEN_RE = /\$?\s*\d+(?:\.\d{1,2})?/g;
-export function replyStartsNewExpense(text: string): boolean {
-  if (!looksLikeExpenseCapture(text)) return false; // no $-amount/miles, or it's a question → not fresh
-  const rest = text
-    .replace(_AMOUNT_TOKEN_RE, ' ')
-    .replace(_CORRECTION_MARKER_G, ' ') // marker words aren't "new expense" content
-    .replace(/\b(it|that|this|was|were|is|no|not|nope|yes|about|around|roughly|like|just|the|a|an|for|of|approx|approximately|dollars|bucks|mi|mile|miles)\b/gi, ' ')
-    .trim();
-  return /[a-z]{3,}/i.test(rest); // a real descriptive word survives → self-contained capture
-}
-
-// "Why / what's the purpose" questions → answered DETERMINISTICALLY from the substantiation
-// rule + IRC summary (no LLM call, so explaining can't drive up charges — DEC-036).
-const EXPLAIN_RE = /\b(why|what for|what'?s (the )?(point|reason|purpose)|how come|explain|what do you (need|mean)|why (do|are|would) you|the purpose)\b/i;
-
-// Confirmations to a "did I read that right?" verify (DEC-066), beyond the yes/yeah that
-// isAffirmative already covers — so a plain "looks right" confirms without spending a correction call.
-const CONFIRM_RE = /\b(correct|right|looks? (good|right|fine)|that'?s right|perfect|spot on|exactly|yep|yup|all good)\b/i;
-
-// "I don't have a receipt" replies while we're awaiting one (DEC-072). Covers not-having-it and
-// "later" deferrals. Used so a text answer to "send a receipt" is acknowledged, not mistaken for a
-// new expense (which would wrongly ask "how much?"). A bare "no"/"nope"/"skip" is caught separately
-// by isNegative on this same path.
-const NO_RECEIPT_RE =
-  /\b(no(?:\s+|t a |t any )?receipt|don'?t have|do not have|didn'?t (?:have|keep|get|save|take)|did not (?:have|keep|get)|haven'?t got|lost (?:it|the receipt|that)|no photo|can'?t (?:get|find|send)|cannot (?:get|find|send)|threw (?:it )?(?:out|away)|not now|later|i'?ll send|will send|send (?:it )?later)\b/i;
-
-/** True when a reply means "I don't / can't give you a receipt (now)" (pure, unit-tested). */
-export function looksLikeNoReceipt(text: string): boolean {
-  return NO_RECEIPT_RE.test(text.trim());
-}
-
-// PERMANENT "there is no receipt" — distinct from a "later" deferral (DEC-078). These mean the
-// receipt doesn't / won't exist (lost it, threw it out, never got one, never will), so we WAIVE the
-// reminder rather than keep nagging weekly. "Later"/"I'll send it" deliberately does NOT match —
-// that stays flagged so the next nudge still fires. A bare "no"/"skip" is also treated as a "later"
-// (kept flagged), since it's ambiguous and waiving should be a deliberate signal (Alex).
-const RECEIPT_NONE_RE =
-  /\b(don'?t have|do not have|didn'?t (?:keep|get|save|take|have)|did not (?:keep|get|have)|haven'?t got|never (?:got|kept|had|saved)|no receipt|don'?t have (?:a|any|the) receipt|lost (?:it|the receipt|that)|threw (?:it )?(?:out|away)|tossed (?:it)?|can'?t find|cannot find|there (?:is|isn'?t|'?s) no receipt|no (?:paper|physical) receipt|only (?:have )?the (?:bill|statement|charge))\b/i;
-
-/** True when a reply means "there is no receipt and there won't be" → waive, not defer (pure,
- *  unit-tested). Narrower than looksLikeNoReceipt: excludes "later"/"I'll send it". */
-export function looksLikeNoReceiptEver(text: string): boolean {
-  return RECEIPT_NONE_RE.test(text.trim());
-}
-
-// Post-log correction window (DEC-064): how long after a clean log a follow-up may still edit that
-// receipt. Tight, so a stale receipt never absorbs an unrelated later message (Priya edge c).
-const CORRECTION_WINDOW_MIN = 15;
-
-/** True when a follow-up reads like an edit to the just-logged receipt: it carries a correction/
- *  addendum marker (incl. amount fixes like "actually it was $200"), or it names the receipt's
- *  vendor (e.g. "Tabernacle is a restaurant"). The caller only reaches this for non-fresh messages
- *  (see replyStartsNewExpense), so a self-contained new expense never lands here. */
-export function looksLikeCorrection(text: string, vendor: string | null): boolean {
-  if (CORRECTION_MARKER_RE.test(text)) return true;
-  if (vendor) {
-    const lower = text.toLowerCase();
-    // Match on a meaningful vendor token (≥4 chars) so short/common words don't false-trigger.
-    const hit = vendor
-      .toLowerCase()
-      .split(/[^a-z0-9]+/)
-      .some((tok) => tok.length >= 4 && lower.includes(tok));
-    if (hit) return true;
-  }
-  return false;
-}
 
 // User-facing error/help copy (TSNAP-026 / Sofia — human, not technical).
 const MSG = {

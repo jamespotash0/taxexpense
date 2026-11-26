@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { validatePick, formatCandidateLine, contextChoiceMessage, withExpenseName } from './context-match';
+import { formatCandidateLine, contextChoiceMessage, withExpenseName } from './context-match';
 import type { ReceiptRow } from './receipts';
 
 const NOW = new Date('2026-11-24T18:00:00Z');
@@ -16,19 +16,6 @@ function row(over: Partial<ReceiptRow>): ReceiptRow {
     ...over,
   } as ReceiptRow;
 }
-
-test('validatePick: keeps a valid match', () => {
-  assert.deepEqual(validatePick({ match: 'a' }, ['a', 'b']), { match: 'a', shortlist: [] });
-});
-
-test('validatePick: foreign id becomes no match', () => {
-  assert.deepEqual(validatePick({ match: 'zzz', shortlist: ['a', 'zzz'] }, ['a', 'b']), { match: null, shortlist: ['a'] });
-});
-
-test('validatePick: garbage input', () => {
-  assert.deepEqual(validatePick('nope', ['a']), { match: null, shortlist: [] });
-  assert.deepEqual(validatePick(null, ['a']), { match: null, shortlist: [] });
-});
 
 test('formatCandidateLine: null vendor shows Unknown', () => {
   const line = formatCandidateLine(row({ vendor: null }), NOW);

@@ -3,9 +3,9 @@
 //   1. CORRECTION_PROMPT  — post-log edits: recategorize, fix the amount, add context.
 //   2. parseAndCategorizeText — the awaiting_amount "combined re-parse" (priorText + the reply).
 //
-// The deterministic routing gates (replyStartsNewExpense / looksLikeCorrection) are unit-tested in
-// src/lib/sms-handler.test.ts; this harness measures whether the model actually does the right
-// thing once a message is routed to a correction or an amount-completion.
+// Routing (which message is a correction or an amount-completion) is graded by the turn-interpreter
+// replay eval (scripts/eval/turns.ts); this harness measures whether the model actually does the
+// right thing once a message is routed to a correction or an amount-completion.
 //
 //   npm run eval:conversation
 //

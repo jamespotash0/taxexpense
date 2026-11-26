@@ -11,14 +11,14 @@
 //   • Tax-advice / tax-owed questions are refused with a CPA deferral (CLAUDE.md #1/#7).
 //   • On any classifier failure or low confidence → treat as capture (the core path).
 
-import { claudeJSON, claudeText } from './llm';
+import { claudeText } from './llm';
 import { HAIKU_MODEL } from './claude';
 import { PUBLIC_ENV } from './env';
 import { log } from './log';
 import { getSupabaseAdmin } from './supabase';
-import { listReceipts, updateReceipt, getReceipt, listRecentReceiptsSince, countFlaggedReceipts, waiveAllFlaggedReceipts, type ReceiptRow } from './receipts';
+import { listReceipts, updateReceipt, getReceipt, waiveAllFlaggedReceipts, type ReceiptRow } from './receipts';
 import { formatMoney, shortDate } from './format';
-import { pickReceiptForContext, contextChoiceMessage, withExpenseName } from './context-match';
+import { contextChoiceMessage, withExpenseName } from './context-match';
 import { updateUser, type AppUser } from './users';
 import { parseAgentName } from './onboarding';
 import { DEFAULT_AGENT_NAME } from './prompts';
@@ -53,13 +53,6 @@ export type Intent =
   | { kind: 'receipt_resolution'; resolution: 'none' | 'later' }
   | { kind: 'other' };
 
-/** Lightweight conversation state the classifier reasons WITH (kept out of the cached system prompt;
- *  passed per-message). Today: whether the user has receipts still missing a photo. */
-export interface ReplyContext {
-  flaggedCount: number;
-  awaitingReceipt?: boolean;
-}
-
 const QUERY_TOOLS: QueryTool[] = ['aggregate', 'breakdown', 'recent', 'review_year'];
 const COMMANDS: CommandName[] = ['export', 'email_accountant'];
 
@@ -80,39 +73,7 @@ export function looksLikeExpenseCapture(text: string): boolean {
   return AMOUNT_RE.test(t) || MILES_RE.test(t);
 }
 
-// ---------------------------------------------------------------------------
-// Classifier
-// ---------------------------------------------------------------------------
-
-const CLASSIFY_PROMPT = `You route inbound text messages for Tally, an expense logger people text. Classify the message into exactly one intent and return ONLY JSON.
-
-Intents:
-- "capture": the message RECORDS a new expense (a purchase, an amount, miles driven, a receipt note). When in doubt, choose capture.
-- "query": the user ASKS about expenses they already logged — totals, how much they spent, their latest/recent charges, a category breakdown, or a year review.
-- "command": an explicit request to "export" their data or "email my accountant".
-- "advice": asks for TAX ADVICE — what they'll owe, whether something is deductible, what they should do. (Tally does not give advice.)
-- "capability": asks HOW TALLY WORKS or whether it CAN DO something — a question about the product/feature itself, not their data and not tax advice. (e.g. "can I set the date on an expense?", "does it only log for today?", "can you read receipts?", "do you handle mileage?", "how do I correct one?", "can I export to QuickBooks?")
-- "help": a greeting ("hi", "hey", "thanks"), bare "help", or the open-ended "what can you do".
-- "context_statement": a STATEMENT (not a question) that ADDS A BUSINESS DETAIL or correction about an expense the user just logged — who was at a meal, the business purpose, where it was, that it was business or personal, or a clarification about the vendor — WITHOUT stating a new amount and WITHOUT being a fresh expense. (e.g. "that lunch was with a client about the Q3 deal", "the dinner was for my own team", "that one was actually personal", "Tabernacle is a restaurant".) This INCLUDES short or imperative fixes to the last expense's category: "log as business expense", "business", "it's for work", "make it software", "personal". Those are never "help". If the message states a NEW dollar amount or miles, it's a "capture", not this. If it asks a question, it's "query"/"advice"/"help", not this.
-- "receipt_resolution": ONLY valid when a "CONTEXT:" line below says the user has expenses still missing a receipt. Use it when this message is the user RESPONDING about those missing receipts. Set "resolution":"none" if they won't or can't provide one ("don't have a receipt", "lost it", "threw it out", "no receipt", "skip it", "just have the bank charge", "never got one"). Set "resolution":"later" if they intend to send it ("later", "I'll send it tonight", "not now"). If the message instead ADDS A DETAIL about the expense it's "context_statement"; if it states a new amount/expense it's "capture". If there is NO context line about missing receipts, NEVER use this intent.
-- "other": the message is off-topic or something Tally can't do — it is NOT an expense, NOT a question about their own logged expenses, NOT a command, NOT tax advice, NOT a detail about a logged expense, and NOT a greeting/help. (e.g. "what's the weather", "book me a flight", "write me a poem".) Only use this when the message clearly has nothing to do with logging or reviewing expenses. When unsure whether it's an expense, choose "capture", not "other".
-
-A line beginning "CONTEXT:" may precede the user's message (shown after "Message:") — use it to interpret the message, but never classify the context line itself.
-
-For "query", also set:
-- "tool": one of "aggregate" (a total / how much), "breakdown" (spend by category), "recent" (latest/last N charges), "review_year" (review my year / year summary).
-- "category": the spending category named, else null (e.g. "meals", "software", "travel", "gas").
-- "period": one of "this_month","last_month","this_quarter","this_year","last_year","all", else null.
-- "count": for "recent", how many they asked for (e.g. 3), else null.
-
-For "command", set "command": "export" or "email_accountant".
-
-For "receipt_resolution", set "resolution": "none" or "later".
-
-Return ONLY:
-{"intent":"...","tool":null,"category":null,"period":null,"count":null,"command":null,"resolution":null}`;
-
-interface RawIntent {
+export interface RawIntent {
   intent?: string;
   tool?: string | null;
   category?: string | null;
@@ -154,34 +115,6 @@ export function sanitizeIntent(raw: RawIntent): Intent {
     case 'capture':
     default:
       return { kind: 'capture' };
-  }
-}
-
-/** Classify a message. Any LLM/parse failure falls back to capture (the core path). */
-/** Dynamic per-message context for the classifier. Kept OUT of the cached system prompt and prefixed
- *  to the user message so prompt caching still hits. Empty when there's nothing relevant to add. */
-function contextLine(ctx?: ReplyContext): string {
-  if (!ctx || ctx.flaggedCount <= 0) return '';
-  const n = ctx.flaggedCount;
-  const asked = ctx.awaitingReceipt ? ' and was just asked to send one' : '';
-  return `CONTEXT: the user has ${n} expense${n === 1 ? '' : 's'} still missing a receipt photo${asked}.`;
-}
-
-export async function classifyIntent(text: string, ctx?: ReplyContext): Promise<Intent> {
-  const cl = contextLine(ctx);
-  const userText = cl ? `${cl}\n\nMessage: ${text}` : text;
-  try {
-    const raw = await claudeJSON<RawIntent>({
-      model: HAIKU_MODEL,
-      system: CLASSIFY_PROMPT,
-      userText,
-      cacheSystem: true,
-      maxTokens: 1024,
-    });
-    return sanitizeIntent(raw);
-  } catch (err) {
-    log.warn('router_classify_failed', { message: err instanceof Error ? err.message : 'unknown' });
-    return { kind: 'capture' };
   }
 }
 
@@ -432,8 +365,6 @@ export async function resolveFlagChoice(user: AppUser, candidateIds: string[], c
 // "not sure"), apply the detail as an EDIT via the trusted correction path, and name the expense in
 // the reply so a wrong pick is visible. Not sure -> ask once with a numbered list. Never drop it.
 // Spec: claude_files/specs/late-context-matching.md.
-const CONTEXT_LOOKBACK_DAYS = 30;
-const CONTEXT_MAX_CANDIDATES = 10;
 
 const NO_RECENT_EXPENSE_REPLY =
   'I don\'t see a recent expense to add that to. Text me the expense with the detail ' +
@@ -443,36 +374,6 @@ async function applyContext(user: AppUser, r: ReceiptRow, text: string): Promise
   const corrected = await processCorrection(user, r.id, text);
   if (corrected.receiptId === null) return null; // receipt vanished mid-flight
   return { ...corrected, smsText: withExpenseName(corrected.smsText, r) };
-}
-
-async function handleContextStatement(user: AppUser, text: string): Promise<ProcessResult> {
-  const since = new Date(Date.now() - CONTEXT_LOOKBACK_DAYS * 24 * 3600 * 1000).toISOString();
-  const rows = await listRecentReceiptsSince(user.organization_id, since, CONTEXT_MAX_CANDIDATES);
-
-  if (rows.length === 1) {
-    const applied = await applyContext(user, rows[0], text);
-    if (applied) return applied;
-  } else if (rows.length > 1) {
-    const pick = await pickReceiptForContext(text, rows);
-    const matched = pick.match ? rows.find((r) => r.id === pick.match) : undefined;
-    if (matched) {
-      const applied = await applyContext(user, matched, text);
-      if (applied) return applied;
-    }
-    const shortlisted = rows.filter((r) => pick.shortlist.includes(r.id));
-    const list = (shortlisted.length > 0 ? shortlisted : rows).slice(0, 5);
-    return {
-      smsText: contextChoiceMessage(list),
-      receiptId: null,
-      contextState: 'awaiting_context_choice',
-      pendingData: { candidateIds: list.map((r) => r.id), contextText: text },
-    };
-  }
-
-  // Nothing to attach it to. Say so honestly, and record that we DELIBERATELY did not log (Alex's
-  // silent-non-logging guard: a classifier that wrongly diverts real expenses here stays auditable).
-  log.info('conversational_no_log', { user: user.id, kind: 'context_statement', applied: false });
-  return reply(NO_RECENT_EXPENSE_REPLY);
 }
 
 /** Resolve a "1/2/3" reply to a "which expense was that about?" prompt: apply the stored detail. */
@@ -576,66 +477,10 @@ async function answerCapability(text: string): Promise<ProcessResult> {
   }
 }
 
-/**
- * Try to handle a text message conversationally. Returns a ProcessResult to send, or
- * null to let the caller run the normal expense-capture flow. Read-only except the
- * explicit "flag for CPA" marker and applying a context statement to a recent receipt.
- */
 /** Deterministic router fast paths that never need the model: "flag for my CPA" and agent-name
  *  messages. Null = not one of these. */
 export async function routeFastPath(user: AppUser, text: string): Promise<ProcessResult | null> {
   if (FLAG_CPA_RE.test(text)) return flagForCpa(user, text);
   const nameMsg = matchAgentNameMessage(text);
   return nameMsg ? agentNameReply(user, nameMsg) : null;
-}
-
-export async function routeTextMessage(user: AppUser, text: string): Promise<ProcessResult | null> {
-  // Obvious expense → straight to capture, no classifier call.
-  if (looksLikeExpenseCapture(text)) return null;
-
-  // "Flag for my CPA" → target by amount/vendor, ask to pick if ambiguous (no classifier).
-  if (FLAG_CPA_RE.test(text)) return flagForCpa(user, text);
-
-  // "What's your name?" / "call you Max" → answer or rename, no classifier.
-  const nameMsg = matchAgentNameMessage(text);
-  if (nameMsg) return agentNameReply(user, nameMsg);
-
-  // Reason WITH receipt context: a reply like "don't have it / skip these / I'll send it later" is
-  // only meaningful given the user has outstanding flagged receipts (e.g. answering the weekly
-  // reminder, which sets no live pending context). One cheap count feeds the existing classify call —
-  // no extra LLM round trip. This replaces the per-phrasing regex matching for reminder replies.
-  const flaggedCount = await countFlaggedReceipts(user.organization_id);
-  const intent = await classifyIntent(text, { flaggedCount });
-  switch (intent.kind) {
-    case 'capture':
-      return null;
-    case 'query':
-      return runQuery(user.organization_id, intent);
-    case 'command':
-      return commandReply(user, intent.command);
-    case 'advice':
-      return reply(ADVICE_DEFLECTION);
-    case 'help':
-      return reply(greetingReply(user, text));
-    case 'capability':
-      return answerCapability(text);
-    case 'context_statement':
-      return handleContextStatement(user, text);
-    case 'receipt_resolution': {
-      if (intent.resolution === 'none') {
-        const n = await waiveAllFlaggedReceipts(user.organization_id);
-        if (n > 0) {
-          log.info('receipts_waived_bulk', { user: user.id, count: n });
-          return reply(bulkWaiveMessage(n));
-        }
-        return null; // nothing flagged to waive → let the capture path handle it
-      }
-      // "later" → keep flagged (the weekly nudge keeps trying), just acknowledge.
-      return flaggedCount > 0 ? reply(RECEIPT_LATER_ACK) : null;
-    }
-    case 'other':
-      // Off-topic → can't-help reply. Log-only metric so anything we declined to act on is auditable.
-      log.info('conversational_no_log', { user: user.id, kind: 'other', applied: false });
-      return reply(CANT_HELP_TEXT);
-  }
 }
