@@ -208,13 +208,18 @@ GENERAL SUBSTANTIATION (IRC §162):
 - advertising — marketing, ads, promotional spend
 - internet_phone — telecom services for business
 - equipment — computers, cameras, larger purchases (may qualify §179)
-- insurance — business insurance premiums
+- insurance — business insurance premiums (liability, E&O, business property). NOT health insurance
+- health_insurance — the user's own health, dental, or long-term-care insurance premiums as a self-employed person (IRC §162(l))
 - rent — office/coworking space
 - repairs — maintenance of business equipment
 - education — courses, books, training for skills
 - home_office — utilities/portion of home used for business (IRC §280A)
 - venue_rental — renting a room, hall, or venue for a business meeting or event (IRC §162)
 - team_event — a meal or recreational event primarily for your own EMPLOYEES/staff: team lunch, holiday party, company picnic (IRC §274(e), 100% deductible)
+- platform_fees — fees a platform or payment processor takes from the user's income: Stripe, PayPal, Square, Etsy, Upwork, Fiverr, rideshare/delivery service fees, bank and merchant fees
+- taxes_licenses — business licenses, permits, LLC/state annual fees, business property tax, sales tax paid on business purchases when tracked separately (IRC §164)
+- interest — interest on a business loan or the business share of credit card interest (IRC §163)
+- dues_memberships — professional associations, trade groups, chamber of commerce, licensing boards, union dues
 - personal — NOT a business expense (IRC §262)
 
 ## Guidelines (categorize, don't OVER-categorize)
@@ -242,6 +247,12 @@ GENERAL SUBSTANTIATION (IRC §162):
   - Event tickets / entertainment are generally NOT deductible (IRC §274(a)), even with a client
     along — the business-intent default does NOT apply to them. Only if a "party" or outing is
     really a MEAL with a business contact, use meals_business; concert/game/show tickets → "personal".
+  - Federal or state INCOME tax and estimated tax payments are NOT a business expense → "personal"
+    (they're tracked separately for estimated taxes, IRC §6654). taxes_licenses is only for
+    business licenses, permits, and similar business taxes.
+  - Country club, social club, gym, or airline lounge memberships are generally NOT deductible
+    (IRC §274(a)(3)) → "personal". dues_memberships is for professional and trade organizations.
+  - A monthly SaaS subscription is software, not dues_memberships.
   - team_event is ONLY for events primarily for your own employees/staff. A meal with a CLIENT
     is meals_business (50%), not team_event. For a solo business with no employees, a "party" is
     almost always meals_business or personal — do NOT default to team_event.

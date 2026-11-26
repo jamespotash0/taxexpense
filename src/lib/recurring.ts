@@ -65,7 +65,7 @@ function label(vendor: string | null, amountCents: number): string {
 // categorization tells us this, so we can offer to track on the FIRST log (no repeat needed)
 // rather than waiting for the user to re-text the same amount. Variable categories (meals,
 // travel, rides…) are excluded — only a detected repeat offers recurring for those.
-const RECURRING_LIKELY = new Set(['software', 'internet_phone', 'insurance', 'rent']);
+const RECURRING_LIKELY = new Set(['software', 'internet_phone', 'insurance', 'health_insurance', 'dues_memberships', 'rent']);
 
 /** True when the AI category implies a recurring subscription/bill (offer proactively). */
 export function isRecurringLikely(category: string | null): boolean {

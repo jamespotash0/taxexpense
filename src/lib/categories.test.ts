@@ -10,6 +10,8 @@ import {
   CATEGORY_LABELS,
   QBO_ACCOUNTS,
 } from './categories';
+import { CATEGORIZATION_HELPER_PROMPT } from './prompts';
+import { getDict } from '../i18n/dictionaries';
 
 test('valid categories pass through unchanged', () => {
   for (const key of Object.keys(CATEGORY_LABELS)) {
@@ -49,4 +51,15 @@ test('isValidCategory rejects unknowns and accepts the closed set', () => {
   assert.equal(isValidCategory('nope'), false);
   assert.equal(isValidCategory(null), false);
   for (const key of ALLOWED_CATEGORIES) assert.equal(isValidCategory(key), true);
+});
+
+test('every category is wired up: QBO account, en + es labels, and offered to the model', () => {
+  const en = getDict('en').app.categories as Record<string, string>;
+  const es = getDict('es').app.categories as Record<string, string>;
+  for (const k of ALLOWED_CATEGORIES) {
+    assert.ok(QBO_ACCOUNTS[k], `${k}: no QBO account`);
+    if (k === 'other_business') continue; // drift fallback only, never offered or edited (DEC-065)
+    assert.ok(en[k] && es[k], `${k}: missing i18n label`);
+    assert.ok(CATEGORIZATION_HELPER_PROMPT.includes(`- ${k} —`), `${k}: not in the prompt taxonomy`);
+  }
 });

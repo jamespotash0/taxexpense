@@ -21,6 +21,11 @@ export const CATEGORY_LABELS: Record<string, string> = {
   home_office: 'Home Office',
   venue_rental: 'Venue / Event Rental',
   team_event: 'Team / Company Event',
+  platform_fees: 'Platform & Payment Fees',
+  taxes_licenses: 'Taxes & Licenses',
+  interest: 'Business Interest',
+  dues_memberships: 'Dues & Memberships',
+  health_insurance: 'Health Insurance (Self-Employed)',
   // Controlled catch-all (IRC §162). NOT offered to the LLM in the categorization prompt — it
   // exists ONLY as the drift fallback in canonicalizeCategory(), so an invented/unknown category
   // lands in ONE deliberate bucket instead of leaking as a one-off column. DEC-065.
@@ -98,6 +103,12 @@ export const QBO_ACCOUNTS: Record<string, string> = {
   home_office: 'Home Office',
   venue_rental: 'Rent or Lease',
   team_event: 'Meals and Entertainment',
+  platform_fees: 'Commissions & Fees',
+  taxes_licenses: 'Taxes & Licenses',
+  interest: 'Interest Paid',
+  dues_memberships: 'Dues & Subscriptions',
+  // Not a Schedule C line: self-employed health insurance goes on Schedule 1 (IRC §162(l)).
+  health_insurance: 'Health Insurance (Owner)',
   other_business: 'Other Business Expenses',
   personal: 'Owner Draw',
 };
