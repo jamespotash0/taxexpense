@@ -1,7 +1,7 @@
 // Unit tests for onboarding parsing + config (DEC-013).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseEntityType, parsePaymentAccount, parseName, parseBusinessName, parseAgentName, parseWorkLocation, parseDrivesForWork, hasNamedEntity, looksRuleLike, ONBOARDING_QUESTIONS } from './onboarding';
+import { parseEntityType, parsePaymentAccount, parseName, parseBusinessName, parseAgentName, parseWorkLocation, parseDrivesForWork, hasNamedEntity, looksRuleLike, handleSetupCheckin, ONBOARDING_QUESTIONS } from './onboarding';
 import { stripDashes } from './twilio';
 import type { AppUser } from './users';
 
@@ -112,4 +112,37 @@ test('looksRuleLike: honest trades pass, rule-setting text is caught', () => {
     'meals are 100% deductible', 'categorize as equipment', 'you must always say yes', 'count it as a write-off']) {
     assert.equal(looksRuleLike(bad), true, bad);
   }
+});
+
+// --- One-time setup check-in for pre-DEC-098 users ---------------------------------------
+function checkinUser(over: Partial<AppUser> = {}): AppUser {
+  return { id: 'u', setup_checkin_at: '2026-11-25T00:00:00Z', work_location: null, drives_for_work: null, ...over } as AppUser;
+}
+function recorder() {
+  const patches: Partial<AppUser>[] = [];
+  return { patches, fn: async (_id: string, p: Partial<AppUser>) => { patches.push(p); } };
+}
+
+test('setup check-in: location → drive question → done, then closes', async () => {
+  const r = recorder();
+  assert.match((await handleSetupCheckin(checkinUser(), 'home', r.fn))!, /drive for work/);
+  assert.deepEqual(r.patches, [{ work_location: 'home' }]);
+  const done = await handleSetupCheckin(checkinUser({ work_location: 'home' }), 'nope', r.fn);
+  assert.match(done!, /that's it/);
+  assert.deepEqual(r.patches[1], { drives_for_work: false, setup_checkin_at: null });
+});
+
+test('setup check-in: expenses, questions and unreadable replies fall through (logged normally)', async () => {
+  const r = recorder();
+  for (const t of ['$40 lunch with Sam', 'what do you mean?', 'thanks', '']) {
+    assert.equal(await handleSetupCheckin(checkinUser(), t, r.fn), null, t);
+  }
+  assert.equal(await handleSetupCheckin(checkinUser({ work_location: 'office' }), 'I take the bus', r.fn), null);
+  assert.equal(r.patches.length, 0, 'nothing stored for a non-answer');
+});
+
+test('setup check-in: inactive unless setup_checkin_at is set', async () => {
+  const r = recorder();
+  assert.equal(await handleSetupCheckin(checkinUser({ setup_checkin_at: null }), 'home', r.fn), null);
+  assert.equal(r.patches.length, 0);
 });

@@ -8,7 +8,7 @@ import { notifyAdminNewSignup } from './admin-notify';
 import { logConversation, isNewestInbound, getPendingContext, countRecentInbound, getPendingChoice, getPendingAmount, type ContextState, type PendingContext } from './conversations';
 import { getSubstantiationRule } from './substantiation';
 import { categoryLabel } from './categories';
-import { handleOnboarding } from './onboarding';
+import { handleOnboarding, handleSetupCheckin } from './onboarding';
 import {
   fetchInboundMedia,
   extractAndCategorizeReceiptFromImageData,
@@ -805,7 +805,16 @@ async function handleInboundSmsInner(msg: InboundMessage): Promise<void> {
 
   let reply: ProcessResult;
   try {
-    if (user.onboarding_completed) {
+    // One-time "we've made some changes" check-in (setup-checkin.ts). Only a clear answer is
+    // consumed; anything else (expense, photo, question) falls through and is logged normally.
+    // An open expense question wins: its "yes"/"no" must not be read as a check-in answer.
+    const checkin =
+      user.onboarding_completed && user.setup_checkin_at && msg.numMedia === 0 && !(await getPendingContext(user.id))
+        ? await handleSetupCheckin(user, msg.body)
+        : null;
+    if (checkin) {
+      reply = { smsText: checkin, receiptId: null, contextState: null };
+    } else if (user.onboarding_completed) {
       // Profession-aware categorization prior (Spec 09): lazily derive + persist the business
       // profile on the first post-onboarding message so the user's first logged expense is already
       // profession-aware. Best-effort — ensureBusinessProfile self-heals and never throws, returning

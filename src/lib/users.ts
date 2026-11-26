@@ -26,6 +26,7 @@ export interface AppUser {
   default_payment_account: 'business' | 'personal' | 'unknown' | null;
   work_location: 'home' | 'office' | 'both' | 'unknown' | null; // home-office relevance (§280A)
   drives_for_work: boolean | null; // vehicle/mileage relevance (§274(d))
+  setup_checkin_at?: string | null; // open "we've made some changes" check-in (setup-checkin.ts)
   accountant_email: string | null;
   onboarding_completed: boolean;
   onboarding_step: number;

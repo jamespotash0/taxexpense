@@ -67,6 +67,16 @@ export const ONBOARDING_Q_PAYMENT =
   `or your personal one?\n\n` +
   `Reply "business", "personal", or "mixed"`;
 
+/** One-time check-in for users who onboarded before the work-location/driving questions existed.
+ *  Sent by scripts/setup-checkin.ts; replies handled by handleSetupCheckin (onboarding.ts). */
+export function setupCheckinIntro(name: string | undefined, agentName: string): string {
+  return (
+    `Hi${name ? ` ${name}` : ''}, it's ${agentName}! We've made some changes to give you a better experience. ` +
+    `Two quick questions so I can file things right:\n\n${ONBOARDING_Q_LOCATION}`
+  );
+}
+export const SETUP_CHECKIN_DONE = `Thanks, that's it! Keep texting me expenses anytime.`;
+
 /**
  * Guardrail re-ask lead-ins (DEC-060). When a setup answer doesn't make sense (an instruction,
  * an early expense like "$30 gas", an off-topic question, or an empty/photo reply) we DON'T store

@@ -29,6 +29,7 @@ import {
   ONBOARDING_REASK,
   onboardingComplete,
   onboardingJoinGreeting,
+  SETUP_CHECKIN_DONE,
 } from './prompts';
 import { updateUser, getOrgOwner, getOrganizationName, updateOrganizationName, type AppUser } from './users';
 import { looksInstructionShaped } from './review';
@@ -352,4 +353,34 @@ export async function handleOnboarding(
 
   // All setup questions answered → done.
   return complete(current.key === 'full_name' ? text : user.full_name, patch);
+}
+
+/**
+ * The one-time setup check-in (2026-11-25) for users who onboarded before work location + driving
+ * were asked. Active while user.setup_checkin_at is set. Returns the reply, or null when this
+ * message isn't a check-in answer, so the caller runs the normal expense flow: an expense, photo,
+ * question or anything we can't read as home/office/both or yes/no is still logged normally, and
+ * the check-in stays open for a later reply.
+ * ponytail: never re-prompts an ignored check-in; add a nudge if users actually drop it.
+ */
+export async function handleSetupCheckin(
+  user: AppUser,
+  messageText: string,
+  updateUserFn: OnboardingDeps['updateUser'] = updateUser,
+): Promise<string | null> {
+  if (!user.setup_checkin_at || classifyOnboardingInput(messageText) !== 'answer') return null;
+
+  if (user.work_location == null) {
+    const loc = parseWorkLocation(messageText);
+    if (loc === 'unknown') return null;
+    await updateUserFn(user.id, { work_location: loc });
+    if (user.drives_for_work == null) return ONBOARDING_Q_DRIVE;
+    await updateUserFn(user.id, { setup_checkin_at: null });
+    return SETUP_CHECKIN_DONE;
+  }
+
+  const drives = parseDrivesForWork(messageText);
+  if (drives == null) return null;
+  await updateUserFn(user.id, { drives_for_work: drives, setup_checkin_at: null });
+  return SETUP_CHECKIN_DONE;
 }
