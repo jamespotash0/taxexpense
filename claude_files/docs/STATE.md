@@ -7,11 +7,20 @@ overwritten in place so it always reflects the present, not the history.
 **Read this first at session start** to orient, then read JOURNAL.md or the specific
 ticket file when you need detail.
 
-_Last updated: 2026-11-23_
+_Last updated: 2026-11-26_
 
 ---
 
 ## Now working on
+
+- **Turn interpreter (DEC-105), branch `turn-interpreter`, not merged.** Every non-photo text now
+  gets ONE Haiku decision (`src/lib/turn.ts`) that sees the last 6 messages, everything open, and
+  the last 10 expenses, then the existing handlers run (`routeDecision` in router.ts, dispatch in
+  sms-handler.ts). Fast paths skip the model: a numbered-list digit, bare yes/no, flag-for-CPA,
+  agent name, and a plain "$30 gas" with nothing open and nothing logged in 15 min. The old regex
+  gates, correction window, classifier and picker are deleted. Gate: `HAIKU_MODEL=claude-haiku-5-5
+  npm run eval:turns` (91 cases, last run 81/82, 0 wrong-target edits). Pending: final review,
+  merge, deploy, live-test on a phone. Then split sms-handler.ts (839 lines).
 
 - **Linq auto-add on unknown recipient (DEC-089).** `sendLinq` adds a number to the shared line's
   contacts on a 403/2008 and retries once. On Linq, /start's "Text to start" asks for the phone
@@ -163,8 +172,10 @@ _Last updated: 2026-11-23_
 ## Active constraints to remember
 
 - Hosting is Vercel Hobby: cron jobs are consolidated to fit the plan's limits.
-- Eval pacing: ~50 Haiku requests/min cap; classifyIntent swallows 429s into "capture",
-  which fakes misclassifications, so pace live evals.
+- Eval pacing: ~50 Haiku requests/min cap. `interpretTurn` returns its fallback on a 429, and
+  `eval:turns` reports those separately (a run with any fallback is invalid); pace live evals.
+- Local evals default to Haiku 4.5 (code default); prod runs `claude-haiku-5-5`. Always set
+  `HAIKU_MODEL=claude-haiku-5-5` for evals.
 - `vercel env pull` returns empty for encrypted values in this sandbox; use `env ls` for names.
 - Founder uses only `.env.local`; do not create a `.env.example`.
 

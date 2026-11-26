@@ -2983,3 +2983,33 @@ under default-deny for V1; only add an anon read policy if rendering them client
   evals had silently run Haiku 4.5, the code default, which fails cases 5.5 passes.)
 - **Next.** These are patches on fragment-based routing; the real fix is the turn interpreter
   (`claude_files/specs/turn-interpreter.md`, founder-approved).
+
+## 2026-11-26 — Turn interpreter
+
+### DEC-105 — One context-aware routing decision per text (spec: claude_files/specs/turn-interpreter.md)
+
+- **Why.** Real texting is messy; routing was ~8 fragment-based checks (regexes, time windows,
+  pending states, a context-blind classifier, a separate picker). Each 2026-11-25 bug (grocery →
+  Home Depot, Optimum ← "Log as business expense", "business" → help) slipped through a different
+  piece. Founder chose approach A: one decision with context, existing handlers unchanged.
+- **What shipped (branch `turn-interpreter`).** `src/lib/turn.ts`: `loadTurnContext` (last 6
+  messages / 24h, open question + pending amount + numbered list + renewal, last 10 expenses / 30
+  days, flagged count), `interpretTurn` (Haiku, effort low, cached prompt, history quoted as data),
+  `validateDecision` (ids must be offered), `fallbackDecision` (API failure: answer what's open as
+  before, else capture an amount, else help; never edit another expense), `canSkipInterpreter`.
+  `router.ts`: `routeDecision`, `editTarget`, `routeFastPath`. `sms-handler.ts`: fast paths →
+  interpreter → dispatch (`answerOpenQuestion`).
+- **Deleted.** replyStartsNewExpense, looksLikeCorrection + 15-min window, CONFIRM_RE, NO_RECEIPT_RE /
+  looksLikeNoReceipt(Ever), EXPLAIN_RE, classifyIntent + CLASSIFY_PROMPT + routeTextMessage,
+  handleContextStatement, pickReceiptForContext + CONTEXT_PICK_PROMPT + validatePick,
+  getLatestReceiptSince, eval:intent / eval:context (cases ported into eval:turns).
+- **No flag** (founder: no real users yet). Rollback = `git revert` of the series.
+- **Eval.** `eval:turns`, 91 cases on Haiku 5.5: 81/82 scored, 0 wrong-target edits, 0 API
+  failures. The sole miss (a Spanish query) passed 3/3 on rerun; Spanish cases then dropped
+  (founder: no localization). Prompt tuned once: two same-kind expenses (two Ubers) → ask, never
+  guess. Red-team advice check ported to `interpretTurn`, not re-run live (founder skipped).
+- **Calls made in the build** (see claude_files/specs/turn-interpreter-plan.md + ledger):
+  "no thanks" to a recurring offer gets "No problem, I won't track it."; a new expense never merges
+  with a pending "how much?" partial (only an answer does); a reminder reply with nothing to waive
+  gets the greeting, not capture.
+- **Cost.** ~$0.0002 per routed text; replaces the classifier + picker calls, so about flat.
