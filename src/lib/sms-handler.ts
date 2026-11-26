@@ -5,6 +5,7 @@
 import { normalizeToE164 } from './phone';
 import { getOrCreateUserByPhone, getUserByPhone, touchLastActive, updateUser, type AppUser } from './users';
 import { notifyAdminNewSignup } from './admin-notify';
+import { loadTurnContext, interpretTurn, canSkipInterpreter, type TurnContext, type TurnDecision } from './turn';
 import { logConversation, isNewestInbound, getPendingContext, countRecentInbound, getPendingChoice, getPendingAmount, type ContextState, type PendingContext } from './conversations';
 import { getSubstantiationRule } from './substantiation';
 import { categoryLabel } from './categories';
@@ -21,7 +22,7 @@ import {
 import { processNewExpense, processClarification, processCorrection, processAttachment, confirmReceiptMessage, type ProcessResult } from './expense';
 import type { CategoryResult } from './categorize';
 import { ensureBusinessProfile } from './businessProfile';
-import { routeTextMessage, resolveFlagChoice, resolveContextChoice, looksLikeExpenseCapture } from './router';
+import { routeTextMessage, routeDecision, routeFastPath, resolveFlagChoice, resolveContextChoice, looksLikeExpenseCapture } from './router';
 import { subscribeUrl } from './subscribe-link';
 import { getReceipt, getLatestReceiptSince, waiveReceipt, updateReceipt, getReceiptBySourceMessage } from './receipts';
 import { reactLinq, shareContactCard, type SendOptions } from './linq';
@@ -551,141 +552,109 @@ async function handleExpenseFlow(user: AppUser, msg: InboundMessage): Promise<Pr
     );
   }
 
-  // Verify reply to a low-confidence read (DEC-066). "yes"/"looks right" confirms as-is
-  // (deterministic, no LLM); a "why?" falls through to the explain branch (keeps it open); anything
-  // else that isn't a fresh self-contained expense is a correction → fix the receipt in place. If
-  // they ignore it and send a new expense, fall through and log that (the verify expires in 24h).
-  // Checked before the recurring Y/N below so a verify "yes" isn't taken as a renewal confirmation.
-  if (pending?.contextState === 'awaiting_confirm') {
-    if (isAffirmative(msg.body) || CONFIRM_RE.test(msg.body)) {
-      // Carry the same value a normal log reply does — category + IRC §section + link — instead of
-      // a bare "locked it in" (the verify path skipped composeResponse, so this is where it lands).
-      return confirmReceiptMessage(user.organization_id, pending.receiptId);
+  // Text path: turn interpreter (claude_files/specs/turn-interpreter.md). Deterministic fast paths
+  // first; everything else gets ONE Haiku decision that sees the recent conversation, what's open,
+  // and recent expenses, then the existing handlers run.
+  const text = msg.body;
+  const ctx = await loadTurnContext(user);
+  const { open } = ctx;
+
+  // Bare digit → the open "which one?" list.
+  if (/^\s*[1-9]\s*$/.test(text) && open.choice) {
+    const n = parseInt(text.trim(), 10);
+    if (open.choice.kind === 'flag') return resolveFlagChoice(user, open.choice.candidateIds, n);
+    return resolveContextChoice(user, open.choice.candidateIds, open.choice.contextText ?? '', n);
+  }
+
+  // Bare yes / no to a yes-no question. Verify first, so its "yes" isn't taken as a renewal.
+  if (isAffirmative(text) || isNegative(text)) {
+    const yes = isAffirmative(text);
+    if (yes && open.question?.contextState === 'awaiting_confirm') return confirmReceiptMessage(user.organization_id, open.question.receiptId);
+    if (open.renewal) return handleRenewalConfirm(user, open.renewal, text);
+    if (yes && open.question?.contextState === 'awaiting_recurring_optin') {
+      const optin = await handleRecurringOptin(user, open.question.receiptId);
+      if (optin) return optin;
     }
-    if (!replyStartsNewExpense(msg.body) && !EXPLAIN_RE.test(msg.body)) {
-      const corrected = await processCorrection(user, pending.receiptId, msg.body);
-      if (corrected.receiptId !== null) return corrected;
-      // receipt vanished mid-flight → fall through to new-expense handling
+  }
+
+  const fast = await routeFastPath(user, text);
+  if (fast) return fast;
+
+  if (!canSkipInterpreter(text, ctx, new Date())) {
+    const d = await interpretTurn(text, ctx);
+    log.info('turn_decision', { user: user.id, action: d.action, answer: d.answer, has_receipt: !!d.receiptId, fallback: d.fallback });
+    const routed = await routeDecision(user, text, d, ctx);
+    if (routed) return routed;
+
+    if (d.action === 'explain_why') {
+      if (open.amount && !open.question) {
+        return {
+          smsText: `I just need the amount to log it. What did it come to?\n\n${CPA_NOTE}`,
+          receiptId: null,
+          contextState: 'awaiting_amount',
+          pendingData: { priorText: open.amount.priorText, amountAttempts: open.amount.attempts },
+        };
+      }
+      return explainWhy(user, open.question);
+    }
+    if (d.action === 'answer_open_question' || d.action === 'receipt_resolution') {
+      const answered = await answerOpenQuestion(user, text, d, ctx, decision);
+      if (answered) return answered;
+      // Nothing open after all (or the receipt vanished) → treat it as a new expense below.
     }
   }
 
-  // Y/N answer to a monthly recurring nudge (DEC-033). Only query when the reply is a bare
-  // yes/no, so normal expenses skip the lookup.
-  if (isAffirmative(msg.body) || isNegative(msg.body)) {
-    const tmpl = await getAwaitingConfirm(user.id);
-    if (tmpl) return handleRenewalConfirm(user, tmpl, msg.body);
-  }
+  // New text expense → usage caps apply. captureTextExpense logs the primary AND any additional
+  // distinct charges in the same text (DEC-083), folding in the recurring offer.
+  if (blocked) return cappedReply(decision);
+  return withAnnualNudge(decision, await captureTextExpense(user, text));
+}
 
-  // "YES" to a recurring-tracking offer → create the template.
-  if (pending?.contextState === 'awaiting_recurring_optin' && isAffirmative(msg.body)) {
-    const optin = await handleRecurringOptin(user, pending.receiptId);
-    if (optin) return optin;
-  }
-
-  // Numbered reply to a "which one?" list: flag disambiguation (DEC-039) or a late-context
-  // "which expense was that about?". The newest list wins. Only query when the message is a bare
-  // number, so normal messages skip the lookup.
-  if (/^\s*[1-9]\s*$/.test(msg.body)) {
-    const choice = await getPendingChoice(user.id);
-    const n = parseInt(msg.body.trim(), 10);
-    if (choice?.kind === 'flag') return resolveFlagChoice(user, choice.candidateIds, n);
-    if (choice?.kind === 'context') return resolveContextChoice(user, choice.candidateIds, choice.contextText ?? '', n);
-  }
-
-  // Partial expense awaiting its amount (DEC-064). We asked "how much?" and stashed the text we'd
-  // already parsed. Combine it with this reply and re-parse so "$167" completes THIS expense
-  // instead of being logged as a new contextless one. Skipped when the reply is itself a fresh,
-  // self-contained capture (Priya edge a) — then we just log that and let the stale partial expire.
-  const pendingAmt = await getPendingAmount(user.id);
-  if (pendingAmt && !replyStartsNewExpense(msg.body)) {
-    // "Why do you need it?" mid-ask → explain but KEEP the partial (Priya edge b); don't drop it.
-    if (EXPLAIN_RE.test(msg.body)) {
-      return {
-        smsText: `I just need the amount to log it. What did it come to?\n\n${CPA_NOTE}`,
-        receiptId: null,
-        contextState: 'awaiting_amount',
-        pendingData: { priorText: pendingAmt.priorText, amountAttempts: pendingAmt.attempts },
-      };
+/** Dispatch an answer to whatever is open (spec's dispatch table). Null = nothing to answer. */
+async function answerOpenQuestion(
+  user: AppUser,
+  text: string,
+  d: TurnDecision,
+  ctx: TurnContext,
+  decision: UsageDecision,
+): Promise<ProcessResult | null> {
+  const q = ctx.open.question;
+  const live = (r: ProcessResult) => (r.receiptId !== null ? r : null); // receipt vanished → null
+  if (q) {
+    switch (q.contextState) {
+      case 'awaiting_confirm':
+        if (d.answer === 'affirm') return confirmReceiptMessage(user.organization_id, q.receiptId);
+        return live(await processCorrection(user, q.receiptId, text));
+      case 'awaiting_context':
+        return live(await processClarification(user, q.receiptId, q.questionText, text));
+      case 'awaiting_receipt':
+        if (d.resolution === 'none') {
+          await waiveReceipt(user.organization_id, q.receiptId);
+          log.info('receipt_waived', { user: user.id, receipt: q.receiptId, source: 'sms' });
+          return { smsText: MSG.noReceiptWaived, receiptId: q.receiptId, contextState: null };
+        }
+        if (d.resolution === 'later' || d.answer === 'decline') {
+          return { smsText: MSG.noReceiptAck, receiptId: q.receiptId, contextState: null };
+        }
+        return live(await processCorrection(user, q.receiptId, text));
+      case 'awaiting_recurring_optin':
+        if (d.answer === 'affirm') return handleRecurringOptin(user, q.receiptId);
+        if (d.answer === 'decline') return { smsText: "No problem, I won't track it.", receiptId: q.receiptId, contextState: null };
+        break;
     }
-    if (blocked) return cappedReply(decision);
-    const combined = `${pendingAmt.priorText} ${msg.body}`.trim();
+  }
+  const amt = ctx.open.amount;
+  if (amt) {
+    if (decision.kind === 'block_daily' || decision.kind === 'block_annual') return cappedReply(decision);
+    const combined = `${amt.priorText} ${text}`.trim();
     const result = await maybeOfferRecurring(user, await handleTextAsNewExpense(user, combined));
-    // Got an amount → it logged normally (contextState is no longer awaiting_amount).
     if (result.contextState !== 'awaiting_amount') return withAnnualNudge(decision, result);
     // Still no amount. Re-ask once more, then give up cleanly — never log a $0 phantom.
-    if (pendingAmt.attempts >= MAX_AMOUNT_RETRIES) {
-      return { smsText: MSG.amountGiveUp, receiptId: null, contextState: null };
-    }
-    return { ...result, pendingData: { priorText: combined, amountAttempts: pendingAmt.attempts + 1 } };
+    if (amt.attempts >= MAX_AMOUNT_RETRIES) return { smsText: MSG.amountGiveUp, receiptId: null, contextState: null };
+    return { ...result, pendingData: { priorText: combined, amountAttempts: amt.attempts + 1 } };
   }
-
-  // "Why / what's the purpose" → explain deterministically (no LLM), keeping any open
-  // question intact. Checked before clarification so a "why?" isn't taken as the answer.
-  if (EXPLAIN_RE.test(msg.body)) {
-    return explainWhy(user, pending);
-  }
-
-  // Text message answering a pending context question → clarification flow.
-  if (pending && pending.contextState === 'awaiting_context') {
-    const clar = await processClarification(user, pending.receiptId, pending.questionText, msg.body);
-    if (clar.receiptId !== null) return clar;
-    // pending receipt vanished → fall through to new expense
-  }
-
-  // Text reply while we're awaiting a RECEIPT photo (DEC-072). The user is answering "send a receipt"
-  // in words, not a photo — most often "I don't have one" / "later". Without this it fell through to
-  // new-expense capture and wrongly asked "how much?" for an expense already logged. A "don't have it"
-  // (or bare no/skip) is acknowledged + kept flagged so the photo can still be added later; any other
-  // detail is treated as a correction to THIS receipt rather than a new one.
-  if (pending && pending.contextState === 'awaiting_receipt' && !replyStartsNewExpense(msg.body)) {
-    // "There is no receipt" (lost it / threw it out / only have the bill) → waive future reminders
-    // (DEC-078). Distinct from "later", which stays flagged so the weekly nudge keeps trying.
-    if (looksLikeNoReceiptEver(msg.body)) {
-      await waiveReceipt(user.organization_id, pending.receiptId);
-      log.info('receipt_waived', { user: user.id, receipt: pending.receiptId, source: 'sms' });
-      return { smsText: MSG.noReceiptWaived, receiptId: pending.receiptId, contextState: null };
-    }
-    if (looksLikeNoReceipt(msg.body) || isNegative(msg.body)) {
-      return { smsText: MSG.noReceiptAck, receiptId: pending.receiptId, contextState: null };
-    }
-    const corrected = await processCorrection(user, pending.receiptId, msg.body);
-    if (corrected.receiptId !== null) return corrected;
-    // receipt vanished mid-flight → fall through to new-expense handling
-  }
-
-  // NOTE: a reply to the WEEKLY receipt reminder (which sets no live awaiting_receipt context) is
-  // handled by reasoning inside routeTextMessage below — it classifies the message WITH receipt
-  // context ("the user has N expenses missing a receipt") and waives/acks accordingly, instead of
-  // matching every "no receipt" phrasing here.
-
-  // Conversational router (DEC-029): answer read-only questions ("how much on meals
-  // this year?", "last 3 charges", "review my year") and safe commands. Returns null
-  // when the message is an expense to capture, so the workflow path below still runs.
-  const routed = await routeTextMessage(user, msg.body);
-  if (routed) return routed;
-
-  // Post-log correction window (DEC-064): a follow-up right after a clean log that reads like an
-  // edit ("Tabernacle is a restaurant", "that was a client meal", "actually it was $200") edits the
-  // last receipt instead of creating a duplicate. We only get here for non-fresh messages — a
-  // self-contained new expense ("$50 gas to Acme") is filtered by replyStartsNewExpense, which also
-  // routes amount-only corrections here. Then we need a recent receipt + a correction marker / vendor
-  // mention. Uncapped: it edits an existing receipt, it doesn't log a new one.
-  if (!replyStartsNewExpense(msg.body)) {
-    const since = new Date(Date.now() - CORRECTION_WINDOW_MIN * 60 * 1000).toISOString();
-    const recent = await getLatestReceiptSince(user.organization_id, since);
-    if (recent && looksLikeCorrection(msg.body, recent.vendor)) {
-      const corrected = await processCorrection(user, recent.id, msg.body);
-      if (corrected.receiptId !== null) return corrected;
-      // receipt vanished mid-flight → fall through to new-expense handling
-    }
-  }
-
-  // New text expense → subject to the usage caps (checked after the router so read-only
-  // queries above are never blocked, and before parse/categorize so a blocked user costs nothing).
-  // captureTextExpense logs the primary normally AND any additional distinct charges in the same
-  // text (DEC-083), folding the recurring offer in for the single-expense case.
-  if (blocked) return cappedReply(decision);
-  return withAnnualNudge(decision, await captureTextExpense(user, msg.body));
+  if (ctx.open.renewal && d.answer) return handleRenewalConfirm(user, ctx.open.renewal, d.answer === 'affirm' ? 'yes' : 'no');
+  return null;
 }
 
 /** Top-level inbound handler. Always sends exactly one SMS reply. Token usage of every Claude

@@ -105,3 +105,22 @@ test('fallbackDecision with nothing open: an expense captures, chit-chat is help
   assert.equal(fallbackDecision('thanks', NONE).action, 'help');
   for (const t of ['$30 gas', 'thanks', 'that was personal']) assert.notEqual(fallbackDecision(t, NONE).action, 'edit_expense');
 });
+
+// ---- Task 4: when an obvious expense skips the model ---------------------------------------
+import { canSkipInterpreter } from './turn';
+
+test('canSkipInterpreter: "$30 gas", nothing open, last expense 2h ago → skip', () => {
+  assert.equal(canSkipInterpreter('$30 gas', ctx({ receipts: [receipt('a', 'Shell', 40, 'vehicle_business', 120)] }), NOW), true);
+});
+
+test('canSkipInterpreter: an expense logged 5 min ago → ask the model (could be a fix)', () => {
+  assert.equal(canSkipInterpreter('$30 gas', ctx({ receipts: [receipt('a', 'Shell', 40, 'vehicle_business', 5)] }), NOW), false);
+});
+
+test('canSkipInterpreter: a pending amount is open → ask the model', () => {
+  assert.equal(canSkipInterpreter('$167', ctx({ open: { ...NONE, amount: { priorText: 'lunch', attempts: 0 } } }), NOW), false);
+});
+
+test('canSkipInterpreter: a question never skips', () => {
+  assert.equal(canSkipInterpreter('how much did I spend?', ctx(), NOW), false);
+});

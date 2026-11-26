@@ -225,3 +225,13 @@ Actions:
 
 Return ONLY:
 {"action":"...","receipt_id":null,"candidates":[],"answer":null,"tool":null,"category":null,"period":null,"count":null,"command":null,"resolution":null}`;
+
+const RECENT_LOG_MIN = 15;
+
+/** An obvious new expense with nothing open and nothing logged in the last 15 min can skip the
+ *  model (keeps plain logging fast). Anything else might be a reply or a fix. Pure. */
+export function canSkipInterpreter(text: string, ctx: TurnContext, now: Date): boolean {
+  if (!looksLikeExpenseCapture(text) || isAnythingOpen(ctx.open)) return false;
+  const cutoff = now.getTime() - RECENT_LOG_MIN * 60_000;
+  return !ctx.receipts.some((r) => new Date(r.created_at).getTime() > cutoff);
+}

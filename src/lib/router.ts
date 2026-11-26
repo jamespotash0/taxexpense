@@ -581,6 +581,14 @@ async function answerCapability(text: string): Promise<ProcessResult> {
  * null to let the caller run the normal expense-capture flow. Read-only except the
  * explicit "flag for CPA" marker and applying a context statement to a recent receipt.
  */
+/** Deterministic router fast paths that never need the model: "flag for my CPA" and agent-name
+ *  messages. Null = not one of these. */
+export async function routeFastPath(user: AppUser, text: string): Promise<ProcessResult | null> {
+  if (FLAG_CPA_RE.test(text)) return flagForCpa(user, text);
+  const nameMsg = matchAgentNameMessage(text);
+  return nameMsg ? agentNameReply(user, nameMsg) : null;
+}
+
 export async function routeTextMessage(user: AppUser, text: string): Promise<ProcessResult | null> {
   // Obvious expense → straight to capture, no classifier call.
   if (looksLikeExpenseCapture(text)) return null;
