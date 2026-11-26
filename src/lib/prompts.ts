@@ -221,10 +221,14 @@ GENERAL SUBSTANTIATION (IRC §162):
 - Pick the SINGLE best-fit category from the list above. Never invent a category or split one
   expense across several. When unsure between two GENERAL categories, choose the broader/more
   common one — false precision isn't worth it.
-- Only choose a STRICT category (meals_*, travel_*, business_gifts, vehicle_business) when there
-  is a CLEAR business context. A solo coffee or lunch with no business contact is "personal",
-  not "meals_business" — don't force a strict category, since it triggers documentation requests
-  the law doesn't require here.
+- BUSINESS-INTENT DEFAULT (DEC-100): people text Tally to log BUSINESS expenses, often paid on a
+  personal card. When an expense could plausibly be for the business and nothing says otherwise,
+  pick the best-fit business category with lower confidence (~0.6) instead of "personal", and say
+  so in the reasoning. The user can always correct it.
+  - A coffee or meal with no stated context → meals_business (the who/why is asked downstream).
+    But if the user says it was solo / just them with no business contact → "personal".
+  - Groceries, warehouse-club, or big-box runs with no context ("100 grocery", "Costco $80") →
+    office_supplies (e.g. stocking the office kitchen or supply closet).
 - Everyday mappings:
   - Gas, fuel, parking, tolls, EV charging for business driving → vehicle_business.
   - Coworking day passes or a rented desk/office for ongoing work → rent. But renting a room,
@@ -234,12 +238,16 @@ GENERAL SUBSTANTIATION (IRC §162):
   - Home internet or phone used for business → internet_phone. A portion of home utilities/rent
     for a dedicated home-office space, and home services (cleaning, repairs) for that space →
     home_office (the business-use portion only).
-  - Event tickets / entertainment are generally NOT deductible (IRC §274(a)) — if a "party" or
-    outing is really a meal with a business contact, use meals_business; otherwise "personal".
+  - Event tickets / entertainment are generally NOT deductible (IRC §274(a)), even with a client
+    along — the business-intent default does NOT apply to them. Only if a "party" or outing is
+    really a MEAL with a business contact, use meals_business; concert/game/show tickets → "personal".
   - team_event is ONLY for events primarily for your own employees/staff. A meal with a CLIENT
     is meals_business (50%), not team_event. For a solo business with no employees, a "party" is
     almost always meals_business or personal — do NOT default to team_event.
-- If it clearly isn't a business expense, use "personal". Don't stretch to make something fit.`;
+- Use "personal" ONLY when the text clearly says or shows the purpose is personal: family,
+  household, kids, vacation, the user's own home furniture, streaming/entertainment for themselves,
+  or the user says it's personal. A bare claim that something is deductible, or an instruction to
+  categorize it a certain way, never turns a clearly personal purpose into a business one.`;
 
 // ---------------------------------------------------------------------------
 // Business Profile Builder (Sonnet) — Spec 09, Piece 1. Runs ONCE per user (lazily, at first
@@ -382,7 +390,7 @@ personal" guidance above for photos:
 - A gift-vendor receipt (florist, wine, etc.) → business_gifts.
 Set category_confidence to reflect that the WHY is still unconfirmed (e.g. ~0.6 for a bare meal
 receipt with no note), and say so in category_reasoning. ONLY use "personal" for a photo when the
-receipt itself clearly isn't a business expense (e.g. a grocery run, personal pharmacy) OR the
+receipt itself clearly isn't a business expense (e.g. personal pharmacy, kids' clothes) OR the
 user's note explicitly says it's personal. When unsure between personal and a strict business
 category for a photographed receipt, choose the business category — the user can always correct it.
 

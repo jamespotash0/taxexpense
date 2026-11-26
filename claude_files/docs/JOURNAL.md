@@ -2913,3 +2913,42 @@ under default-deny for V1; only add an anon read policy if rendering them client
 - **Trigger to build.** 2+ of the 5 validation users raise "what did client/job X cost me?" unprompted.
 - **Out of scope regardless.** Multiple side businesses (separate Schedule C = multi-entity) and
   rental properties (Schedule E).
+
+## 2026-11-25 — Business-first categorization; answered questions close; shorter recat line
+
+### DEC-100 — Business-intent default for texted expenses (founder)
+
+- **Context.** "100 grocery" filed as Personal; the founder's follow-up ("stocking fridge at office")
+  had to rescue it. Founder: people text Tally to log business expenses (often on a personal card),
+  rarely personal ones, and small businesses blur lines. A CPA reviews the return, so a
+  business-first guess is acceptable even where it blurs the line.
+- **Decision.** Extends DEC-068 (photos) to all inputs via the shared `CATEGORY_TAXONOMY`:
+  plausibly-business + no counter-signal → best business category at ~0.6 confidence, which trips
+  the DEC-073 one-line "what was it for?" invite (< 0.8 floor). Context-less coffee/meal →
+  meals_business (who/why asked downstream). Context-less groceries / warehouse / big-box →
+  office_supplies (founder: office expense/supplies are 100% Schedule C lines).
+- **Guardrails kept.** "personal" when the text clearly shows it (family, household, vacation, own
+  furniture, "just me"). Deductibility claims and instructions never flip a clearly personal
+  purpose. Entertainment tickets stay personal even with a client (§274(a)); the default caused a
+  concert-tickets → meals_business drift until that was made an explicit exception.
+- **Open CPA flag.** Office-kitchen food under §274(o) (2026+) may not be 100%; office_supplies is
+  the founder's call pending the CPA spot-check.
+- **Evals.** Flipped solo-coffee-no-context → meals_business, groceries cases → office_supplies;
+  added `groceries-household` (personal) and `grocery-office-kitchen`; injection cases now use
+  clearly household groceries. Standalone 100% (31/31, 0 confident-wrong); merged 97% (30/31, the
+  known coworking-daypass rent/venue_rental miss, no tax/export impact).
+
+### DEC-101 — An answered question stops being "pending"
+
+- **Bug.** `getPendingContext` skipped outbound rows with null context_state, so an answered
+  "Quick check" stayed live 24h and the next new expense ("48 tools home depot", 30 min later) was
+  applied as a correction to the grocery receipt.
+- **Fix.** `pickPendingContext`: the newest open question is closed by any LATER reply on the same
+  receipt with no context_state. A clean log of a different receipt does not close it (late photo
+  can still attach). Unit-tested with the real sequence.
+- **Known gap.** While a verify is genuinely open, a new expense without "$" is still read as a
+  correction (regex can't tell). Candidate fix: one narrow Haiku "answer or new expense?" check.
+
+### DEC-102 — Recategorized reply: category + deductible % + code link only
+- Founder: no IRC summary text. Now "Now filed under Equipment (100% deductible), §179 (link)." +
+  disclaimer.
