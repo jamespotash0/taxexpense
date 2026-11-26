@@ -10,7 +10,8 @@
 //  - Login requires an EXISTING user (SMS-first) — we never create accounts here.
 
 import type { NextResponse } from 'next/server';
-import { randomInt, randomBytes, timingSafeEqual, createHash } from 'crypto';
+import { randomInt, randomBytes, timingSafeEqual, createHash, createHmac } from 'crypto';
+import { requireEnv } from './env';
 import { getSupabaseAdmin } from './supabase';
 import { getUserByPhone, type AppUser } from './users';
 import { log } from './log';
@@ -68,10 +69,20 @@ export async function requestCode(phoneE164: string): Promise<RequestCodeResult>
   const expires_at = new Date(Date.now() + OTP_TTL_MIN * 60 * 1000).toISOString();
   const { error } = await admin
     .from('auth_codes')
-    .insert({ phone_number: phoneE164, code, expires_at, used: false, attempts: 0 });
+    .insert({ phone_number: phoneE164, code: hashCode(phoneE164, code), expires_at, used: false, attempts: 0 });
   if (error) throw error;
 
   return { ok: true, code };
+}
+
+/**
+ * Login codes are stored as an HMAC, never plaintext (migration 0035), so DB/backup read access
+ * can't log in as anyone. Keyed, because a bare hash of a 6-digit code reverses in a millisecond.
+ * The key is the service-role key: anyone holding it already has full DB access, so it adds no
+ * new secret to manage and is strictly stronger than an unkeyed hash.
+ */
+function hashCode(phoneE164: string, code: string): string {
+  return createHmac('sha256', requireEnv('SUPABASE_SERVICE_ROLE_KEY')).update(`${phoneE164}:${code}`).digest('hex');
 }
 
 function safeEqual(a: string, b: string): boolean {
@@ -120,7 +131,7 @@ export async function verifyCode(phoneE164: string, submitted: string): Promise<
   if (claimErr) throw claimErr;
   if (!claimed?.length) return { ok: false, reason: 'mismatch' };
 
-  if (!safeEqual(String(row.code), submitted.trim())) return { ok: false, reason: 'mismatch' };
+  if (!safeEqual(String(row.code), hashCode(phoneE164, submitted.trim()))) return { ok: false, reason: 'mismatch' };
 
   // Correct code — require an existing (SMS-created) account.
   const user = await getUserByPhone(phoneE164);
