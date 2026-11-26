@@ -111,19 +111,26 @@ export async function getPendingContext(userId: string): Promise<PendingContext 
     .select('receipt_id, context_state, message_text, created_at')
     .eq('user_id', userId)
     .eq('direction', 'outbound')
-    .not('context_state', 'is', null)
     .not('receipt_id', 'is', null)
     .gte('created_at', cutoff)
     .order('created_at', { ascending: false })
-    .limit(1);
+    .limit(20); // ponytail: scan cap; a question buried under 20+ replies in 24h is treated as stale
   if (error) throw error;
-  const row = data?.[0];
-  if (!row) return null;
-  return {
-    receiptId: row.receipt_id as string,
-    contextState: row.context_state as ContextState,
-    questionText: (row.message_text as string | null) ?? null,
-  };
+  return pickPendingContext(data ?? []);
+}
+
+/** The newest open question, unless a LATER reply on the same receipt carries no context_state
+ *  (the question was answered). A clean log of a different expense doesn't close it, so a late
+ *  receipt photo can still attach. Pure, for tests. */
+export function pickPendingContext(
+  rows: Array<{ receipt_id: string | null; context_state: string | null; message_text: string | null; created_at: string }>,
+): PendingContext | null {
+  const sorted = [...rows].sort((a, b) => b.created_at.localeCompare(a.created_at));
+  const i = sorted.findIndex((r) => r.receipt_id && r.context_state);
+  if (i < 0) return null;
+  const row = sorted[i];
+  if (sorted.slice(0, i).some((r) => r.receipt_id === row.receipt_id)) return null; // answered
+  return { receiptId: row.receipt_id!, contextState: row.context_state as ContextState, questionText: row.message_text ?? null };
 }
 
 export interface PendingAmount {
