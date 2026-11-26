@@ -11,7 +11,9 @@ let _client: Anthropic | null = null;
 /** Lazily constructed Anthropic client (server-only; needs ANTHROPIC_API_KEY). */
 export function getClaude(): Anthropic {
   if (_client) return _client;
-  _client = new Anthropic({ apiKey: requireEnv('ANTHROPIC_API_KEY') });
+  // One SDK retry, not the default two: with the 15s per-call timeout, 2 retries let a single
+  // call run ~45s, past the SMS routes' 30s maxDuration (the user then gets no reply at all).
+  _client = new Anthropic({ apiKey: requireEnv('ANTHROPIC_API_KEY'), maxRetries: 1 });
   return _client;
 }
 

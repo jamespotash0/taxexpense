@@ -68,6 +68,10 @@ export interface ParsedTextExpense {
   confidence: number;
 }
 
+const MAX_ADDITIONAL_PER_TEXT = 5;
+const MEDIA_TIMEOUT_MS = 10_000;
+const MEDIA_MAX_BYTES = 10 * 1024 * 1024; // matches the receipts bucket limit (migration 0035)
+
 // Media types Claude vision accepts. Others (e.g. HEIC) fall back to jpeg for the OCR
 // call (Twilio transcodes MMS to jpeg in practice).
 const VISION_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
@@ -81,25 +85,38 @@ function visionMediaType(contentType: string): string {
  * receipt — this prevents orphaned uploads from non-receipt / unmatched photos.
  */
 export async function fetchInboundMedia(mediaUrl: string): Promise<{ buffer: Buffer; contentType: string }> {
+  const url = new URL(mediaUrl);
+  const host = url.hostname;
+  const isLinqHost = host === 'linqapp.com' || host.endsWith('.linqapp.com');
+  const isTwilioHost = host === 'api.twilio.com' || host.endsWith('.twilio.com');
+  // Exact allowlist: credentials only ever go to their own provider, and nothing else is fetched.
+  if (url.protocol !== 'https:' || (!isLinqHost && !isTwilioHost)) throw new Error('media_host_not_allowed');
+  const signal = AbortSignal.timeout(MEDIA_TIMEOUT_MS);
+
   let res: Response;
-  if (new URL(mediaUrl).hostname === 'cdn.linqapp.com') {
+  if (isLinqHost) {
     // Linq attachment URLs are typically pre-signed (an extra auth header can break those);
     // the docs don't say, so fall back to the API key if the plain fetch is refused.
-    res = await fetch(mediaUrl);
+    res = await fetch(mediaUrl, { signal });
     if (res.status === 401 || res.status === 403) {
-      res = await fetch(mediaUrl, { headers: { Authorization: `Bearer ${requireEnv('LINQ_API_KEY')}` } });
+      res = await fetch(mediaUrl, { signal, headers: { Authorization: `Bearer ${requireEnv('LINQ_API_KEY')}` } });
     }
   } else {
     const sid = requireEnv('TWILIO_ACCOUNT_SID');
     const token = requireEnv('TWILIO_AUTH_TOKEN');
     // Twilio media requires basic auth; use the Authorization header (don't inline creds in URL).
     res = await fetch(mediaUrl, {
+      signal,
       headers: { Authorization: `Basic ${Buffer.from(`${sid}:${token}`).toString('base64')}` },
     });
   }
   if (!res.ok) throw new Error(`media_fetch_failed_${res.status}`);
-  const contentType = res.headers.get('content-type') ?? 'image/jpeg';
+  const contentType = (res.headers.get('content-type') ?? 'image/jpeg').split(';')[0].trim().toLowerCase();
+  // Only images reach OCR; a video/PDF used to be mislabeled jpeg and burn two model calls.
+  if (!contentType.startsWith('image/')) throw new Error('media_not_image');
+  if (Number(res.headers.get('content-length') ?? 0) > MEDIA_MAX_BYTES) throw new Error('media_too_large');
   const buffer = Buffer.from(await res.arrayBuffer());
+  if (buffer.length > MEDIA_MAX_BYTES) throw new Error('media_too_large');
   return { buffer, contentType };
 }
 
@@ -284,6 +301,9 @@ export async function parseAndCategorizeText(
   // objects so we never log a $0 phantom from an over-eager split.
   const additional: ParsedAdditionalExpense[] = (Array.isArray(raw.additional_expenses) ? raw.additional_expenses : [])
     .filter((a) => a && (a.amount != null || a.business_miles != null))
+    // Cap: one text can't log an unbounded batch past the daily receipt cap (checked once, before
+    // parsing), each with its own downstream model calls. Five covers real "gas $40, lunch $12..." texts.
+    .slice(0, MAX_ADDITIONAL_PER_TEXT)
     .map((a) => ({ parsed: toParsedExpense(a, text), category: toCategoryResult(a) }));
   return {
     parsed: toParsedExpense(raw, text),

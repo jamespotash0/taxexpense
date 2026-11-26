@@ -13,7 +13,7 @@ import {
   type SubstantiationResult,
 } from './substantiation';
 import { getIrcSummary, lookupIrcSectionFlexible } from './irc';
-import { categoryLabel } from './categories';
+import { categoryLabel, canonicalizeCategory } from './categories';
 import { ircCitation, withDisclaimer } from './categorize';
 import { assessCategoryReview, REVIEW_CONFIDENCE_FLOOR } from './review';
 import { log } from './log';
@@ -31,6 +31,18 @@ import { HAIKU_MODEL, OPUS_MODEL, SONNET_MODEL } from './claude';
 import { logAiEvent, type AskReason } from './ai-events';
 import { CLARIFICATION_PROMPT, CORRECTION_PROMPT, RECEIPT_ATTACHMENT_PROMPT } from './prompts';
 import { storePhotoBuffer, type OcrResult } from './ocr';
+
+/**
+ * A model-proposed category change, accepted only when it's a real category. An invented label
+ * used to be stored as-is, which falls back to general §162 (100%, no substantiation asked) and
+ * silently downgraded a strict category. Rejected → the receipt keeps its current category.
+ */
+function validCategoryChange(raw: string | null | undefined): string | null {
+  const c = canonicalizeCategory(raw);
+  if (c.status === 'ok' || c.status === 'normalized') return c.category;
+  if (raw) log.warn('category_change_rejected', { status: c.status });
+  return null;
+}
 
 export interface ProcessResult {
   smsText: string;
@@ -502,7 +514,7 @@ export async function processClarification(
   // authoritative decision in code (DEC-011).
   const u = parsed.updates ?? ({} as ClarificationResponse['updates']);
   const merged = mergeContext(receipt, u);
-  const category = parsed.category_change_needed && parsed.new_category ? parsed.new_category : receipt.category!;
+  const category = (parsed.category_change_needed && validCategoryChange(parsed.new_category)) || receipt.category!;
   const { decision, patch } = await recomputeDecision(
     category,
     receipt.amount_cents,
@@ -580,8 +592,9 @@ export async function processCorrection(
   const amountCorrected = typeof u.amount === 'number' && u.amount > 0;
   const amountCents = amountCorrected ? Math.round(u.amount! * 100) : receipt.amount_cents;
 
-  const categoryChanged = parsed.category_change_needed === true && !!parsed.new_category;
-  const category = categoryChanged ? parsed.new_category! : receipt.category!;
+  const newCategory = parsed.category_change_needed === true ? validCategoryChange(parsed.new_category) : null;
+  const categoryChanged = !!newCategory;
+  const category = newCategory ?? receipt.category!;
   const { decision, patch } = await recomputeDecision(
     category,
     amountCents,

@@ -3,7 +3,7 @@
 // Run: npm run test
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { looksLikeExpenseCapture, sanitizeIntent, parseFlagTarget, bulkWaiveMessage, matchAgentNameMessage, greetingReply } from './router';
+import { looksLikeExpenseCapture, isFlagRequest, sanitizeIntent, parseFlagTarget, bulkWaiveMessage, matchAgentNameMessage, greetingReply } from './router';
 
 test('fast-path: obvious captures skip the classifier', () => {
   assert.equal(looksLikeExpenseCapture('$48 lunch with Sarah re partnership'), true);
@@ -175,4 +175,13 @@ test('editTarget: unsure with no candidates asks about the 5 newest', () => {
 
 test('editTarget: no expenses at all → none', () => {
   assert.deepEqual(editTarget(edit(null), []), { none: true });
+});
+
+test('isFlagRequest: flag/CPA commands vs. expenses that mention them', () => {
+  for (const t of ['flag the $48 lunch', 'flag this for my cpa', 'Flag it', 'please flag the Morton’s dinner', 'mark the uber for my CPA']) {
+    assert.equal(isFlagRequest(t), true, t);
+  }
+  for (const t of ['$120 dinner with my CPA', '$30 flag banner for the booth', 'Paid my CPA $400 for taxes']) {
+    assert.equal(isFlagRequest(t), false, t);
+  }
 });

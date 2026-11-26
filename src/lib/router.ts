@@ -239,7 +239,15 @@ async function runQuery(orgId: string, intent: Extract<Intent, { kind: 'query' }
 
 // "Flag for my CPA" — the router's only mutation (low-risk boolean; DEC-038/039). Regex-gated,
 // no classifier. Targets by amount/vendor; asks "which one?" when ambiguous.
-const FLAG_CPA_RE = /\bflag\b|\bcpa\b/i;
+// "flag" only as a command (leading, or followed by what it flags), so "$30 flag banner" is an
+// expense; "CPA" only when the text isn't itself an expense, so "$120 dinner with my CPA" logs.
+const FLAG_VERB_RE = /^\s*(?:pls |please |can you |could you )?flag\b|\bflag\s+(?:the|this|that|it|my|for|as|last|these|those|\$)/i;
+const CPA_RE = /\bcpa\b/i;
+
+/** Is this a "flag for my CPA" request (vs. an expense that mentions a flag or a CPA)? Pure. */
+export function isFlagRequest(text: string): boolean {
+  return FLAG_VERB_RE.test(text) || (CPA_RE.test(text) && !looksLikeExpenseCapture(text));
+}
 
 // Talking to the assistant about its name (DEC-086). Deterministic, no classifier call.
 const ASK_NAME_RE = /\b(what'?s|what is|whats)\s+(your|ur)\s+name\b|\bwho\s+(are|r)\s+(you|u)\b|\bwhat\s+(should|do)\s+i\s+call\s+(you|u)\b/i;
@@ -480,7 +488,7 @@ async function answerCapability(text: string): Promise<ProcessResult> {
 /** Deterministic router fast paths that never need the model: "flag for my CPA" and agent-name
  *  messages. Null = not one of these. */
 export async function routeFastPath(user: AppUser, text: string): Promise<ProcessResult | null> {
-  if (FLAG_CPA_RE.test(text)) return flagForCpa(user, text);
+  if (isFlagRequest(text)) return flagForCpa(user, text);
   const nameMsg = matchAgentNameMessage(text);
   return nameMsg ? agentNameReply(user, nameMsg) : null;
 }
