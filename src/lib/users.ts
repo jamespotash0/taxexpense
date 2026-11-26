@@ -33,6 +33,8 @@ export interface AppUser {
   sms_consent_at: string | null;
   sms_opted_out_at: string | null;
   linq_card_shared_at?: string | null; // Penny's contact card dropped into their chat (DEC-087)
+  // Co-owner invite not yet accepted (migration 0035): 'invited' → asked YES/NO → NULL.
+  join_status?: 'invited' | 'asked' | null;
 }
 
 /** Look up a user by E.164 phone. Returns null if not found. */
@@ -44,6 +46,19 @@ export async function getUserByPhone(phoneE164: string): Promise<AppUser | null>
     .maybeSingle();
   if (error) throw error;
   return (data as AppUser | null) ?? null;
+}
+
+/** A new organization on a fresh trial. TRIAL_DAYS is the single source of truth, shared with
+ *  the landing/pricing copy so they can never drift. */
+async function createTrialOrg(): Promise<{ id: string }> {
+  const trialEndsAt = new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  const { data, error } = await getSupabaseAdmin()
+    .from('organizations')
+    .insert({ subscription_tier: 'free', subscription_status: 'trialing', trial_ends_at: trialEndsAt })
+    .select('id')
+    .single();
+  if (error) throw error;
+  return data as { id: string };
 }
 
 /**
@@ -69,15 +84,8 @@ export async function getOrCreateUserByPhone(
 
   const admin = getSupabaseAdmin();
 
-  // 1. Create the organization with a fresh trial (DEC-021 hybrid paywall). TRIAL_DAYS is the
-  // single source of truth — shared with the landing/pricing copy so they can never drift.
-  const trialEndsAt = new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString();
-  const { data: org, error: orgErr } = await admin
-    .from('organizations')
-    .insert({ subscription_tier: 'free', subscription_status: 'trialing', trial_ends_at: trialEndsAt })
-    .select('id')
-    .single();
-  if (orgErr) throw orgErr;
+  // 1. Create the organization with a fresh trial (DEC-021 hybrid paywall).
+  const org = await createTrialOrg();
 
   // 2. Create the user in that org. First inbound SMS = TCPA consent timestamp.
   const { data: user, error: userErr } = await admin
@@ -227,6 +235,8 @@ export async function inviteToOrg(
       default_payment_account: inviterProfile.default_payment_account,
       onboarding_completed: false,
       onboarding_step: 0,
+      // Their texts don't reach these books until they accept (resolveJoinConsent).
+      join_status: 'invited',
       // sms_consent_at intentionally omitted — first inbound is the TCPA opt-in.
     })
     .select('id')
@@ -242,6 +252,63 @@ export async function inviteToOrg(
 }
 
 /** Patch arbitrary user fields (onboarding answers, settings). */
+/** Pure: a reply to "join X's Tally?" → yes / no / unclear. */
+export function joinAnswer(text: string): 'yes' | 'no' | null {
+  const t = text.trim().toLowerCase().replace(/[.!\s]+$/, '');
+  if (/^(y|yes|yep|yeah|yup|join|ok|okay|sure)$/.test(t)) return 'yes';
+  if (/^(n|no|nope|nah|my own|own)$/.test(t)) return 'no';
+  return null;
+}
+
+/**
+ * Invite consent (audit 2026-11-26). An owner can pre-seed any unregistered phone into their org,
+ * so the invitee must accept before anything they text lands in (and is visible to) those books.
+ * Returns a reply to send (and stop), or null with the updated user to continue normally:
+ * YES → joined; NO → moved to a fresh org of their own and onboarded like any new user.
+ */
+export async function resolveJoinConsent(user: AppUser, text: string): Promise<{ reply: string | null; user: AppUser }> {
+  const owner = await getOrgOwner(user.organization_id);
+  const who = owner?.full_name ? firstWord(owner.full_name) : 'Someone';
+  const ask = `${who} added you to share their Tally expense records. Reply YES to join them, or NO to start your own account.`;
+
+  if (user.join_status === 'invited') {
+    await updateUser(user.id, { join_status: 'asked' });
+    return { reply: `Hi! ${ask}`, user: { ...user, join_status: 'asked' } };
+  }
+
+  const answer = joinAnswer(text);
+  if (!answer) return { reply: ask, user };
+  if (answer === 'yes') {
+    await updateUser(user.id, { join_status: null });
+    log.info('invite_accepted', { org: user.organization_id, user: user.id });
+    return { reply: null, user: { ...user, join_status: null } };
+  }
+
+  // NO: detach into their own org, dropping the business fields copied from the inviter.
+  const admin = getSupabaseAdmin();
+  const org = await createTrialOrg();
+  const reset = {
+    organization_id: org.id,
+    join_status: null,
+    business_type: null,
+    entity_type: null,
+    default_payment_account: null,
+    onboarding_step: 0,
+  } as const;
+  const results = await Promise.all([
+    admin.from('users').update(reset).eq('id', user.id),
+    admin.from('organizations').update({ owner_user_id: user.id }).eq('id', org.id),
+    admin.from('user_roles').update({ organization_id: org.id, role: 'owner' }).eq('user_id', user.id),
+  ]);
+  for (const r of results) if (r.error) throw r.error;
+  log.info('invite_declined', { from_org: user.organization_id, user: user.id });
+  return { reply: null, user: { ...user, ...reset } };
+}
+
+function firstWord(name: string): string {
+  return name.trim().split(/\s+/)[0];
+}
+
 export async function updateUser(userId: string, patch: Partial<AppUser>): Promise<void> {
   const { error } = await getSupabaseAdmin().from('users').update(patch).eq('id', userId);
   if (error) throw error;

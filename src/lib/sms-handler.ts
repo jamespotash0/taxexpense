@@ -3,7 +3,7 @@
 // This function owns the conversation flow and ALWAYS sends exactly one reply.
 
 import { normalizeToE164 } from './phone';
-import { getOrCreateUserByPhone, getUserByPhone, touchLastActive, updateUser, type AppUser } from './users';
+import { getOrCreateUserByPhone, getUserByPhone, touchLastActive, updateUser, resolveJoinConsent, type AppUser } from './users';
 import { notifyAdminNewSignup } from './admin-notify';
 import { loadTurnContext, interpretTurn, canSkipInterpreter, type TurnContext, type TurnDecision } from './turn';
 import { logConversation, isNewestInbound, getPendingContext, countRecentInbound, getPendingAmount, type ContextState, type PendingContext } from './conversations';
@@ -620,7 +620,8 @@ async function handleInboundSmsInner(msg: InboundMessage): Promise<void> {
 
   // TCPA opt-out / opt-in keywords (EPIC-7). Twilio also handles STOP at the carrier
   // level; we record state so reminders/outbound respect it.
-  const keyword = msg.body.trim().toUpperCase();
+  // Trailing punctuation/emoji-free: "Stop." and "stop!" are opt-outs too.
+  const keyword = msg.body.trim().toUpperCase().replace(/[^A-Z]+$/, '');
   if (['STOP', 'STOPALL', 'UNSUBSCRIBE', 'CANCEL', 'END', 'QUIT'].includes(keyword)) {
     await updateUser(user.id, { sms_opted_out_at: new Date().toISOString() });
     return; // Twilio sends the carrier opt-out confirmation; stay silent.
@@ -644,6 +645,10 @@ async function handleInboundSmsInner(msg: InboundMessage): Promise<void> {
     await safeSend(phone, "Welcome back! 👋 You're re-subscribed to Tally. Send me an expense anytime.", msg.channel);
     return;
   }
+  // Opted out: the text is logged above (it's still their record), but no processing and no
+  // reply until they send START. The carrier would block a reply anyway; this also stops the
+  // LLM spend, and WhatsApp has no carrier-level STOP to rely on.
+  if (user.sms_opted_out_at) return;
 
   // Inbound rate limit (DEC-034): STOP/START already handled above so opt-out always works.
   // On a flood, skip the LLM-heavy processing to cap cost/abuse — tell them once near the
@@ -667,6 +672,18 @@ async function handleInboundSmsInner(msg: InboundMessage): Promise<void> {
     }
     log.warn('inbound_daily_capped', { user: user.id });
     return;
+  }
+
+  // Co-owner invite not yet accepted: nothing they send reaches the inviter's books until they
+  // reply YES (NO moves them to their own account and onboarding continues normally).
+  if (user.join_status) {
+    const consent = await resolveJoinConsent(user, msg.body);
+    user = consent.user;
+    if (consent.reply) {
+      await safeSend(phone, consent.reply, msg.channel);
+      await logConversation({ userId: user.id, organizationId: user.organization_id, direction: 'outbound', messageText: consent.reply });
+      return;
+    }
   }
 
   // Hybrid paywall (DEC-021): after the 21-day trial (and no active subscription), gate
