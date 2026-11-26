@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { AppShell } from '@/components/AppShell';
 import { Icon } from '@/components/AppIcons';
 
-export const metadata = { title: 'Privacy Policy · Tally' };
+export const metadata = { title: 'Privacy Policy', alternates: { canonical: '/privacy' } };
 
 export default function PrivacyPage() {
   return (

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { AppShell } from '@/components/AppShell';
 import { Icon } from '@/components/AppIcons';
 
-export const metadata = { title: 'Terms & Tax Disclaimer · Tally' };
+export const metadata = { title: 'Terms & Tax Disclaimer', alternates: { canonical: '/terms' } };
 
 export default function TermsPage() {
   return (

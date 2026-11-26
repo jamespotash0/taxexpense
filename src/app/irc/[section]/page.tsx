@@ -2,6 +2,7 @@
 // Tally appends to every categorization SMS. Reads the same irc_summaries the AI cites, so the
 // explanation a user reads here is exactly what drove their categorization. Reference data only
 // (no user data, no auth). Recordkeeping, not tax advice — disclaimer shown.
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getIrcSummary } from '@/lib/irc';
@@ -9,6 +10,17 @@ import { AppShell } from '@/components/AppShell';
 import { Icon } from '@/components/AppIcons';
 
 export const dynamic = 'force-dynamic';
+
+export async function generateMetadata({ params }: { params: Promise<{ section: string }> }): Promise<Metadata> {
+  const { section } = await params;
+  const irc = await getIrcSummary(section);
+  if (!irc) return {};
+  return {
+    title: `IRC §${irc.section_id}: ${irc.title}`,
+    description: irc.short_summary.slice(0, 160),
+    alternates: { canonical: `/irc/${irc.section_id}` },
+  };
+}
 
 export default async function IrcPage({ params }: { params: Promise<{ section: string }> }) {
   const { section } = await params;

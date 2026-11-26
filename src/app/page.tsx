@@ -13,6 +13,43 @@ import { TrafficSource } from '@/components/TrafficSource';
 import { type HeroVariant } from '@/lib/ab';
 import { getI18n } from '@/i18n/server';
 import { geist } from './fonts';
+import { JsonLd } from '@/components/JsonLd';
+import { SITE_URL, SOCIAL_LINKS } from '@/lib/site';
+import { PLANS, TRIAL_DAYS } from '@/lib/pricing';
+
+export const metadata = { alternates: { canonical: '/' } };
+
+// No ratings or reviews here until real ones exist.
+const STRUCTURED_DATA = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': `${SITE_URL}/#org`,
+      name: 'Tally',
+      url: SITE_URL,
+      logo: `${SITE_URL}/icon-512.png`,
+      ...(SOCIAL_LINKS.length && { sameAs: SOCIAL_LINKS.map((s) => s.href) }),
+    },
+    { '@type': 'WebSite', name: 'Tally', url: SITE_URL, publisher: { '@id': `${SITE_URL}/#org` } },
+    {
+      '@type': 'SoftwareApplication',
+      name: 'Tally',
+      url: SITE_URL,
+      applicationCategory: 'FinanceApplication',
+      operatingSystem: 'Any (SMS + web)',
+      description: `Text your business expenses. Tally categorizes each one under the IRS code section and records the business purpose. ${TRIAL_DAYS}-day free trial.`,
+      publisher: { '@id': `${SITE_URL}/#org` },
+      offers: Object.values(PLANS).map((p) => ({
+        '@type': 'Offer',
+        name: p.label,
+        price: (p.priceCents / 100).toFixed(2),
+        priceCurrency: 'USD',
+        url: `${SITE_URL}/pricing`,
+      })),
+    },
+  ],
+};
 
 export default async function Home() {
   const { locale, t } = await getI18n();
@@ -25,6 +62,7 @@ export default async function Home() {
       {/* Records where the visit came from (utm_source/ref or external referrer, e.g. Product Hunt)
           once per session — aggregate channel analytics, no PII (DEC-084). Renders nothing. */}
       <TrafficSource locale={locale} />
+      <JsonLd data={STRUCTURED_DATA} />
 
       <HeroExposure variant={heroVariant} />
 
@@ -106,11 +144,14 @@ export default async function Home() {
             <TallyWordmark onRed />
             <span>© {new Date().getFullYear()} Tally. {t.footer.tagline}</span>
           </div>
-          <nav aria-label="Footer" className="flex gap-6">
+          <nav aria-label="Footer" className="flex flex-wrap gap-x-6 gap-y-2">
             <Link href="/pricing" className="hover:text-white">{t.nav.pricing}</Link>
             <Link href="/login" className="hover:text-white">{t.nav.login}</Link>
             <Link href="/privacy" className="hover:text-white">{t.footer.privacy}</Link>
             <Link href="/terms" className="hover:text-white">{t.footer.terms}</Link>
+            {SOCIAL_LINKS.map((l) => (
+              <a key={l.label} href={l.href} target="_blank" rel="noopener me" className="hover:text-white">{l.label}</a>
+            ))}
           </nav>
         </footer>
       </section>

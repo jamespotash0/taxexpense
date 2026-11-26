@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { PlanPicker } from '@/components/PlanPicker';
 import { LandingFaq } from '@/components/LandingFaq';
+import { JsonLd } from '@/components/JsonLd';
 import { SiteHeader } from '@/components/SiteHeader';
 import { TRIAL_DAYS } from '@/lib/pricing';
 import { BlurFade } from '@/components/Reveal';
@@ -10,7 +11,11 @@ import { getI18n } from '@/i18n/server';
 import { fmt } from '@/i18n/config';
 import { geist } from '../fonts';
 
-export const metadata = { title: 'Pricing · Tally' };
+export const metadata = {
+  title: 'Pricing',
+  description: `Text your business expenses and Tally records the why behind each one. ${TRIAL_DAYS}-day free trial, plans from $9.99/mo.`,
+  alternates: { canonical: '/pricing' },
+};
 
 export default async function PricingPage() {
   const { t } = await getI18n();
@@ -37,6 +42,13 @@ export default async function PricingPage() {
 
         <BlurFade className="mx-auto mt-28 max-w-[48rem] lg:mt-36">
           <LandingFaq t={faq} />
+          <JsonLd
+            data={{
+              '@context': 'https://schema.org',
+              '@type': 'FAQPage',
+              mainEntity: faq.items.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
+            }}
+          />
           <p className="mt-10 text-[0.95rem] text-[#6f726d]">
             {p.notReady}{' '}
             <Link href="/start" className="font-medium text-[#d92d20] underline decoration-[#d92d20]/30 underline-offset-4 hover:decoration-[#d92d20]">

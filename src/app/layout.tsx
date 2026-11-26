@@ -6,13 +6,16 @@ import { MotionProvider } from '@/components/MotionProvider';
 import { SITE_URL } from '@/lib/site';
 
 const TITLE = 'Tally · capture the why';
-const DESCRIPTION = 'Text your business expenses. Tally captures the why, the IRS way.';
+const DESCRIPTION =
+  'Your bank knows what you spent, not why. Text Tally your expenses and it records the business purpose the IRS asks for. Built for freelancers and the self-employed.';
 
 // TSNAP-034 (David): system font stack — no custom web fonts. PWA wiring per DEC-019.
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: TITLE,
+  title: { default: TITLE, template: '%s · Tally' },
   description: DESCRIPTION,
+  applicationName: 'Tally',
+  category: 'finance',
   manifest: '/manifest.webmanifest',
   appleWebApp: { capable: true, title: 'Tally', statusBarStyle: 'default' },
   icons: {
@@ -23,13 +26,11 @@ export const metadata: Metadata = {
     ],
     apple: '/apple-icon.png',
   },
-  alternates: { canonical: '/' },
   openGraph: {
     type: 'website',
     siteName: 'Tally',
     title: TITLE,
     description: DESCRIPTION,
-    url: SITE_URL,
     images: [{ url: '/og.png', width: 1200, height: 630, alt: TITLE }],
   },
   twitter: {

@@ -7,7 +7,7 @@ import { LoginForm } from '@/components/LoginForm';
 import { TallyWordmark } from '@/components/SiteHeader';
 import { getI18n } from '@/i18n/server';
 
-export const metadata = { title: 'Log in · Tally' };
+export const metadata = { title: 'Log in' };
 
 export default async function LoginPage() {
   const { t } = await getI18n();

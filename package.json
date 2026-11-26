@@ -17,6 +17,7 @@
     "eval:image": "node --import tsx --env-file=.env.local scripts/eval/image.ts",
     "eval:conversation": "node --import tsx --env-file=.env.local scripts/eval/conversation.ts",
     "eval:context": "node --import tsx --env-file=.env.local scripts/eval/context-match.ts",
+    "eval:turns": "node --import tsx --env-file=.env.local scripts/eval/turns.ts",
     "eval:intent": "node --import tsx --env-file=.env.local scripts/eval/intent.ts",
     "cache:check": "node --import tsx --env-file=.env.local scripts/eval/cache-check.ts",
     "redteam": "node --import tsx --env-file=.env.local scripts/redteam/run.ts",

@@ -212,15 +212,15 @@ Actions:
 - "answer_open_question": the message replies to what is open right now. Set "answer": "affirm" (yes, looks good, correct, sure track it), "decline" (no, no thanks, nope), or "detail" (adds or corrects something: who it was with, the purpose, the right amount or category, "it was $200"). For a missing-receipt question, also set "resolution": "none" if there is no receipt and won't be (lost it, threw it out, never got one) or "later" if they'll send it.
 - "edit_expense": a correction or detail about a logged expense that is NOT the open question's subject, or when nothing is open ("that was personal", "log as business expense", "business", "it's for work", "make it software", "dinner with Sarah was about the Q3 deal", "the Uber was to the airport"). Set "receipt_id" to the ONE expense it's about, chosen from Recent expenses:
   - Match on what the message names: vendor, kind of expense (hotel, dinner, flight, gas), amount, place, trip. People, purpose, and reasons in the message are the NEW detail, so they won't appear in the list.
-  - A message that names nothing ("that one", "it's business", "that was personal", "log as business") means the most recent expense, if it was logged under 2 hours ago. Don't pick an older expense just because it's already business.
+  - A message that names nothing ("that one", "it's business", "that was personal", "log as business") means the MOST RECENT expense when it was logged under 2 hours ago: set receipt_id to it, even if older expenses are listed. Don't pick an older expense just because it's already business. EXCEPTION: if another expense of the same kind or vendor was logged within an hour of the most recent one (two Ubers, two coffees), it's ambiguous: receipt_id null, both in candidates.
   - If two or more could fit (two Ubers, two hotels, a whole trip), or none fits, set "receipt_id": null and list the possible ids in "candidates". Never guess between them.
-- "query": asks about logged expenses (totals, recent charges, a breakdown, a year review). Set "tool" ("aggregate" | "breakdown" | "recent" | "review_year"), "category" or null, "period" ("this_month","last_month","this_quarter","this_year","last_year","all") or null, "count" for recent or null.
+- "query": asks about logged expenses (totals, recent charges, a breakdown, a year review). Set "tool" ("aggregate" for a total or "how much", "breakdown" for spend by category, "recent" for latest charges, "review_year"), "category" or null, "period" ("this_month","last_month","this_quarter","this_year","last_year","all") or null, "count" for recent or null.
 - "command": "export" or "email my accountant". Set "command": "export" | "email_accountant".
 - "advice": asks for tax advice (what they'll owe, whether something is deductible, what they should do).
 - "capability": asks how Tally works or whether it can do something.
 - "explain_why": asks why Tally needs something it asked for ("why do you need that?", "what's that for?").
-- "receipt_resolution": replies about receipts still missing a photo when NO receipt question is open (e.g. answering a weekly reminder). Set "resolution": "none" or "later".
-- "help": a greeting, thanks, "ok", "lol", "nvm", bare "help", or "what can you do".
+- "receipt_resolution": replies about receipts still missing a photo when NO receipt question is open (e.g. answering a weekly reminder). ONLY when "Receipts still missing a photo" is above 0; otherwise never use it. Set "resolution": "none" or "later".
+- "help": a greeting, thanks, "ok", "lol", "nvm", bare "help", or the open-ended "what can you do?" (a question about ONE specific feature is "capability").
 - "other": off-topic, nothing to do with expenses.
 
 Return ONLY:
