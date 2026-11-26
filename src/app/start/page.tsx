@@ -33,10 +33,7 @@ export default async function StartPage() {
 
       <div className="hero-wash mx-auto mt-3 grid max-w-[80rem] items-center gap-12 overflow-hidden rounded-[32px] px-6 py-12 sm:rounded-[40px] sm:px-10 lg:grid-cols-[1.1fr_0.9fr] lg:px-14 lg:py-16">
         <div>
-          <span className="inline-flex rounded-full bg-white px-3.5 py-1.5 text-[0.85rem] font-medium text-[#d92d20] ring-1 ring-black/[0.06]">
-            {o.startBadge}
-          </span>
-          <h1 className="mt-6 text-balance text-[clamp(2.4rem,5vw,3.75rem)] font-medium leading-[1.05] tracking-[-0.04em]">{o.startTitle}</h1>
+          <h1 className="text-balance text-[clamp(2.4rem,5vw,3.75rem)] font-medium leading-[1.05] tracking-[-0.04em]">{o.startTitle}</h1>
           <p className="mt-5 max-w-[30rem] text-pretty text-[1.15rem] leading-[1.5] text-[#4a4d48]">{register ? o.startSubRegister : o.startSub}</p>
 
           <StartTextButton
