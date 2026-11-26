@@ -102,7 +102,7 @@ src/
 ├── lib/                     # Core logic (categorize, substantiation, ocr,
 │                            #   sms-handler, router, agents, billing, csv…)
 │                            #   — most have colocated *.test.ts files
-supabase/migrations/         # SQL schema & migrations (run RUN_ALL.sql to set up)
+supabase/migrations/         # SQL schema & migrations (apply the numbered files in order)
 scripts/                     # Evals, red-team harness, screenshot tooling
 claude_files/                # Product docs, specs, prompts, team personas
 ```
@@ -176,9 +176,10 @@ NEXT_PUBLIC_SENTRY_DSN=
 
 ### 3. Set up the database
 
-Run the SQL migrations against your Supabase project. The consolidated script is at
-[`supabase/migrations/RUN_ALL.sql`](./supabase/migrations/RUN_ALL.sql) (or apply the numbered
-migrations in order).
+Apply the numbered SQL migrations in [`supabase/migrations/`](./supabase/migrations/) to your
+Supabase project in order (`supabase db push`, or paste each into the SQL editor). Each is
+idempotent. (The old consolidated `RUN_ALL.sql` was removed: it had drifted to 0021 and re-running
+it would overwrite newer seed data.)
 
 ### 4. Run the dev server
 

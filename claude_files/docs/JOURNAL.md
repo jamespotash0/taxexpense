@@ -3013,3 +3013,29 @@ under default-deny for V1; only add an anon read policy if rendering them client
   with a pending "how much?" partial (only an answer does); a reminder reply with nothing to waive
   gets the greeting, not capture.
 - **Cost.** ~$0.0002 per routed text; replaces the classifier + picker calls, so about flat.
+
+### DEC-106 — Security audit fixes: idempotency, invite consent, durable quotas (2026-11-26)
+- **Why.** Full-app audit (API/authz, DB, SMS+AI pipeline, ops). First batch (OTP race, account
+  deletion, OCR-update whitelist, CSV injection, headers, CVEs) landed in commits 0e93edb..be68556.
+  This entry covers the second batch, which needs **migration 0035 applied before deploy**.
+- **Idempotency.** `webhook_events` table: Twilio (MessageSid), Linq (webhook-id), Stripe (event.id)
+  claim before processing; a repeat is skipped. Fails open (missing table / DB blip → process).
+  Stripe releases the claim on handler failure so the retry runs. Twilio route now acks and
+  processes in `after()` like Linq.
+- **Stripe ordering.** subscription.* events re-read the live subscription and apply its current
+  state, only if it's the org's current subscription. Checkout puts orgId on subscription metadata.
+- **Co-owner invite consent.** `users.join_status`: an invitee's first text gets "X added you…
+  Reply YES to join, or NO to start your own." Nothing they send reaches the inviter's books until
+  YES; NO detaches them into a fresh trial org. Pre-0035 invite rows (NULL) count as joined.
+- **Durable quotas** (`rate_events`, `isOverQuota`, `requirePaidQuota`): accountant email 5/org/day
+  (shared by both send routes), month-end agent 3/org/day, memo scan 5/org/day, all also gated on
+  entitlement. hero-optin: 2/phone/day + 200/day global (the DEC-027 re-enable gate).
+- **Other.** OTP codes stored as HMAC (keyed with the service-role key). Opted-out users: inbound
+  logged, not processed. STOP matching ignores trailing punctuation. Media fetch: exact host
+  allowlist per provider, 10s timeout, 10MB cap, images only. Anthropic `maxRetries: 1`. Model
+  category changes must be a real category. "flag"/"CPA" fast path only on commands. Max 5 extra
+  charges per text. Daily purge of old auth codes/sessions/claims/quota rows (in trial-reminders
+  cron). `RUN_ALL.sql` deleted (stale at 0021, would overwrite meals rule). /start carries full
+  A2P opt-in disclosure (frequency, rates, HELP, STOP, Terms/Privacy).
+- **Not done (founder call).** CI, staging, env validation, Sentry alerting/scrubbing, full CSP,
+  Vercel Pro, unscheduled crons, Caribbean NANP denylist (use Twilio Geo-Permissions instead).

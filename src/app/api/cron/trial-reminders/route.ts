@@ -14,12 +14,15 @@ import { trialEndedSms } from '@/lib/prompts';
 import { subscribeUrl } from '@/lib/subscribe-link';
 import { sendSms } from '@/lib/twilio';
 import { log, maskPhone } from '@/lib/log';
+import { purgeExpiredRecords } from '@/lib/retention';
 
 export async function GET(req: Request): Promise<NextResponse> {
   const denied = requireCron(req);
   if (denied) return denied;
 
   const now = new Date();
+  // Piggybacks on this daily cron: expired login codes, sessions, webhook claims, quota hits.
+  await purgeExpiredRecords(now).catch((err) => log.warn('retention_purge_failed', { message: err instanceof Error ? err.message : 'unknown' }));
 
   let orgs;
   try {

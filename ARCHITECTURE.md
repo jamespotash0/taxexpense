@@ -152,7 +152,7 @@ redteam`). See README for the full list.
 ## 6. Data model
 
 Defined in [`supabase/migrations/`](./supabase/migrations/) (start at `0001_schema.sql`; apply all
-via `RUN_ALL.sql`). Core tables:
+in numeric order). Core tables:
 
 | Table | Purpose |
 |-------|---------|
