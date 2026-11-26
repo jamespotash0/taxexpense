@@ -339,7 +339,7 @@ function cappedReply(decision: Extract<UsageDecision, { kind: 'block_daily' | 'b
   const smsText =
     decision.kind === 'block_daily'
       ? `Wow, busy day! 😅 I've saved every one so far. Give me a bit to catch up on new ones so nothing gets garbled. Everything so far is on your dashboard: ${appBase()}.`
-      : `You've hit your plan's expense limit for the year. Everything's saved and exportable! If you're logging this much, let's get you on a plan that fits: email support@tallywhy.com.`;
+      : `You've hit your plan's expense limit for the year. Everything's saved and exportable! If you're logging this much, see the plans at ${appBase()}/pricing.`;
   return { smsText, receiptId: null, contextState: null };
 }
 
@@ -363,7 +363,7 @@ function withAnnualNudge(decision: UsageDecision, result: ProcessResult): Proces
   if (decision.kind !== 'warn_annual') return result;
   return {
     ...result,
-    smsText: `${result.smsText}\n\nHeads up, you're getting close to your yearly expense limit (${decision.used}/${ANNUAL_RECEIPT_QUOTA}). Logging a lot? Email support@tallywhy.com about a high-volume plan.`,
+    smsText: `${result.smsText}\n\nHeads up, you're getting close to your yearly expense limit (${decision.used}/${ANNUAL_RECEIPT_QUOTA}). Logging a lot? See the plans at ${appBase()}/pricing.`,
   };
 }
 
@@ -632,7 +632,7 @@ async function handleInboundSmsInner(msg: InboundMessage): Promise<void> {
   if (['HELP', 'INFO'].includes(keyword)) {
     await safeSend(
       phone,
-      "Tally here! I log your business expenses by text. Need a hand? Email support@tallywhy.com. Msg & data rates may apply. Reply STOP to opt out.",
+      `Tally here! I log your business expenses by text. Need a hand? Visit ${appBase()}. Msg & data rates may apply. Reply STOP to opt out.`,
       msg.channel,
     );
     return;

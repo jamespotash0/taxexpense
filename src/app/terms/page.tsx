@@ -1,6 +1,6 @@
 // Terms of Service + Tax Disclaimer (EPIC-5). OWNER: Jordan. V1 draft pending legal review.
 // Uses "documentation complete," never "audit-ready"/"audit-proof" (liability).
-import { LegalPage, legalLink as link } from '@/components/LegalPage';
+import { LegalPage } from '@/components/LegalPage';
 
 export const metadata = { title: 'Terms & Tax Disclaimer', alternates: { canonical: '/terms' } };
 
@@ -32,8 +32,7 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
     title: 'SMS terms',
     body: (
       <>
-        Tally is a recurring automated text-messaging program that lets you log business expenses by text and receive expense confirmations, follow-up questions, account notifications, and one-time login passcodes. By submitting your number on our site or texting Tally, you consent to receive these messages. Consent is not a condition of purchase. Message frequency varies based on your activity. Message &amp; data rates may apply. Reply HELP for help or contact{' '}
-        <a className={link} href="mailto:support@tallywhy.com">support@tallywhy.com</a>. Reply STOP to opt out at any time. Carriers are not liable for delayed or undelivered messages.
+        Tally is a recurring automated text-messaging program that lets you log business expenses by text and receive expense confirmations, follow-up questions, account notifications, and one-time login passcodes. By submitting your number on our site or texting Tally, you consent to receive these messages. Consent is not a condition of purchase. Message frequency varies based on your activity. Message &amp; data rates may apply. Reply HELP for help. Reply STOP to opt out at any time. Carriers are not liable for delayed or undelivered messages.
       </>
     ),
   },

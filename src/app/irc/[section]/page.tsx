@@ -6,8 +6,11 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getIrcSummary } from '@/lib/irc';
-import { AppShell } from '@/components/AppShell';
-import { Icon } from '@/components/AppIcons';
+import { SiteHeader } from '@/components/SiteHeader';
+import { BackLink } from '@/components/BackLink';
+import { legalLink } from '@/components/LegalPage';
+import { getI18n } from '@/i18n/server';
+import { geist } from '@/app/fonts';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,46 +36,52 @@ export default async function IrcPage({ params }: { params: Promise<{ section: s
     { label: 'Worth noting', body: irc.worth_noting },
   ];
 
+  const { t } = await getI18n();
+
   return (
-    <AppShell wordmarkHref="/" width="max-w-2xl">
-      <article className="pb-6 pt-4 sm:pt-8">
-        <h1 className="text-[2.25rem] font-bold leading-[1.1] tracking-[-0.035em] text-balance sm:text-[2.75rem]">
-          <span className="block text-primary">IRC §{irc.section_id}</span>
-          {irc.title}
-        </h1>
-        {irc.deduction_percentage != null && (
-          <p className="chip mt-5 h-8 bg-primary-50 px-3.5 text-sm text-primary">Typically {irc.deduction_percentage}% deductible</p>
-        )}
+    <div className={`${geist.className} min-h-screen bg-white text-[#101210] antialiased selection:bg-[#fdecea]`}>
+      <SiteHeader login={t.nav.login} getStarted={t.nav.getStarted} pricing={t.nav.pricing} />
 
-        <div className="mt-10 space-y-8">
-          {sections
-            .filter((s) => s.body)
-            .map((s) => (
-              <section key={s.label}>
-                <h2 className="text-lg font-bold tracking-[-0.02em]">{s.label}</h2>
-                <p className="mt-2 max-w-[65ch] text-[1.0625rem] leading-relaxed text-foreground/80">{s.body}</p>
-              </section>
-            ))}
-        </div>
+      <main className="px-5 pb-28 pt-10 sm:px-6 lg:pt-14">
+        <article className="mx-auto max-w-[44rem]">
+          <BackLink />
+          <h1 className="mt-8 text-balance text-[clamp(2.5rem,5vw,4rem)] font-normal leading-[1.04] tracking-[-0.04em]">
+            <span className="block text-[#d92d20]">IRC §{irc.section_id}</span>
+            {irc.title}
+          </h1>
+          {irc.deduction_percentage != null && (
+            <p className="mt-5 text-[1.05rem] text-[#6f726d]">Typically {irc.deduction_percentage}% deductible.</p>
+          )}
 
-        {irc.source_url && (
-          <p className="mt-10 text-[0.9375rem] text-muted">
-            Read the statute:{' '}
-            <a href={irc.source_url} target="_blank" rel="noopener noreferrer" className="break-all font-semibold text-primary hover:underline">
-              {irc.source_url.replace(/^https?:\/\//, '')}
-            </a>
+          <div className="mt-14 border-t border-black/[0.08]">
+            {sections
+              .filter((s) => s.body)
+              .map((s) => (
+                <section key={s.label} className="border-b border-black/[0.08] py-8">
+                  <h2 className="text-[1.3rem] font-normal tracking-[-0.015em]">{s.label}</h2>
+                  <p className="mt-3 max-w-[62ch] text-[1rem] leading-relaxed text-[#4a4d48]">{s.body}</p>
+                </section>
+              ))}
+          </div>
+
+          {irc.source_url && (
+            <p className="mt-10 text-[0.95rem] text-[#6f726d]">
+              Read the statute:{' '}
+              <a href={irc.source_url} target="_blank" rel="noopener noreferrer" className={`break-all ${legalLink}`}>
+                {irc.source_url.replace(/^https?:\/\//, '')}
+              </a>
+            </p>
+          )}
+
+          <p className="mt-4 text-[0.95rem] text-[#6f726d]">
+            Recordkeeping, not tax advice. For your specific situation, consult a licensed tax professional.
           </p>
-        )}
 
-        <p className="mt-10 border-t border-border pt-6 text-sm text-muted">
-          Recordkeeping, not tax advice. For your specific situation, consult a licensed tax professional.
-        </p>
-
-        <Link href="/start" className="btn btn-primary mt-8">
-          Capture the why with Tally
-          <Icon name="chevron" size={18} />
-        </Link>
-      </article>
-    </AppShell>
+          <Link href="/start" className="mt-10 inline-flex rounded-full bg-[#101210] px-5 py-3 text-[0.95rem] font-medium text-white transition-colors hover:bg-[#d92d20]">
+            Capture the why with Tally
+          </Link>
+        </article>
+      </main>
+    </div>
   );
 }
