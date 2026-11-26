@@ -83,9 +83,9 @@ export function offerRecurring(vendor: string | null, amountCents: number, reaso
   return `I've seen ${label(vendor, amountCents)} before! Want me to track it monthly so you don't have to re-text it? Reply YES.`;
 }
 
-/** Confirmation that a template is now tracked. */
-export function recurringCreatedMsg(vendor: string | null, amountCents: number): string {
-  return `✓ You got it, tracking ${label(vendor, amountCents)} monthly. I'll check in before each one, and nothing gets logged until you confirm.`;
+/** Confirmation that a template is now tracked. No "✓"/"got it": the YES already got a tapback. */
+export function recurringCreatedMsg(): string {
+  return `Added subscription. I'll check in before each one so you can confirm.`;
 }
 
 /** The monthly nudge (cron-initiated). */

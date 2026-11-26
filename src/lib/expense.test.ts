@@ -48,7 +48,7 @@ test('withRecategorizedTaxLine: a recategorized correction shows category, deduc
   });
   assert.doesNotMatch(out, /Allows businesses/);
   assert.match(out, /^Got it, thanks for the heads up!/);
-  assert.match(out, /Now filed under Supplies \(100% deductible\), §162 \(https?:\/\/[^)]+\/irc\/162\)\./);
+  assert.match(out, /Now filed under Supplies \(typically 100% deductible\), §162 \(https?:\/\/[^)]+\/irc\/162\)\./);
   assert.ok(!out.includes(DISCLAIMER_LINE));
 });
 

@@ -74,8 +74,7 @@ test('offerRecurring: repeat reason (seen before)', () => {
 });
 
 test('recurringCreatedMsg copy', () => {
-  assert.match(recurringCreatedMsg('Figma', 4900), /tracking Figma \$49\.00 monthly/);
-  assert.match(recurringCreatedMsg('Figma', 4900), /nothing gets logged until you confirm/);
+  assert.equal(recurringCreatedMsg(), "Added subscription. I'll check in before each one so you can confirm.");
 });
 
 test('confirmRenewalMsg asks Y/N', () => {

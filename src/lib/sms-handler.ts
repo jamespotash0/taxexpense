@@ -315,7 +315,7 @@ async function handleRecurringOptin(user: AppUser, receiptId: string): Promise<P
   const receipt = await getReceipt(user.organization_id, receiptId);
   if (!receipt) return null;
   await createRecurringFromReceipt(receipt, todayISO());
-  return { smsText: recurringCreatedMsg(receipt.vendor, receipt.amount_cents), receiptId, contextState: null };
+  return { smsText: recurringCreatedMsg(), receiptId, contextState: null };
 }
 
 /** Y/N to a monthly "did it renew?" nudge → log the occurrence (normal flow) or skip; roll forward. */

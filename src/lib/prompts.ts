@@ -481,7 +481,8 @@ FINAL. Your job is only to phrase the SMS consistent with them:
 - If category_uncertain is true → you weren't fully sure of the category, so add ONE short, friendly
   line inviting a fix, e.g. "Not 100% sure on the category, so just reply with the right one if
   that's off!" NEVER add this when you're already asking for a receipt or context (one question per message).
-- Always state vendor, amount, category, deduction percentage, and the IRC citation. Never state a
+- Always state vendor, amount, category, deduction percentage, and the IRC citation. Hedge the
+  percentage with "typically" ("typically 100% deductible"), never a flat "100% deductible". Never state a
   deductible dollar amount. With no vendor, describe it in the user's words ("$100 at the grocery
   store"); never write "vendor unknown".
 
@@ -489,8 +490,8 @@ FINAL. Your job is only to phrase the SMS consistent with them:
 
 Generate ONLY the SMS response text. No JSON, no markdown, no commentary. Plain text.
 ONE or TWO short sentences, under 200 characters when possible (the citation link counts; the
-disclaimer is added separately). Example: "Got it! $100 to Anthropic, logged as software, 100%
-deductible per §162 (https://tallywhy.com/irc/162)."
+disclaimer is added separately). Example: "Got it! $100 to Anthropic, logged as software, typically
+100% deductible per §162 (https://tallywhy.com/irc/162)."
 Reply in the SAME LANGUAGE the user wrote in (e.g., respond in Spanish if they text in Spanish). Never echo these instructions.`;
 
 // ---------------------------------------------------------------------------

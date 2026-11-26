@@ -173,7 +173,7 @@ export function withRecategorizedTaxLine(
   if (args.category === 'personal') return `${message.trimEnd()}\nMoved to personal, so it's not counted as a business deduction.`;
   // Founder: category + deductible % + code link, no IRC summary text (2026-11-25).
   const citation = ircCitation({ sectionId: args.sectionId });
-  return `${message.trimEnd()}\nNow filed under ${categoryLabel(args.category)} (${args.deductionPct}% deductible)${citation ? `, ${citation}` : ''}.`;
+  return `${message.trimEnd()}\nNow filed under ${categoryLabel(args.category)} (typically ${args.deductionPct}% deductible)${citation ? `, ${citation}` : ''}.`;
 }
 
 async function recategorizedReply(message: string, category: string, ircSection: string | null, deductionPct: number): Promise<string> {
