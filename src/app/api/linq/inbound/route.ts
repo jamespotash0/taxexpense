@@ -67,6 +67,10 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   const msg = parseLinqInbound(parsed);
   if (msg) {
+    // How long Linq took to hand us the text (webhook-timestamp = when Linq sent it). Separates
+    // "Linq was slow" from "we were slow" when a reply feels late.
+    const sentSec = Number(req.headers.get('webhook-timestamp'));
+    if (sentSec) log.info('linq_inbound_lag', { ms: Date.now() - sentSec * 1000 });
     after(async () => {
       try {
         // "Read" + "..." while Penny thinks, like a friend about to reply.

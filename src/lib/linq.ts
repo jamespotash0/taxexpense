@@ -93,8 +93,14 @@ export async function sendLinq(to: string, body: string, opts: SendOptions = {})
  */
 export async function showReadAndTyping(chatId: string): Promise<void> {
   const base = `${LINQ_API}/chats/${encodeURIComponent(chatId)}`;
-  await fetch(`${base}/read`, { method: 'POST', headers: headers() }).catch(() => {});
-  await fetch(`${base}/typing`, { method: 'POST', headers: headers() }).catch(() => {});
+  // In parallel so the bubble isn't stuck behind the read receipt's round trip. Log rejections:
+  // a missing bubble (e.g. on a brand-new chat) was otherwise invisible.
+  await Promise.all(
+    (['typing', 'read'] as const).map(async (action) => {
+      const res = await fetch(`${base}/${action}`, { method: 'POST', headers: headers() }).catch(() => null);
+      if (!res?.ok) log.warn(`linq_${action}_failed`, { status: res?.status ?? null });
+    }),
+  );
 }
 
 /** Tapback a message (❤️ / 👍). Best-effort; iMessage only. */

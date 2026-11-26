@@ -236,7 +236,17 @@ export interface ParsedAdditionalExpense {
 /** Raw additional-charge object as the merged prompt returns it (same fields as the top level). */
 type RawAdditional = Partial<ParsedTextExpense> & RawCategoryFields;
 
+/** The message's only number IS the parsed amount ("100 grocery", "$1,200 lens"), so there is
+ *  nothing to misread and no conflicting figure: the "did I read that right?" check is noise.
+ *  Two+ numbers (overrides, splits, dates) fall back to the model's own confidence. */
+export function amountIsUnambiguous(text: string, amount: number | null): boolean {
+  if (amount == null) return false;
+  const nums = text.match(/\d[\d,]*(?:\.\d+)?/g) ?? [];
+  return nums.length === 1 && Number(nums[0].replace(/,/g, '')) === amount;
+}
+
 function toParsedExpense(raw: Partial<ParsedTextExpense>, fallbackText: string): ParsedTextExpense {
+  const confidence = typeof raw.confidence === 'number' ? raw.confidence : 0;
   return {
     amount: raw.amount ?? null,
     vendor: raw.vendor ?? null,
@@ -246,7 +256,7 @@ function toParsedExpense(raw: Partial<ParsedTextExpense>, fallbackText: string):
     business_miles: raw.business_miles ?? null,
     location_city: raw.location_city ?? null,
     raw_text: raw.raw_text ?? fallbackText,
-    confidence: typeof raw.confidence === 'number' ? raw.confidence : 0,
+    confidence: amountIsUnambiguous(fallbackText, raw.amount ?? null) ? Math.max(confidence, 0.9) : confidence,
   };
 }
 

@@ -24,6 +24,8 @@ export interface AppUser {
   // Null until generated at first expense; categorization falls back to the bare business_type line.
   business_profile: BusinessProfile | null;
   default_payment_account: 'business' | 'personal' | 'unknown' | null;
+  work_location: 'home' | 'office' | 'both' | 'unknown' | null; // home-office relevance (§280A)
+  drives_for_work: boolean | null; // vehicle/mileage relevance (§274(d))
   accountant_email: string | null;
   onboarding_completed: boolean;
   onboarding_step: number;
@@ -91,8 +93,11 @@ export async function getOrCreateUserByPhone(
   if (userErr) throw userErr;
 
   // 3. Backfill org owner + an owner role (best-effort; non-fatal).
-  await admin.from('organizations').update({ owner_user_id: user.id }).eq('id', org.id);
-  await admin.from('user_roles').insert({ user_id: user.id, organization_id: org.id, role: 'owner' });
+  // Independent writes: run together so a first text pays one round trip here, not two.
+  await Promise.all([
+    admin.from('organizations').update({ owner_user_id: user.id }).eq('id', org.id),
+    admin.from('user_roles').insert({ user_id: user.id, organization_id: org.id, role: 'owner' }),
+  ]);
 
   log.info('user_created', { org: org.id, phone: maskPhone(phoneE164) });
   return { user: user as AppUser, isNew: true };

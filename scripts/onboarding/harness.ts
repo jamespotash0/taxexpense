@@ -9,7 +9,6 @@ import type { AppUser } from '../../src/lib/users';
 export interface SimStore {
   user: AppUser;
   orgName: string | null;
-  leads: unknown[];
   deps: OnboardingDeps;
 }
 
@@ -36,7 +35,6 @@ export function makeStore(overrides: Partial<AppUser> = {}): SimStore {
   const store: SimStore = {
     user,
     orgName: null,
-    leads: [],
     deps: {
       getOrganizationName: async () => store.orgName,
       updateUser: async (_id, patch) => {
@@ -47,9 +45,6 @@ export function makeStore(overrides: Partial<AppUser> = {}): SimStore {
       },
       // Solo owner: owner is the user themselves → no co-owner "join" greeting.
       getOrgOwner: async () => ({ id: store.user.id, full_name: store.user.full_name }),
-      insertLead: async (lead) => {
-        store.leads.push(lead);
-      },
     },
   };
   return store;

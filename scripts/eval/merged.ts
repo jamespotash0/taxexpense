@@ -46,8 +46,26 @@ async function pool<T, R>(items: T[], n: number, fn: (t: T) => Promise<R>): Prom
 
 async function grade(c: EvalCase): Promise<Outcome> {
   try {
-    const { category } = await parseAndCategorizeText(c.input.raw_text, TEST_USER);
-    return { c, got: category.category, confidence: category.confidence, correct: category.category === c.expected };
+    const { parsed, category } = await parseAndCategorizeText(
+      c.input.raw_text,
+      c.businessType ? ({ ...TEST_USER, business_type: c.businessType } as AppUser) : TEST_USER,
+    );
+    // Messy cases also grade the extraction: amount normalized, no generic-word vendor, and
+    // confident enough to skip the "Quick check" amount verify (EXTRACTION_CONFIDENCE_FLOOR 0.7).
+    const parseErrors: string[] = [];
+    if (c.tags.includes('messy')) {
+      const cents = parsed.amount == null ? null : Math.round(parsed.amount * 100);
+      if (cents !== (c.input.amount_cents ?? null)) parseErrors.push(`amount ${cents}`);
+      if ((parsed.vendor ?? null)?.toLowerCase() !== (c.input.vendor ?? null)?.toLowerCase()) parseErrors.push(`vendor ${parsed.vendor}`);
+      if (parsed.confidence < 0.7) parseErrors.push(`extract conf ${parsed.confidence}`);
+    }
+    return {
+      c,
+      got: category.category,
+      confidence: category.confidence,
+      correct: category.category === c.expected && parseErrors.length === 0,
+      error: parseErrors.length ? parseErrors.join(', ') : undefined,
+    };
   } catch (err) {
     return { c, got: 'ERROR', confidence: 0, correct: false, error: err instanceof Error ? err.message : 'unknown' };
   }
@@ -64,7 +82,7 @@ async function main() {
   for (const o of results) {
     const ambiguous = o.c.tags.includes('ambiguous');
     const mark = o.correct ? '✓' : ambiguous ? '~' : '✗';
-    const detail = o.correct ? '' : `expected ${o.c.expected}, got ${o.got}`;
+    const detail = o.correct ? '' : `expected ${o.c.expected}, got ${o.got}${o.error ? ` [${o.error}]` : ''}`;
     console.log(`  ${mark} ${o.c.id.padEnd(26)} ${o.got.padEnd(22)} conf ${o.confidence.toFixed(2)}  ${detail}`);
   }
 

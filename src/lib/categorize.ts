@@ -42,7 +42,11 @@ export interface CategoryResult {
 }
 
 export function userContextLine(user: AppUser): string {
-  const base = `Business type: ${user.business_type ?? 'unknown'}; Entity: ${user.entity_type ?? 'unknown'}`;
+  // Quoted + labeled: it's the user's own free text, so the model reads it as data, not instructions.
+  const work = user.business_type ? JSON.stringify(user.business_type) : 'unknown';
+  let base = `Business type (user's own words): ${work}; Entity: ${user.entity_type ?? 'unknown'}`;
+  if (user.work_location && user.work_location !== 'unknown') base += `; Works from: ${user.work_location}`;
+  if (user.drives_for_work != null) base += `; Drives for work: ${user.drives_for_work ? 'yes' : 'no'}`;
   // Profession-aware prior (Spec 09): when present, append the structured profile so every
   // categorization path (standalone, merged OCR/text, and the response composer) sees it. Absent
   // → unchanged behavior. This is the single seam all four call sites funnel through.

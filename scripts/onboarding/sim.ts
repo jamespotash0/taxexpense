@@ -28,11 +28,11 @@ function show(title: string, turns: { user: string; tally: string }[], s: SimSto
 const SCENARIOS: { title: string; messages: string[] }[] = [
   {
     title: 'Sole proprietor — IS asked for a business name',
-    messages: ['hi', 'Jane', 'freelance photographer', 'sole prop', 'Jane Photography', 'business', 'tax season stress'],
+    messages: ['hi', 'Jane', 'freelance photographer', 'home', 'yes', 'sole prop', 'Jane Photography', 'business'],
   },
   {
     title: '1099 / "not sure" — business-name question is SKIPPED',
-    messages: ['hi', 'Sam', 'rideshare driver', 'not sure', 'mixed', 'skip'],
+    messages: ['hi', 'Sam', 'rideshare driver', 'on the road', 'yes', 'not sure', 'mixed'],
   },
   {
     title: 'Adversarial — weird inputs are NEVER stored, they re-ask',
@@ -40,7 +40,7 @@ const SCENARIOS: { title: string; messages: string[] }[] = [
   },
   {
     title: 'LLC — business name skipped by the user',
-    messages: ['hi', 'Dana', 'consultant', 'LLC', 'skip', 'personal', 'no thanks'],
+    messages: ['hi', 'Dana', 'consultant', 'office', 'no', 'LLC', 'skip', 'personal'],
   },
 ];
 
