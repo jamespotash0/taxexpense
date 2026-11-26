@@ -116,6 +116,7 @@ const en = {
     // Linq shared line (DEC-089): the visitor registers their number first, so no number shows yet.
     startSubRegister: 'Enter your mobile number and we’ll open a text to Tally. Send your first expense from there. No app to install.',
     startDesktopNoteRegister: 'On a computer? Enter your number, then text the number shown from your phone.',
+    startAddContact: 'You’re in. Save this number as a contact, then text it “hi” to get started.',
     startHaveAccount: 'Already set up?',
     startPhonePlaceholder: 'Your mobile number',
     startPhoneError: "That number didn't work. Check it and try again.",
@@ -477,6 +478,7 @@ const es: Dict = {
     startDesktopNote: '¿En una computadora? Escribe al número de arriba desde tu teléfono para empezar.',
     startSubRegister: 'Ingresa tu número de celular y abriremos un mensaje a Tally. Envía tu primer gasto desde ahí. Sin instalar ninguna app.',
     startDesktopNoteRegister: '¿En una computadora? Ingresa tu número y luego escribe desde tu teléfono al número que aparece.',
+    startAddContact: 'Listo. Guarda este número como contacto y luego escríbele “hola” para empezar.',
     startHaveAccount: '¿Ya tienes cuenta?',
     startPhonePlaceholder: 'Tu número de celular',
     startPhoneError: 'Ese número no funcionó. Revísalo e inténtalo de nuevo.',

@@ -10,7 +10,7 @@ type Props = {
   register: boolean;
   number: string;
   smsHref: string;
-  t: { text: string; placeholder: string; error: string };
+  t: { text: string; placeholder: string; error: string; addContact: string };
 };
 
 const btn =
@@ -31,6 +31,7 @@ export function StartTextButton({ register, number, smsHref, t }: Props) {
   if (done) {
     return (
       <>
+        {register && <p className="mt-9 max-w-[32rem] text-[1.05rem] sm:hidden text-[#4a4d48]">{t.addContact}</p>}
         <p className="mt-9 text-[2.25rem] font-medium tracking-[-0.03em] text-[#101210]">{number}</p>
         <a href={smsHref} className={`${btn} mt-5`}>
           {icon}
@@ -51,8 +52,8 @@ export function StartTextButton({ register, number, smsHref, t }: Props) {
     }).catch(() => null);
     setBusy(false);
     if (!res?.ok) return setError(true);
+    // No auto-open of Messages: they need to see the save-contact step first (Linq shared line).
     setDone(true);
-    window.location.href = smsHref;
   }
 
   return (

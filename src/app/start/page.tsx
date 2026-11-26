@@ -12,7 +12,7 @@ import { StartTextButton } from '@/components/StartTextButton';
 import { TallyWordmark } from '@/components/SiteHeader';
 import { HeroThread } from '@/components/HeroThread';
 
-export const metadata = { title: 'Get started · Tally' };
+export const metadata = { title: 'Get started' };
 
 export default async function StartPage() {
   const { t } = await getI18n();
@@ -43,7 +43,7 @@ export default async function StartPage() {
             register={register}
             number={number}
             smsHref={smsHref}
-            t={{ text: o.startText, placeholder: o.startPhonePlaceholder, error: o.startPhoneError }}
+            t={{ text: o.startText, placeholder: o.startPhonePlaceholder, error: o.startPhoneError, addContact: o.startAddContact }}
           />
 
           <p className="mt-5 text-[0.88rem] text-[#6f726d]">{register ? o.startDesktopNoteRegister : o.startDesktopNote}</p>
